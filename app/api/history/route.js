@@ -10,10 +10,11 @@ export async function GET(request) {
   if (!student) return Response.json({ intraday: [], daily: [] });
   const { searchParams } = new URL(request.url);
   let classId = searchParams.get('classId');
+  const range  = searchParams.get('range') || '1W';
   if (!classId) {
     const { data: cs } = await db.from('class_students').select('class_id').eq('student_id', student.id).order('joined_at', { ascending: false }).limit(1).single();
     classId = cs?.class_id;
   }
   if (!classId) return Response.json({ intraday: [], daily: [] });
-  return Response.json(await getPortfolioHistory(student.id, classId));
+  return Response.json(await getPortfolioHistory(student.id, classId, range));
 }
