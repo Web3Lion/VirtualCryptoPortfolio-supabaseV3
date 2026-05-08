@@ -1,4 +1,6 @@
-"use client";
+git add .
+git commit -m "consistent nav + theme toggle all pages + fix light theme mixing"
+git push origin HEAD:main --force"use client";
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
