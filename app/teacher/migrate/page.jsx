@@ -184,29 +184,41 @@ function parseStudentSheet(csv, studentName, studentEmail) {
   });
 
   // ── Step 6: Parse badges ──────────────────────────────────
-  // Badges appear in cols 4-6 area as "Name\n✅ M/D" or "Name\n✅ M/D/YYYY"
-  const earnedBadgeNames = new Set();
+  // Scan ALL columns for cells containing ✅ — badges can be anywhere
+  const earnedBadgeSet = new Set();
+  const badgeList = [];
+
   rows.forEach(row => {
-    [3,4,5,6,7].forEach(col => {
-      const cell = String(row[col]||'').trim();
+    row.forEach((rawCell) => {
+      const cell = String(rawCell||'').replace(/"/g,'').replace(/\t/g,' ').trim();
       if (!cell.includes('✅')) return;
-      // Extract name (first line before \n or ✅)
-      const lines = cell.split(/\n/);
-      const nameLine = lines[0].trim();
+
+      // Extract date
       const dateMatch = cell.match(/✅\s*(\d+\/\d+(?:\/\d+)?)/);
-      if (nameLine && !nameLine.includes('✅') && nameLine.length > 2) {
-        const badgeId = BADGE_MAP[nameLine] || null;
-        if (badgeId) {
-          earnedBadgeNames.add(JSON.stringify({
-            name: nameLine,
-            badgeId,
-            earnedAt: dateMatch ? cleanDate(dateMatch[1] + (dateMatch[1].includes('202') ? '' : '/2026')) : new Date().toISOString(),
-          }));
-        }
+      let earnedAt = null;
+      if (dateMatch) {
+        let d = dateMatch[1];
+        if (d.split('/').length === 2) d += '/2026';
+        try { earnedAt = new Date(d).toISOString(); } catch {}
       }
+      if (!earnedAt) earnedAt = new Date().toISOString();
+
+      // Extract badge name: remove emoji, ✅, date, then take first line
+      let name = cell
+        .replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27FF}\u{2B00}-\u{2BFF}]+/gu, '')
+        .replace(/✅.*$/m, '')
+        .split('\n')[0]
+        .replace(/[""]/g, '')
+        .trim();
+
+      if (!name || name.length < 3) return;
+      const badgeId = BADGE_MAP[name];
+      if (!badgeId) return;
+      if (earnedBadgeSet.has(badgeId)) return;
+      earnedBadgeSet.add(badgeId);
+      badgeList.push({ name, badgeId, earnedAt });
     });
   });
-  const badgeList = [...earnedBadgeNames].map(s => JSON.parse(s));
 
   return {
     name:      studentName,
