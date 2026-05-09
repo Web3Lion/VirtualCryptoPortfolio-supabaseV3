@@ -58,7 +58,7 @@ function LineChart({ data, studentNames }) {
       const y = PAD.t + t * iH;
       ctx.beginPath(); ctx.moveTo(PAD.l, y); ctx.lineTo(W - PAD.r, y); ctx.stroke();
       const val = maxV - t * range;
-      ctx.fillStyle = 'rgba(128,128,128,.7)'; ctx.font = '10px monospace'; ctx.textAlign = 'right';
+      ctx.fillStyle = '#475569'; ctx.font = '10px monospace'; ctx.textAlign = 'right';
       ctx.fillText('$' + Math.round(val).toLocaleString(), PAD.l - 6, y + 4);
     });
 
@@ -66,7 +66,7 @@ function LineChart({ data, studentNames }) {
     const step = Math.max(1, Math.floor(data.length / 8));
     data.forEach((d, i) => {
       if (i % step !== 0) return;
-      ctx.fillStyle = 'rgba(128,128,128,.7)'; ctx.font = '9px monospace'; ctx.textAlign = 'center';
+      ctx.fillStyle = '#475569'; ctx.font = '9px monospace'; ctx.textAlign = 'center';
       ctx.fillText(d.date, xS(i), H - 8);
     });
 
@@ -104,7 +104,7 @@ function LineChart({ data, studentNames }) {
   }, [data, studentNames]);
 
   if (!data?.length) return (
-    <div style={{height:280,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--muted,#475569)',fontSize:12}}>
+    <div style={{height:280,display:'flex',alignItems:'center',justifyContent:'center',color:'#475569',fontSize:12}}>
       No history data yet — snapshots appear after 24 hours of activity
     </div>
   );
@@ -115,7 +115,7 @@ function LineChart({ data, studentNames }) {
 // ── Donut / Pie Chart ─────────────────────────────────────────
 function DonutChart({ slices, size = 200, innerText = '', innerSub = '' }) {
   const total = slices.reduce((s, sl) => s + sl.value, 0);
-  if (!total) return <div style={{height:size,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--muted,#475569)',fontSize:12}}>No data</div>;
+  if (!total) return <div style={{height:size,display:'flex',alignItems:'center',justifyContent:'center',color:'#475569',fontSize:12}}>No data</div>;
 
   const cx = size / 2, cy = size / 2;
   const R = size * 0.38, inn = size * 0.24;
@@ -138,7 +138,7 @@ function DonutChart({ slices, size = 200, innerText = '', innerSub = '' }) {
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{overflow:'visible'}}>
       {paths}
-      <circle cx={cx} cy={cy} r={inn - 2} fill="var(--surface,#0f172a)"/>
+      <circle cx={cx} cy={cy} r={inn - 2} fill="#0f172a"/>
       {innerText && <text x={cx} y={cy - 4} textAnchor="middle" fill="#e2e8f0" fontSize={size*0.072} fontFamily="'Syne',sans-serif" fontWeight="700">{innerText}</text>}
       {innerSub  && <text x={cx} y={cy + 14} textAnchor="middle" fill="#475569" fontSize={size*0.052}>{innerSub}</text>}
     </svg>
@@ -155,8 +155,8 @@ function Legend({ items, totalValue }) {
           <div key={i} style={{display:'flex',alignItems:'center',gap:8}}>
             <div style={{width:10,height:10,borderRadius:3,background:item.color,flexShrink:0}}/>
             <div style={{flex:1,fontSize:11,color:'#e2e8f0',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{item.label}</div>
-            <div style={{fontSize:10,color:'var(--muted,#475569)',flexShrink:0}}>{pct}%</div>
-            <div style={{fontSize:10,color:'var(--muted,#475569)',flexShrink:0,minWidth:60,textAlign:'right'}}>{fmtUSD(item.value)}</div>
+            <div style={{fontSize:10,color:'#475569',flexShrink:0}}>{pct}%</div>
+            <div style={{fontSize:10,color:'#475569',flexShrink:0,minWidth:60,textAlign:'right'}}>{fmtUSD(item.value)}</div>
           </div>
         );
       })}
@@ -174,15 +174,17 @@ export default function Leaderboard() {
   const [chartsLoading, setChartsLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState(null);
   const [activeTab, setActiveTab]   = useState('standings');
+  const [chartRange, setChartRange]  = useState('1W');
 
   useEffect(() => { applyTheme(getTheme()); }, []);
   useEffect(()=>{ if(status==='unauthenticated') router.replace('/'); },[status,router]);
 
-  const fetchAll = useCallback(async () => {
+  const fetchAll = useCallback(async (range) => {
     try {
+      const r = range || chartRange;
       const [lbRes, chartRes] = await Promise.all([
         fetch('/api/leaderboard'),
-        fetch('/api/leaderboard/charts'),
+        fetch(`/api/leaderboard/charts?range=${r}`),
       ]);
       if (lbRes.ok)    { setStudents(await lbRes.json()); setLoading(false); }
       if (chartRes.ok) { setCharts(await chartRes.json()); setChartsLoading(false); }
@@ -197,6 +199,10 @@ export default function Leaderboard() {
       return () => clearInterval(iv);
     }
   },[status, fetchAll]);
+
+  useEffect(()=>{
+    if(status==='authenticated') fetchAll(chartRange);
+  },[chartRange]);
 
   if(status==='loading'||status==='unauthenticated') return (
     <div style={{background:'var(--bg,#080c14)',minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',color:'var(--muted)'}}>Loading...</div>
@@ -236,7 +242,7 @@ export default function Leaderboard() {
         .chart-inner{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
         .podium{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px}
         .podium-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:20px;text-align:center}
-        .podium-card.first{border-color:rgba(245,158,11,.4);background:var(--surface)}
+        .podium-card.first{border-color:rgba(245,158,11,.4);background:linear-gradient(135deg,#0f172a,#1a1a00)}
         .podium-card.second{border-color:rgba(148,163,184,.3)}
         .podium-card.third{border-color:rgba(205,127,50,.3)}
         .lb-table{width:100%;border-collapse:collapse}
@@ -348,8 +354,20 @@ export default function Leaderboard() {
             <>
               {/* Portfolio Value Over Time */}
               <div className="card">
-                <div className="card-title">📈 Portfolio Value Over Time</div>
-                <div className="card-sub">Daily snapshots — all students</div>
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:8,marginBottom:4}}>
+                  <div className="card-title" style={{marginBottom:0}}>📈 Portfolio Value Over Time</div>
+                  <div style={{display:'flex',gap:4}}>
+                    {['1D','3D','1W','1M','3M','ALL'].map(r=>(
+                      <button key={r} onClick={()=>setChartRange(r)} style={{
+                        padding:'4px 10px',borderRadius:8,border:'1px solid var(--border)',
+                        background:chartRange===r?'var(--accent)':'transparent',
+                        color:chartRange===r?'#fff':'var(--muted)',
+                        fontFamily:"'DM Mono',monospace",fontSize:11,cursor:'pointer',transition:'all .2s'
+                      }}>{r}</button>
+                    ))}
+                  </div>
+                </div>
+                <div className="card-sub">{['1D','3D','1W'].includes(chartRange)?'Intraday snapshots':'Daily snapshots'} — all students</div>
 
                 {/* Legend */}
                 <div style={{display:'flex',gap:16,flexWrap:'wrap',marginBottom:16}}>
