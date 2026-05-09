@@ -3,6 +3,9 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import NewsTab from "./news-tab";
+import ThemeToggle from "@/components/ThemeToggle";
+import { applyTheme, getTheme } from "@/lib/theme";
 
 const fmtUSD = n => { const x=parseFloat(n); return isNaN(x)?'$0.00':new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(x); };
 const fmtPct = n => { const x=parseFloat(n); return isNaN(x)?'0.00%':(x>=0?'+':'')+x.toFixed(2)+'%'; };
@@ -19,14 +22,13 @@ export default function Teacher() {
   const [actionMsg, setActionMsg] = useState(null);
   const [activeSection, setActiveSection] = useState('overview');
   const [freezeMsg, setFreezeMsg] = useState('');
-  const [headline, setHeadline] = useState('');
-  const [headlineUrl, setHeadlineUrl] = useState('');
   const [flashCoin, setFlashCoin] = useState('');
   const [flashPct, setFlashPct]   = useState('20');
   const [newStudentName, setNewStudentName]   = useState('');
   const [newStudentEmail, setNewStudentEmail] = useState('');
   const [classCoins, setClassCoins] = useState([]);
 
+  useEffect(() => { applyTheme(getTheme()); }, []);
   useEffect(()=>{ if(status==='unauthenticated') router.replace('/'); },[status,router]);
 
   const fetchData = async (classId) => {
@@ -36,17 +38,24 @@ export default function Teacher() {
       ]);
       if(clsRes.ok) {
         const cls = await clsRes.json();
-        setClasses(cls);
-        const cid = classId || activeClass?.id || cls[0]?.id;
-        const active = cls.find(c=>c.id===cid) || cls[0];
+        const clsArr = Array.isArray(cls) ? cls : [];
+        setClasses(clsArr);
+        const cid = classId || activeClass?.id || clsArr[0]?.id;
+        const active = clsArr.find(c=>c.id===cid) || clsArr[0];
         setActiveClass(active);
         if(active) {
           const [lbRes, coinsRes] = await Promise.all([
             fetch(`/api/leaderboard?classId=${active.id}`),
             fetch(`/api/coins?classId=${active.id}`),
           ]);
-          if(lbRes.ok)    setStudents(await lbRes.json());
-          if(coinsRes.ok) setClassCoins(await coinsRes.json());
+          if(lbRes.ok) {
+            const lb = await lbRes.json();
+            setStudents(Array.isArray(lb) ? lb : []);
+          }
+          if(coinsRes.ok) {
+            const coins = await coinsRes.json();
+            setClassCoins(Array.isArray(coins) ? coins : []);
+          }
         }
       }
       if(mktRes.ok) setMarketStatus(await mktRes.json());
@@ -56,7 +65,9 @@ export default function Teacher() {
 
   useEffect(()=>{ if(status==='authenticated') fetchData(); },[status]);
 
-  if(status==='loading'||status==='unauthenticated') return <div style={{background:'#080c14',minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',color:'#475569'}}>Loading...</div>;
+  if(status==='loading'||status==='unauthenticated') return (
+    <div style={{background:'var(--bg,#080c14)',minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',color:'var(--muted,#475569)'}}>Loading...</div>
+  );
 
   const teacherAction = async (endpoint, body={}) => {
     setActionMsg({type:'pending',msg:'Processing...'});
@@ -73,7 +84,8 @@ export default function Teacher() {
     if (!symbol || !activeClass) return;
     const res = await fetch('/api/coins?source=coingecko');
     const all  = await res.json();
-    const coin = all.find(c => c.symbol === symbol.toUpperCase());
+    const allArr = Array.isArray(all) ? all : [];
+    const coin = allArr.find(c => c.symbol === symbol.toUpperCase());
     if (!coin) { setActionMsg({type:'error',msg:`Coin ${symbol} not found`}); return; }
     await fetch('/api/coins',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({classId:activeClass.id,coins:[coin]})});
     setActionMsg({type:'success',msg:`✅ ${symbol} added`});
@@ -88,7 +100,7 @@ export default function Teacher() {
 
   const humans    = students.filter(s=>!s.isBot);
   const classAvg  = humans.length ? humans.reduce((s,r)=>s+clean(r.returnPct),0)/humans.length : 0;
-  const profitable= humans.filter(s=>clean(s.pl)>0).length;
+  const profitable = humans.filter(s=>clean(s.pl)>0).length;
 
   return (
     <>
@@ -98,7 +110,7 @@ export default function Teacher() {
         :root{--bg:#080c14;--surface:#0f172a;--surface2:#1a2235;--border:#1e293b;--accent:#00e5a0;--up:#00e5a0;--down:#f43f5e;--text:#e2e8f0;--muted:#475569;--gold:#f59e0b}
         body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;min-height:100vh}
         .page{max-width:1200px;margin:0 auto;padding:24px 16px}
-        .nav{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;margin-bottom:28px;background:rgba(15,23,42,.8);border:1px solid var(--border);border-radius:16px;backdrop-filter:blur(12px);flex-wrap:wrap;gap:10px}
+        .nav{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;margin-bottom:28px;background:var(--surface);border:1px solid var(--border);border-radius:16px;flex-wrap:wrap;gap:10px}
         .logo{font-family:'Syne',sans-serif;font-weight:800;font-size:16px}.logo span{color:var(--accent)}
         .nav-links{display:flex;gap:8px;flex-wrap:wrap}
         .nav-link{padding:6px 14px;border-radius:8px;font-size:11px;text-decoration:none;color:var(--muted);letter-spacing:1px;transition:all .2s;text-transform:uppercase}
@@ -113,11 +125,11 @@ export default function Teacher() {
         .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
         .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:18px}
         .stat-label{font-size:9px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:6px}
-        .stat-value{font-family:'Syne',sans-serif;font-weight:700;font-size:24px}
+        .stat-value{font-family:'Syne',sans-serif;font-weight:700;font-size:24px;color:var(--text)}
         .stat-value.up{color:var(--up)}.stat-value.down{color:var(--down)}.stat-value.gold{color:var(--gold)}
         .controls-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
         .ctrl-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:22px}
-        .ctrl-title{font-family:'Syne',sans-serif;font-weight:700;font-size:15px;margin-bottom:6px}
+        .ctrl-title{font-family:'Syne',sans-serif;font-weight:700;font-size:15px;margin-bottom:6px;color:var(--text)}
         .ctrl-desc{font-size:11px;color:var(--muted);margin-bottom:14px;line-height:1.6}
         .status-pill{display:inline-flex;align-items:center;gap:6px;font-size:11px;padding:4px 10px;border-radius:8px;margin-bottom:12px}
         .status-pill.on{background:rgba(0,229,160,.1);color:var(--up)}.status-pill.off{background:rgba(71,85,105,.2);color:var(--muted)}.status-pill.warn{background:rgba(245,158,11,.1);color:var(--gold)}
@@ -128,6 +140,8 @@ export default function Teacher() {
         .btn-muted{background:var(--surface2);color:var(--text);border:1px solid var(--border)}.btn-muted:hover{border-color:var(--accent);color:var(--accent)}
         .btn-accent{background:var(--accent);color:#000}.btn-accent:hover{background:#00ffb0}
         .btn-row{display:flex;gap:8px;flex-wrap:wrap}
+        .tools-divider{border-top:1px solid var(--border);padding-top:12px;margin-top:12px}
+        .tools-label{font-size:9px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px}
         .text-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-family:'DM Mono',monospace;font-size:12px;outline:none;transition:border-color .2s;margin-bottom:10px}
         .text-input:focus{border-color:var(--accent)}
         .form-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -136,7 +150,7 @@ export default function Teacher() {
         .student-table th{font-size:9px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;padding:10px 14px;text-align:left;border-bottom:1px solid var(--border)}
         .srow{border-bottom:1px solid rgba(30,41,59,.4);transition:background .15s}
         .srow:hover{background:rgba(0,229,160,.03)}
-        .srow td{padding:12px 14px;font-size:12px}
+        .srow td{padding:12px 14px;font-size:12px;color:var(--text)}
         .coin-tag{display:inline-flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:4px 10px;font-size:11px;margin:3px}
         .action-msg{position:fixed;bottom:24px;right:24px;padding:14px 20px;border-radius:14px;font-size:13px;z-index:999;border:1px solid}
         .action-msg.success{background:rgba(0,229,160,.1);color:var(--up);border-color:rgba(0,229,160,.3)}
@@ -146,6 +160,7 @@ export default function Teacher() {
         @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
         @media(max-width:640px){.stats-grid{grid-template-columns:1fr 1fr}.controls-grid{grid-template-columns:1fr}}
       `}</style>
+
       <div className="page">
         <nav className="nav">
           <div className="logo">CRYPTO<span>CLASS</span></div>
@@ -153,15 +168,15 @@ export default function Teacher() {
             <Link href="/dashboard" className="nav-link">Wallet</Link>
             <Link href="/leaderboard" className="nav-link">Leaderboard</Link>
             <Link href="/market" className="nav-link">Market</Link>
+            <Link href="/news" className="nav-link">News</Link>
             <a href="/teacher" className="nav-link active">Teacher</a>
           </div>
           <div style={{display:'flex',gap:8,alignItems:'center'}}>
+            <ThemeToggle/>
             <div className="teacher-badge">👨‍🏫 TEACHER</div>
-            <button className="btn btn-accent" style={{fontSize:11}} onClick={()=>router.push('/teacher/setup')}>+ New Class</button>
           </div>
         </nav>
 
-        {/* Class Selector */}
         {classes.length > 0 && (
           <div className="class-selector">
             <span style={{fontSize:11,color:'var(--muted)'}}>CLASS:</span>
@@ -176,7 +191,7 @@ export default function Teacher() {
         {classes.length === 0 && !loading && (
           <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:20,padding:48,textAlign:'center',marginBottom:24}}>
             <div style={{fontSize:48,marginBottom:16}}>🎓</div>
-            <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:20,marginBottom:8}}>No Classes Yet</div>
+            <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:20,marginBottom:8,color:'var(--text)'}}>No Classes Yet</div>
             <div style={{fontSize:12,color:'var(--muted)',marginBottom:24}}>Create your first class to get started</div>
             <button className="btn btn-accent" style={{fontSize:13,padding:'12px 24px'}} onClick={()=>router.push('/teacher/setup')}>+ Create First Class</button>
           </div>
@@ -190,7 +205,11 @@ export default function Teacher() {
               ))}
             </div>
 
-            {loading ? <div style={{display:'flex',flexDirection:'column',gap:12}}>{[1,2,3].map(i=><div key={i} className="skeleton" style={{height:80}}/>)}</div> : (
+            {loading ? (
+              <div style={{display:'flex',flexDirection:'column',gap:12}}>
+                {[1,2,3].map(i=><div key={i} className="skeleton" style={{height:80}}/>)}
+              </div>
+            ) : (
               <>
                 {activeSection==='overview' && (
                   <>
@@ -201,14 +220,22 @@ export default function Teacher() {
                       <div className="stat-card"><div className="stat-label">Market</div><div className={`stat-value ${marketStatus?.frozen?'down':'up'}`}>{marketStatus?.frozen?'🔒 FROZEN':'✓ OPEN'}</div></div>
                     </div>
                     <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:20,padding:22}}>
-                      <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:15,marginBottom:14}}>Quick Actions</div>
-                      <div className="btn-row">
+                      <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:15,marginBottom:14,color:'var(--text)'}}>Quick Actions</div>
+                      <div className="btn-row" style={{marginBottom:12}}>
                         <button className="btn btn-muted" onClick={()=>fetchData(activeClass.id)}>↻ Refresh</button>
                         <button className="btn btn-gold" onClick={()=>setActiveSection('controls')}>⚙ Market Controls</button>
                         <button className="btn btn-muted" onClick={()=>setActiveSection('students')}>👥 Students</button>
-                        <button className="btn btn-muted" onClick={()=>setActiveSection('news')}>📰 Post News</button>
-                        <button className="btn btn-accent" onClick={()=>router.push('/teacher/setup')}>+ New Class</button>
+                        <button className="btn btn-muted" onClick={()=>setActiveSection('news')}>📰 News</button>
                         <Link href={`/leaderboard?classId=${activeClass.id}`} style={{textDecoration:'none'}}><button className="btn btn-muted">🏆 Leaderboard</button></Link>
+                      </div>
+                      <div className="tools-divider">
+                        <div className="tools-label">Tools</div>
+                        <div className="btn-row">
+                          <button className="btn btn-accent" onClick={()=>router.push('/teacher/setup')}>+ New Class</button>
+                          <button className="btn btn-muted" onClick={()=>router.push('/teacher/migrate')}>📦 Migrate from Sheets</button>
+                          <button className="btn btn-muted" onClick={()=>router.push('/market')}>📈 Market & Heatmap</button>
+                          <button className="btn btn-muted" onClick={()=>router.push('/news')}>📰 Student News Page</button>
+                        </div>
                       </div>
                     </div>
                   </>
@@ -274,7 +301,7 @@ export default function Teacher() {
                     </div>
                     <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:20,padding:22,overflowX:'auto'}}>
                       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
-                        <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:15}}>Students ({humans.length})</div>
+                        <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:15,color:'var(--text)'}}>Students ({humans.length})</div>
                         <button className="btn btn-muted" onClick={()=>fetchData(activeClass.id)}>↻ Refresh</button>
                       </div>
                       <table className="student-table">
@@ -325,18 +352,7 @@ export default function Teacher() {
                   </div>
                 )}
 
-                {activeSection==='news' && (
-                  <div className="ctrl-card">
-                    <div className="ctrl-title">📰 Post a Headline</div>
-                    <div className="ctrl-desc">Pushes to all student dashboards.</div>
-                    <input className="text-input" placeholder="🚀 Elon tweets about DOGE — price surging!" value={headline} onChange={e=>setHeadline(e.target.value)}/>
-                    <input className="text-input" placeholder="Optional URL" value={headlineUrl} onChange={e=>setHeadlineUrl(e.target.value)}/>
-                    <div className="btn-row">
-                      <button className="btn btn-gold" onClick={()=>{if(headline){teacherAction('post-headline',{headline,url:headlineUrl});setHeadline('');setHeadlineUrl('');}}} >📰 Post to All Students</button>
-                      <button className="btn btn-muted" onClick={()=>teacherAction('clear-headlines')}>🗑 Clear</button>
-                    </div>
-                  </div>
-                )}
+                {activeSection==='news' && <NewsTab />}
               </>
             )}
           </>
