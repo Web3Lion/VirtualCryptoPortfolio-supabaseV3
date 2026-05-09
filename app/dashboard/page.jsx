@@ -99,13 +99,7 @@ export default function Dashboard() {
       ]);
       if (pRes.ok) { setPortfolio(await pRes.json()); setLastUpdated(new Date()); }
       if (prRes.ok) setPrices(await prRes.json());
-      if (hRes.ok) {
-  const hData = await hRes.json();
-  setHistory({
-    intraday: Array.isArray(hData.intraday) ? hData.intraday : [],
-    daily: Array.isArray(hData.daily) ? hData.daily : [],
-  });
-}
+      if (hRes.ok) setHistory(await hRes.json());
       if (mRes.ok) setMarketStatus(await mRes.json());
       if (meRes.ok) { const me = await meRes.json(); setClassId(me?.classes?.[0]?.id); }
     } catch (e) { console.error(e); }
@@ -181,7 +175,7 @@ export default function Dashboard() {
     fetchWatchlist();
   };
 
-  const { summary, holdings = [], history: trades = [] } = portfolio || {};
+  const { summary, holdings = [], history: tradeHistory = [] } = portfolio || {};
   const cash = clean(summary?.cash);
   const totalVal = clean(summary?.totalVal);
   const pl = clean(summary?.pl);
@@ -504,8 +498,8 @@ export default function Dashboard() {
 
             {activeTab === "history" && (
               <div className="panel">
-                {!trades || trades.length === 0 ? <div className="empty">No trades yet.</div> : (
-                  [...trades].reverse().slice(0, 50).map((t, i) => {
+                {!tradeHistory || tradeHistory.length === 0 ? <div className="empty">No trades yet.</div> : (
+                  [...tradeHistory].reverse().slice(0, 50).map((t, i) => {
                     const isBuy = t.action === "BUY";
                     return (
                       <div className="history-row" key={i}>
