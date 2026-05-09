@@ -186,8 +186,8 @@ export default function Leaderboard() {
         fetch('/api/leaderboard'),
         fetch(`/api/leaderboard/charts?range=${r}`),
       ]);
-      if (lbRes.ok)    { setStudents(await lbRes.json()); setLoading(false); }
-      if (chartRes.ok) { setCharts(await chartRes.json()); setChartsLoading(false); }
+      if (lbRes.ok)    { const lb=await lbRes.json(); setStudents(Array.isArray(lb)?lb:[]); setLoading(false); }
+      if (chartRes.ok) { setCharts(await chartRes.json()); setChartsLoading(false); } else { setChartsLoading(false); }
       setLastUpdated(new Date());
     } catch(e) { console.error(e); setLoading(false); setChartsLoading(false); }
   }, []);
@@ -209,11 +209,11 @@ export default function Leaderboard() {
   );
 
   const medals = ['🥇','🥈','🥉'];
-  const humans = students.filter(s => !s.isBot);
+  const humans = (Array.isArray(students)?students:[]).filter(s => !s.isBot);
 
   // Prepare chart data
-  const coinSlices   = (charts?.coinAllocation   || []).map(c => ({ label: c.coin,   value: c.value, color: getCoinColor(c.coin) }));
-  const sectorSlices = (charts?.sectorAllocation || []).map(s => ({ label: s.sector, value: s.value, color: SECTOR_COLORS[s.sector] || '#475569' }));
+  const coinSlices   = (Array.isArray(charts?.coinAllocation)  ? charts.coinAllocation   : []).map(c => ({ label: c.coin,   value: c.value, color: getCoinColor(c.coin) }));
+  const sectorSlices = (Array.isArray(charts?.sectorAllocation)? charts.sectorAllocation : []).map(s => ({ label: s.sector, value: s.value, color: SECTOR_COLORS[s.sector] || '#475569' }));
   const totalCoin    = coinSlices.reduce((s, c) => s + c.value, 0);
   const totalSector  = sectorSlices.reduce((s, c) => s + c.value, 0);
 
