@@ -99,7 +99,13 @@ export default function Dashboard() {
       ]);
       if (pRes.ok) { setPortfolio(await pRes.json()); setLastUpdated(new Date()); }
       if (prRes.ok) setPrices(await prRes.json());
-      if (hRes.ok) setHistory(await hRes.json());
+      if (hRes.ok) {
+  const hData = await hRes.json();
+  setHistory({
+    intraday: Array.isArray(hData.intraday) ? hData.intraday : [],
+    daily: Array.isArray(hData.daily) ? hData.daily : [],
+  });
+}
       if (mRes.ok) setMarketStatus(await mRes.json());
       if (meRes.ok) { const me = await meRes.json(); setClassId(me?.classes?.[0]?.id); }
     } catch (e) { console.error(e); }
