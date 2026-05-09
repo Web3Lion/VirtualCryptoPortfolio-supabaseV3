@@ -2,114 +2,115 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
 
-const SECTORS = {
-  'Layer 1':    ['BTC','ETH','SOL','ADA','AVAX','DOT','ATOM','NEAR','ALGO','XRP','LTC','BCH','TON','APT','SUI','TRX','VET','HBAR','ICP','FIL'],
-  'Layer 2':    ['MATIC','ARB','OP','IMX','STX'],
-  'DeFi':       ['UNI','AAVE','MKR','CRV','LINK','COMP','GRT','INJ'],
-  'AI / Data':  ['FET','RNDR','WLD','TAO'],
-  'Gaming/NFT': ['SAND','MANA','AXS'],
-  'Memecoin':   ['DOGE','SHIB','PEPE','BONK','FLOKI','WIF'],
-  'Stablecoin': ['USDT','USDC','DAI'],
-  'Exchange':   ['BNB','OKB'],
-};
-
-const RANGE_CONFIG = {
-  '1D':  { hours: 24,  type: 'intraday' },
-  '3D':  { hours: 72,  type: 'intraday' },
-  '1W':  { hours: 168, type: 'intraday' },
-  '1M':  { days: 30,   type: 'daily' },
-  '3M':  { days: 90,   type: 'daily' },
-  'ALL': { days: null,  type: 'daily' },
-};
-
-function getSector(symbol) {
-  for (const [sector, syms] of Object.entries(SECTORS)) {
-    if (syms.includes(symbol?.toUpperCase())) return sector;
-  }
-  return 'Other';
-}
-
 export async function GET(request) {
   const session = await getServerSession(authOptions);
   if (!session) return Response.json({ error: 'Not authenticated' }, { status: 401 });
 
   const { searchParams } = new URL(request.url);
   let classId = searchParams.get('classId');
-  const range = searchParams.get('range') || '1W';
-  const cfg   = RANGE_CONFIG[range] || RANGE_CONFIG['1W'];
 
+  // Find class if not provided
   if (!classId) {
-    const { data } = await db.from('classes').select('id').eq('teacher_email', process.env.TEACHER_EMAIL).order('created_at', { ascending: false }).limit(1).single();
-    classId = data?.id;
+    const email = session.user.email.toLowerCase();
+    // Try teacher's class first
+    const { data: teacherClass } = await db
+      .from('classes')
+      .select('id')
+      .eq('teacher_email', process.env.TEACHER_EMAIL)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+    if (teacherClass) {
+      classId = teacherClass.id;
+    } else {
+      // Find student's class
+      const { data: student } = await db.from('students').select('id').eq('email', email).single();
+      if (student) {
+        const { data: cs } = await db.from('class_students').select('class_id')
+          .eq('student_id', student.id).order('joined_at', { ascending: false }).limit(1).single();
+        classId = cs?.class_id;
+      }
+    }
   }
-  if (!classId) return Response.json({ portfolioHistory: [], coinAllocation: [], sectorAllocation: [] });
+  if (!classId) return Response.json([]);
+
+  // Get class config
+  const { data: cls } = await db.from('classes').select('seed_money, trade_fee').eq('id', classId).single();
+  const seedMoney = parseFloat(cls?.seed_money || 10000);
 
   // Get all students in class
-  const { data: classStudents } = await db.from('class_students').select('student_id, students(id, name, is_bot)').eq('class_id', classId);
-  const students   = (classStudents || []).map(r => r.students).filter(Boolean);
+  const { data: classStudents } = await db
+    .from('class_students')
+    .select('student_id, students(id, name, email, is_bot)')
+    .eq('class_id', classId);
+
+  if (!classStudents?.length) return Response.json([]);
+
+  const students = classStudents.map(r => r.students).filter(Boolean);
+
+  // Get all portfolios, holdings, trades for this class
   const studentIds = students.map(s => s.id);
-  if (!studentIds.length) return Response.json({ portfolioHistory: [], coinAllocation: [], sectorAllocation: [] });
 
-  // ── Portfolio history with range ───────────────────────────
-  const cutoff = cfg.days !== null
-    ? new Date(Date.now() - (cfg.days || 0) * 24 * 60 * 60 * 1000).toISOString()
-    : cfg.hours
-    ? new Date(Date.now() - cfg.hours * 60 * 60 * 1000).toISOString()
-    : null;
+  const [portfoliosRes, holdingsRes, tradesRes, pricesRes] = await Promise.all([
+    db.from('portfolios').select('student_id, cash, fees_paid').in('student_id', studentIds).eq('class_id', classId),
+    db.from('holdings').select('student_id, coin, quantity, avg_buy_price').in('student_id', studentIds).eq('class_id', classId).gt('quantity', 0),
+    db.from('trades').select('student_id').in('student_id', studentIds).eq('class_id', classId),
+    db.from('price_cache').select('symbol, price'),
+  ]);
 
-  let snapQ = db.from('snapshots')
-    .select('student_id, total_value, created_at')
-    .eq('class_id', classId)
-    .eq('snapshot_type', cfg.type)
-    .order('created_at', { ascending: true });
-  if (cutoff) snapQ = snapQ.gte('created_at', cutoff);
+  const portfolioMap = {};
+  (portfoliosRes.data || []).forEach(p => { portfolioMap[p.student_id] = p; });
 
-  const { data: snapshots } = await snapQ;
-
-  // Group by date/time bucket
-  const dateStudentMap = {};
-  (snapshots || []).forEach(snap => {
-    const d = new Date(snap.created_at);
-    const key = cfg.type === 'intraday'
-      ? d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' ' + d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
-      : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    if (!dateStudentMap[key]) dateStudentMap[key] = { _ts: snap.created_at };
-    dateStudentMap[key][snap.student_id] = parseFloat(snap.total_value);
+  const holdingsMap = {};
+  (holdingsRes.data || []).forEach(h => {
+    if (!holdingsMap[h.student_id]) holdingsMap[h.student_id] = [];
+    holdingsMap[h.student_id].push(h);
   });
 
-  const portfolioHistory = Object.entries(dateStudentMap)
-    .sort(([,a],[,b]) => a._ts.localeCompare(b._ts))
-    .map(([date, values]) => {
-      const entry = { date };
-      students.forEach(s => { if (values[s.id]) entry[s.name] = parseFloat(values[s.id].toFixed(2)); });
-      return entry;
+  const tradeCountMap = {};
+  (tradesRes.data || []).forEach(t => {
+    tradeCountMap[t.student_id] = (tradeCountMap[t.student_id] || 0) + 1;
+  });
+
+  const priceMap = {};
+  (pricesRes.data || []).forEach(p => { priceMap[p.symbol] = parseFloat(p.price); });
+
+  // Build leaderboard rows
+  const rows = students.map(student => {
+    const portfolio  = portfolioMap[student.id] || { cash: seedMoney, fees_paid: 0 };
+    const cash       = parseFloat(portfolio.cash) || 0;
+    const feesPaid   = parseFloat(portfolio.fees_paid) || 0;
+    const holdings   = holdingsMap[student.id] || [];
+
+    // Calculate holdings value using current prices
+    let holdingsVal = 0;
+    holdings.forEach(h => {
+      const price = priceMap[h.coin] || parseFloat(h.avg_buy_price) || 0;
+      holdingsVal += parseFloat(h.quantity) * price;
     });
 
-  // ── Coin + sector allocation ───────────────────────────────
-  const { data: holdings } = await db.from('holdings').select('coin, quantity, avg_buy_price').in('student_id', studentIds).eq('class_id', classId).gt('quantity', 0);
-  const coins = [...new Set((holdings || []).map(h => h.coin))];
-  const priceMap = {};
-  if (coins.length > 0) {
-    const { data: prices } = await db.from('price_cache').select('symbol, price').in('symbol', coins);
-    (prices || []).forEach(p => { priceMap[p.symbol] = parseFloat(p.price); });
-  }
-  const coinValueMap = {};
-  (holdings || []).forEach(h => {
-    const price = priceMap[h.coin] || parseFloat(h.avg_buy_price);
-    const value = parseFloat(h.quantity) * price;
-    coinValueMap[h.coin] = (coinValueMap[h.coin] || 0) + value;
-  });
-  const coinAllocation = Object.entries(coinValueMap).map(([coin, value]) => ({ coin, value: parseFloat(value.toFixed(2)) })).sort((a,b) => b.value-a.value).slice(0, 12);
+    const totalVal  = cash + holdingsVal;
+    const pl        = totalVal - seedMoney;
+    const returnPct = ((pl / seedMoney) * 100);
 
-  const sectorValueMap = {};
-  Object.entries(coinValueMap).forEach(([coin, value]) => {
-    const sector = getSector(coin);
-    sectorValueMap[sector] = (sectorValueMap[sector] || 0) + value;
+    return {
+      id:         student.id,
+      name:       student.name,
+      email:      student.email,
+      isBot:      student.is_bot || false,
+      cash:       parseFloat(cash.toFixed(2)),
+      holdingsVal:parseFloat(holdingsVal.toFixed(2)),
+      total:      parseFloat(totalVal.toFixed(2)),
+      pl:         parseFloat(pl.toFixed(2)),
+      returnPct:  parseFloat(returnPct.toFixed(2)),
+      fees:       parseFloat(feesPaid.toFixed(2)),
+      coinCount:  holdings.length,
+      tradeCount: tradeCountMap[student.id] || 0,
+    };
   });
-  const { data: portfolios } = await db.from('portfolios').select('cash').in('student_id', studentIds).eq('class_id', classId);
-  const totalCash = (portfolios || []).reduce((sum, p) => sum + parseFloat(p.cash), 0);
-  if (totalCash > 0) sectorValueMap['Cash'] = totalCash;
-  const sectorAllocation = Object.entries(sectorValueMap).map(([sector, value]) => ({ sector, value: parseFloat(value.toFixed(2)) })).sort((a,b) => b.value-a.value);
 
-  return Response.json({ portfolioHistory, coinAllocation, sectorAllocation, studentNames: students.filter(s=>!s.is_bot).map(s=>s.name), classId, range });
+  // Sort by total value descending
+  rows.sort((a, b) => b.total - a.total);
+
+  return Response.json(rows);
 }
