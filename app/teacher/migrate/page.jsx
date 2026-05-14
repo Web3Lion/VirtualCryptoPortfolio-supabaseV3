@@ -1,6 +1,5 @@
 "use client";
 export const dynamic = "force-dynamic";
-import { db } from '@/lib/db';
 
 const COINGECKO_IDS = {
   BTC:'bitcoin',ETH:'ethereum',SOL:'solana',XRP:'ripple',ADA:'cardano',
