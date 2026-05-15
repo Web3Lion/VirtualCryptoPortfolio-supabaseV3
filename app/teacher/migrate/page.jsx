@@ -165,10 +165,11 @@ function parseStudentSheet(csv, studentName, studentEmail) {
 
   rows.forEach((row, i) => {
     if (i < 5) return;
+    if (intradayHeaderRow >= 0 && i <= intradayHeaderRow) return;
     // Intraday (cols 18-19)
     const ts  = String(row[18]||'').trim();
     const tv  = String(row[19]||'').trim();
-    if (ts && tv && !ts.toLowerCase().includes('timestamp') && !ts.toLowerCase().includes('intraday')) {
+    if (ts && tv && !ts.toLowerCase().includes('timestamp') && !ts.toLowerCase().includes('intraday') && !ts.toLowerCase().includes('portfolio')) {
       const val = cleanNum(tv);
       const dt  = cleanDate(ts);
       if (val > 0 && dt) intradaySnaps.push({ timestamp: dt, value: val, type: 'intraday' });
@@ -191,10 +192,11 @@ function parseStudentSheet(csv, studentName, studentEmail) {
   rows.forEach(row => {
     row.forEach((rawCell) => {
       const cell = String(rawCell||'').replace(/"/g,'').replace(/\t/g,' ').trim();
-      if (!cell.includes('✅')) return;
+      // Check for ✅ BEFORE any emoji stripping (✅ is U+2705, inside emoji range)
+      if (!cell.includes('\u2705') && !cell.includes('✅')) return;
 
-      // Extract date
-      const dateMatch = cell.match(/✅\s*(\d+\/\d+(?:\/\d+)?)/);
+      // Extract date - look for ✅ followed by date
+      const dateMatch = cell.match(/[\u2705✅]\s*(\d+\/\d+(?:\/\d+)?)/);
       let earnedAt = null;
       if (dateMatch) {
         let d = dateMatch[1];
@@ -203,10 +205,10 @@ function parseStudentSheet(csv, studentName, studentEmail) {
       }
       if (!earnedAt) earnedAt = new Date().toISOString();
 
-      // Extract badge name: remove emoji, ✅, date, then take first line
+      // Extract badge name: first remove ✅ and date, then strip other emojis
       let name = cell
-        .replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27FF}\u{2B00}-\u{2BFF}]+/gu, '')
-        .replace(/✅.*$/m, '')
+        .replace(/[\u2705✅].*$/m, '')  // remove ✅ and everything after on same line
+        .replace(/[\u{1F000}-\u{1FFFF}\u{2300}-\u{23FF}\u{2B00}-\u{2BFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]+/gu, '')
         .split('\n')[0]
         .replace(/[""]/g, '')
         .trim();
