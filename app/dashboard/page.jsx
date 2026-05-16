@@ -90,9 +90,6 @@ export default function Dashboard() {
   const [historyLimit, setHistoryLimit] = useState(50);
   const [historyFilter, setHistoryFilter] = useState("ALL");
   const [historySearch, setHistorySearch] = useState("");
-  const [historyLimit, setHistoryLimit] = useState(50);
-  const [historyFilter, setHistoryFilter] = useState('ALL');
-  const [historySearch, setHistorySearch] = useState('');
 
   useEffect(() => { applyTheme(getTheme()); }, []);
 
