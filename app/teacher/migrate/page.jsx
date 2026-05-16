@@ -3,20 +3,34 @@ import { useState, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
-// ── CSV Parser ────────────────────────────────────────────────
+// ── CSV Parser (handles quoted fields with embedded newlines) ──
 function parseCSV(text) {
-  const lines = text.trim().split('\n').filter(Boolean);
-  return lines.map(line => {
-    const cols = [];
-    let cur = '', inQ = false;
-    for (let i = 0; i < line.length; i++) {
-      if (line[i] === '"') { inQ = !inQ; }
-      else if (line[i] === ',' && !inQ) { cols.push(cur.trim()); cur = ''; }
-      else cur += line[i];
+  const rows = [];
+  let cur = '', inQ = false, cols = [];
+  // Process character by character to handle quoted newlines
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === '"') {
+      // Handle escaped quotes ""
+      if (inQ && text[i+1] === '"') { cur += '"'; i++; }
+      else inQ = !inQ;
+    } else if (ch === ',' && !inQ) {
+      cols.push(cur.trim());
+      cur = '';
+    } else if ((ch === '\n' || ch === '\r') && !inQ) {
+      // Skip \r in \r\n
+      if (ch === '\r' && text[i+1] === '\n') continue;
+      cols.push(cur.trim());
+      if (cols.some(c => c)) rows.push(cols);
+      cols = []; cur = '';
+    } else {
+      cur += ch;
     }
-    cols.push(cur.trim());
-    return cols;
-  });
+  }
+  // Last row
+  cols.push(cur.trim());
+  if (cols.some(c => c)) rows.push(cols);
+  return rows;
 }
 
 function cleanNum(s) {
