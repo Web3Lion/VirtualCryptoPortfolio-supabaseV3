@@ -158,69 +158,124 @@ function parseStudentSheet(csv, studentName, studentEmail) {
   }
 
   // ── Step 5: Parse snapshots ───────────────────────────────
-  // Intraday: cols 18-19 (timestamp, value)
-  // Daily: cols 20-21 (date, value)
-  const intradayStart = intradayHeaderRow >= 0 ? intradayHeaderRow + 1 : 5;
-  const dailyStart    = dailyHeaderRow    >= 0 ? dailyHeaderRow    + 1 : 5;
+  // Find actual column positions from header rows
+  let intradayTsCol = 18, intradayValCol = 19;
+  let dailyDateCol  = 20, dailyValCol    = 21;
+
+  if (intradayHeaderRow >= 0) {
+    const hdr = rows[intradayHeaderRow];
+    hdr.forEach((cell, idx) => {
+      const h = String(cell||'').toLowerCase().trim();
+      if (h.includes('timestamp') || h === 'time') intradayTsCol = idx;
+      if ((h.includes('portfolio') && h.includes('value')) || h === 'value') {
+        if (idx > intradayTsCol - 3 && idx < intradayTsCol + 5) intradayValCol = idx;
+      }
+    });
+  }
+  if (dailyHeaderRow >= 0) {
+    const hdr = rows[dailyHeaderRow];
+    hdr.forEach((cell, idx) => {
+      const h = String(cell||'').toLowerCase().trim();
+      if ((h.includes('date') || h === 'day') && idx >= 18) dailyDateCol = idx;
+      if ((h.includes('daily') || h.includes('avg') || h.includes('value')) && idx > dailyDateCol - 3 && idx < dailyDateCol + 5) dailyValCol = idx;
+    });
+  }
 
   rows.forEach((row, i) => {
     if (i < 5) return;
-    if (intradayHeaderRow >= 0 && i <= intradayHeaderRow) return;
-    // Intraday (cols 18-19)
-    const ts  = String(row[18]||'').trim();
-    const tv  = String(row[19]||'').trim();
-    if (ts && tv && !ts.toLowerCase().includes('timestamp') && !ts.toLowerCase().includes('intraday') && !ts.toLowerCase().includes('portfolio')) {
-      const val = cleanNum(tv);
-      const dt  = cleanDate(ts);
-      if (val > 0 && dt) intradaySnaps.push({ timestamp: dt, value: val, type: 'intraday' });
+    // Intraday
+    if (intradayHeaderRow < 0 || i > intradayHeaderRow) {
+      const ts = String(row[intradayTsCol]||'').trim();
+      const tv = String(row[intradayValCol]||'').trim();
+      const SKIP = ['timestamp','time','intraday','portfolio value','header'];
+      if (ts && tv && !SKIP.some(s => ts.toLowerCase().includes(s))) {
+        const val = cleanNum(tv);
+        const dt  = cleanDate(ts);
+        if (val > 0 && dt) intradaySnaps.push({ timestamp: dt, value: val, type: 'intraday' });
+      }
     }
-    // Daily (cols 20-21)
-    const ds = String(row[20]||'').trim();
-    const dv = String(row[21]||'').trim();
-    if (ds && dv && !ds.toLowerCase().includes('date') && !ds.toLowerCase().includes('daily')) {
-      const val = cleanNum(dv);
-      const dt  = cleanDate(ds);
-      if (val > 0 && dt) dailySnaps.push({ timestamp: dt, value: val, type: 'daily' });
+    // Daily
+    if (dailyHeaderRow < 0 || i > dailyHeaderRow) {
+      const ds = String(row[dailyDateCol]||'').trim();
+      const dv = String(row[dailyValCol]||'').trim();
+      const SKIP = ['date','day','daily','avg','header'];
+      if (ds && dv && !SKIP.some(s => ds.toLowerCase().includes(s))) {
+        const val = cleanNum(dv);
+        const dt  = cleanDate(ds);
+        if (val > 0 && dt) dailySnaps.push({ timestamp: dt, value: val, type: 'daily' });
+      }
     }
   });
 
   // ── Step 6: Parse badges ──────────────────────────────────
-  // Scan ALL columns for cells containing ✅ — badges can be anywhere
+  // Handles TWO formats:
+  // Format A: Structured table with columns BadgeID|Emoji|Name|Hint|EarnedDate
+  // Format B: Cells containing "BadgeName\n✅ M/D" scattered in sheet
   const earnedBadgeSet = new Set();
   const badgeList = [];
 
-  rows.forEach(row => {
-    row.forEach((rawCell) => {
-      const cell = String(rawCell||'').replace(/"/g,'').replace(/\t/g,' ').trim();
-      // Check for ✅ BEFORE any emoji stripping (✅ is U+2705, inside emoji range)
-      if (!cell.includes('\u2705') && !cell.includes('✅')) return;
-
-      // Extract date - look for ✅ followed by date
-      const dateMatch = cell.match(/[\u2705✅]\s*(\d+\/\d+(?:\/\d+)?)/);
-      let earnedAt = null;
-      if (dateMatch) {
-        let d = dateMatch[1];
-        if (d.split('/').length === 2) d += '/2026';
-        try { earnedAt = new Date(d).toISOString(); } catch {}
-      }
-      if (!earnedAt) earnedAt = new Date().toISOString();
-
-      // Extract badge name: first remove ✅ and date, then strip other emojis
-      let name = cell
-        .replace(/[\u2705✅].*$/m, '')  // remove ✅ and everything after on same line
-        .replace(/[\u{1F000}-\u{1FFFF}\u{2300}-\u{23FF}\u{2B00}-\u{2BFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]+/gu, '')
-        .split('\n')[0]
-        .replace(/[""]/g, '')
-        .trim();
-
-      if (!name || name.length < 3) return;
-      const badgeId = BADGE_MAP[name];
-      if (!badgeId) return;
-      if (earnedBadgeSet.has(badgeId)) return;
-      earnedBadgeSet.add(badgeId);
-      badgeList.push({ name, badgeId, earnedAt });
-    });
+  // Detect Format A: look for a row with "BadgeID" or "badge_id" in first col
+  let badgeTableStart = -1;
+  rows.forEach((row, i) => {
+    const first = String(row[0]||'').toLowerCase().trim();
+    if (first === 'badgeid' || first === 'badge_id' || first === 'badge id') {
+      badgeTableStart = i;
+    }
   });
+
+  if (badgeTableStart >= 0) {
+    // Format A: structured table
+    // Cols: BadgeID(0), Emoji(1), Name(2), Hint(3), EarnedDate(4)
+    const hdr = rows[badgeTableStart].map(c => String(c||'').toLowerCase().trim());
+    const idCol   = hdr.findIndex(h => h.includes('badge') && (h.includes('id') || h === 'badgeid'));
+    const nameCol = hdr.findIndex(h => h === 'name');
+    const dateCol = hdr.findIndex(h => h.includes('earned') || h.includes('date'));
+
+    for (let i = badgeTableStart + 1; i < rows.length; i++) {
+      const row = rows[i];
+      const badgeId  = String(row[idCol >= 0 ? idCol : 0]||'').trim();
+      const name     = String(row[nameCol >= 0 ? nameCol : 2]||'').trim();
+      const dateStr  = String(row[dateCol >= 0 ? dateCol : 4]||'').trim();
+      if (!badgeId || !dateStr) continue; // blank date = not earned
+      if (earnedBadgeSet.has(badgeId)) continue;
+      let earnedAt = null;
+      try {
+        const d = dateStr.includes('/') && dateStr.split('/').length === 2 ? dateStr + '/2026' : dateStr;
+        earnedAt = new Date(d).toISOString();
+        if (isNaN(new Date(earnedAt).getTime())) earnedAt = new Date().toISOString();
+      } catch { earnedAt = new Date().toISOString(); }
+      earnedBadgeSet.add(badgeId);
+      badgeList.push({ name: name || badgeId, badgeId, earnedAt });
+    }
+  } else {
+    // Format B: scan ALL cells for ✅ checkmark
+    rows.forEach(row => {
+      row.forEach((rawCell) => {
+        const cell = String(rawCell||'').replace(/"/g,'').replace(/\t/g,' ').trim();
+        if (!cell.includes('\u2705') && !cell.includes('✅')) return;
+        const dateMatch = cell.match(/[\u2705✅]\s*(\d+\/\d+(?:\/\d+)?)/);
+        let earnedAt = null;
+        if (dateMatch) {
+          let d = dateMatch[1];
+          if (d.split('/').length === 2) d += '/2026';
+          try { earnedAt = new Date(d).toISOString(); } catch {}
+        }
+        if (!earnedAt) earnedAt = new Date().toISOString();
+        let name = cell
+          .replace(/[\u2705✅].*$/m, '')
+          .replace(/[\u{1F000}-\u{1FFFF}\u{2300}-\u{23FF}\u{2B00}-\u{2BFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]+/gu, '')
+          .split('\n')[0]
+          .replace(/[""]/g, '')
+          .trim();
+        if (!name || name.length < 3) return;
+        const badgeId = BADGE_MAP[name];
+        if (!badgeId) return;
+        if (earnedBadgeSet.has(badgeId)) return;
+        earnedBadgeSet.add(badgeId);
+        badgeList.push({ name, badgeId, earnedAt });
+      });
+    });
+  }
 
   return {
     name:      studentName,
