@@ -87,6 +87,12 @@ export default function Dashboard() {
   const [watchForm, setWatchForm] = useState({ coin: "", targetPrice: "", direction: "above" });
   const [watchStatus, setWatchStatus] = useState(null);
   const [earnedBadge, setEarnedBadge] = useState(null);
+  const [historyLimit, setHistoryLimit] = useState(50);
+  const [historyFilter, setHistoryFilter] = useState("ALL");
+  const [historySearch, setHistorySearch] = useState("");
+  const [historyLimit, setHistoryLimit] = useState(50);
+  const [historyFilter, setHistoryFilter] = useState('ALL');
+  const [historySearch, setHistorySearch] = useState('');
 
   useEffect(() => { applyTheme(getTheme()); }, []);
 
@@ -499,7 +505,28 @@ export default function Dashboard() {
             {activeTab === "history" && (
               <div className="panel">
                 {!tradeHistory || tradeHistory.length === 0 ? <div className="empty">No trades yet.</div> : (
-                  [...tradeHistory].reverse().slice(0, 50).map((t, i) => {
+                  <>
+                  {(() => {
+                      const filtered = [...tradeHistory]
+                        .filter(t => historyFilter === "ALL" || t.action === historyFilter)
+                        .filter(t => !historySearch || t.coin?.toLowerCase().includes(historySearch.toLowerCase()))
+                        .reverse();
+                      const limited = historyLimit === "ALL" ? filtered : filtered.slice(0, historyLimit);
+                      return <>
+                        <div style={{display:"flex",gap:6,marginBottom:14,flexWrap:"wrap",alignItems:"center"}}>
+                          <span style={{fontSize:11,color:"var(--muted)"}}>Show:</span>
+                          {[25,50,100,200,"ALL"].map(n=>(
+                            <button key={n} onClick={()=>setHistoryLimit(n)} style={{padding:"3px 9px",borderRadius:7,border:"1px solid var(--border)",background:historyLimit===n?"var(--accent)":"transparent",color:historyLimit===n?"#000":"var(--muted)",fontFamily:"'DM Mono',monospace",fontSize:10,cursor:"pointer"}}>{n}</button>
+                          ))}
+                          <span style={{marginLeft:8,fontSize:11,color:"var(--muted)"}}>Filter:</span>
+                          {["ALL","BUY","SELL"].map(f=>(
+                            <button key={f} onClick={()=>setHistoryFilter(f)} style={{padding:"3px 9px",borderRadius:7,border:"1px solid var(--border)",background:historyFilter===f?"var(--surface2)":"transparent",color:historyFilter===f?"var(--accent)":"var(--muted)",fontFamily:"'DM Mono',monospace",fontSize:10,cursor:"pointer"}}>{f}</button>
+                          ))}
+                          <input placeholder="Coin..." value={historySearch} onChange={e=>setHistorySearch(e.target.value)}
+                            style={{padding:"3px 9px",borderRadius:7,border:"1px solid var(--border)",background:"var(--surface2)",color:"var(--text)",fontFamily:"'DM Mono',monospace",fontSize:10,outline:"none",width:80}}/>
+                          <span style={{fontSize:10,color:"var(--muted)",marginLeft:"auto"}}>Showing {limited.length} of {tradeHistory.length}</span>
+                        </div>
+                        {limited.map((t, i) => {
                     const isBuy = t.action === "BUY";
                     return (
                       <div className="history-row" key={i}>
@@ -515,7 +542,10 @@ export default function Dashboard() {
                         </div>
                       </div>
                     );
-                  })
+                  })}
+                      </>;
+                    })()}
+                  </>
                 )}
               </div>
             )}
