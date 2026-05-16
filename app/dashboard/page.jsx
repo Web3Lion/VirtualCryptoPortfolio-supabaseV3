@@ -90,6 +90,9 @@ export default function Dashboard() {
   const [historyLimit, setHistoryLimit] = useState(50);
   const [historyFilter, setHistoryFilter] = useState("ALL");
   const [historySearch, setHistorySearch] = useState("");
+  const [historyLimit, setHistoryLimit] = useState(50);
+  const [historyFilter, setHistoryFilter] = useState('ALL');
+  const [historySearch, setHistorySearch] = useState('');
 
   useEffect(() => { applyTheme(getTheme()); }, []);
 
@@ -444,6 +447,55 @@ export default function Dashboard() {
                         {availableCoins.map((c) => <option key={c} value={c}>{c}{prices[c] ? ` — $${parseFloat(prices[c].price).toLocaleString()}` : ""}</option>)}
                       </select>
                     </div>
+                    {/* Holdings summary for selected coin */}
+                    {tradeForm.coin && (() => {
+                      const h = holdingsWithVal.find(x => x.ticker === tradeForm.coin);
+                      if (!h) return (
+                        <div style={{background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:10,padding:"10px 14px",marginBottom:12,fontSize:11,color:"var(--muted)"}}>
+                          You don't hold any {tradeForm.coin} yet
+                        </div>
+                      );
+                      const isUp = h.plPct >= 0;
+                      return (
+                        <div style={{background:isUp?"rgba(0,180,100,.08)":"rgba(220,38,38,.06)",border:`1px solid ${isUp?"rgba(0,180,100,.25)":"rgba(220,38,38,.25)"}`,borderRadius:10,padding:"12px 14px",marginBottom:12}}>
+                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                            <span style={{fontSize:11,color:"var(--muted)",letterSpacing:1,textTransform:"uppercase"}}>Your {tradeForm.coin} Position</span>
+                            <span style={{fontSize:12,fontWeight:700,color:isUp?"var(--up)":"var(--down)"}}>
+                              {isUp?"▲":"▼"} {Math.abs(h.plPct).toFixed(2)}%
+                            </span>
+                          </div>
+                          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+                            <div>
+                              <div style={{fontSize:9,color:"var(--muted)",letterSpacing:1,textTransform:"uppercase",marginBottom:2}}>Quantity</div>
+                              <div style={{fontSize:12,fontWeight:600,color:"var(--text)"}}>{h.qty.toFixed(6)}</div>
+                            </div>
+                            <div>
+                              <div style={{fontSize:9,color:"var(--muted)",letterSpacing:1,textTransform:"uppercase",marginBottom:2}}>Avg Buy</div>
+                              <div style={{fontSize:12,fontWeight:600,color:"var(--text)"}}>${h.avgBuy.toFixed(4)}</div>
+                            </div>
+                            <div>
+                              <div style={{fontSize:9,color:"var(--muted)",letterSpacing:1,textTransform:"uppercase",marginBottom:2}}>Cur Price</div>
+                              <div style={{fontSize:12,fontWeight:600,color:"var(--text)"}}>{prices[tradeForm.coin] ? `$${parseFloat(prices[tradeForm.coin].price).toLocaleString()}` : `$${h.curPrice.toFixed(4)}`}</div>
+                            </div>
+                            <div>
+                              <div style={{fontSize:9,color:"var(--muted)",letterSpacing:1,textTransform:"uppercase",marginBottom:2}}>Total Value</div>
+                              <div style={{fontSize:12,fontWeight:700,color:"var(--text)"}}>{fmtUSD(h.curVal)}</div>
+                            </div>
+                            <div>
+                              <div style={{fontSize:9,color:"var(--muted)",letterSpacing:1,textTransform:"uppercase",marginBottom:2}}>P/L</div>
+                              <div style={{fontSize:12,fontWeight:700,color:isUp?"var(--up)":"var(--down)"}}>{isUp?"+":""}{fmtUSD(h.plTotal)}</div>
+                            </div>
+                            <div>
+                              <div style={{fontSize:9,color:"var(--muted)",letterSpacing:1,textTransform:"uppercase",marginBottom:2}}>Sell All</div>
+                              <button onClick={()=>setTradeForm(f=>({...f,action:"SELL",amountType:"# of Coins",amount:h.qty.toFixed(6)}))}
+                                style={{fontSize:10,padding:"3px 10px",borderRadius:6,border:"1px solid rgba(220,38,38,.3)",background:"rgba(220,38,38,.08)",color:"var(--down)",cursor:"pointer",fontFamily:"'DM Mono',monospace"}}>
+                                Sell All
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
                     <div className="form-group">
                       <label className="form-label">Amount Type</label>
                       <select className="form-select" value={tradeForm.amountType} onChange={(e) => setTradeForm((f) => ({ ...f, amountType: e.target.value }))}>
