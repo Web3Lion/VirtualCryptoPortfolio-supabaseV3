@@ -35,6 +35,8 @@ export default function Teacher() {
   const [pickerCoins, setPickerCoins] = useState([]);
   const [pickerLoading, setPickerLoading] = useState(false);
   const [pickerSelected, setPickerSelected] = useState([]);
+  const [rewardConfig, setRewardConfig] = useState({ enabled: false, badge_reward_tokens: 50 });
+  const [rewardSaving, setRewardSaving] = useState(false);
 
   useEffect(() => { applyTheme(getTheme()); }, []);
   useEffect(()=>{ if(status==='unauthenticated') router.replace('/'); },[status,router]);
@@ -52,9 +54,10 @@ export default function Teacher() {
         const active = clsArr.find(c=>c.id===cid) || clsArr[0];
         setActiveClass(active);
         if(active) {
-          const [lbRes, coinsRes] = await Promise.all([
+          const [lbRes, coinsRes, rewardRes] = await Promise.all([
             fetch(`/api/leaderboard?classId=${active.id}`),
             fetch(`/api/coins?classId=${active.id}`),
+            fetch(`/api/teacher/rewards?classId=${active.id}`),
           ]);
           if(lbRes.ok) {
             const lb = await lbRes.json();
@@ -64,6 +67,7 @@ export default function Teacher() {
             const coins = await coinsRes.json();
             setClassCoins(Array.isArray(coins) ? coins : []);
           }
+          if(rewardRes.ok) setRewardConfig(await rewardRes.json());
         }
       }
       if(mktRes.ok) setMarketStatus(await mktRes.json());
@@ -115,6 +119,15 @@ export default function Teacher() {
       setAllStudents(merged);
     } catch(e) { console.error(e); }
     setAllStudentsLoading(false);
+  };
+
+  const saveRewardConfig = async () => {
+    setRewardSaving(true);
+    const res = await fetch('/api/teacher/rewards',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({classId:activeClass.id,enabled:rewardConfig.enabled,badgeRewardTokens:rewardConfig.badge_reward_tokens})});
+    if(res.ok) setActionMsg({type:'success',msg:'✅ ClassReward settings saved'});
+    else setActionMsg({type:'error',msg:'Failed to save'});
+    setRewardSaving(false);
+    setTimeout(()=>setActionMsg(null),3000);
   };
 
   const openPicker = async () => {
@@ -333,6 +346,46 @@ export default function Teacher() {
                         <button className="btn btn-gold" style={{width:'100%',marginBottom:8}} onClick={()=>teacherAction('pause')}>⏸ Pause</button>
                         <button className="btn btn-green" style={{width:'100%',marginBottom:8}} onClick={()=>teacherAction('resume')}>▶ Resume</button>
                         <button className="btn btn-red" style={{width:'100%'}} onClick={()=>{if(confirm('End simulation?'))teacherAction('end')}}>🏁 End Simulation</button>
+                      </div>
+                    </div>
+
+                    {/* ClassReward — full width */}
+                    <div className="ctrl-card" style={{gridColumn:'1/-1'}}>
+                      <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:6}}>
+                        <div className="ctrl-title" style={{marginBottom:0}}>🎁 ClassReward Tokens</div>
+                        <div className={`status-pill ${rewardConfig.enabled?'on':'off'}`} style={{margin:0}}>{rewardConfig.enabled?'🟢 ENABLED':'⚪ DISABLED'}</div>
+                      </div>
+                      <div className="ctrl-desc">
+                        Students earn ClassReward tokens (each worth $1.00) for completing achievements. Tokens appear in their wallet and can be redeemed for cash.
+                      </div>
+                      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:14}}>
+                        <div>
+                          <div className="tools-label" style={{marginBottom:6}}>Badge Reward</div>
+                          <div style={{display:'flex',alignItems:'center',gap:8}}>
+                            <input
+                              type="number" min={1} max={1000}
+                              className="text-input"
+                              style={{width:90,marginBottom:0}}
+                              value={rewardConfig.badge_reward_tokens}
+                              onChange={e=>setRewardConfig(c=>({...c,badge_reward_tokens:Math.max(1,parseInt(e.target.value)||50)}))}
+                              disabled={!rewardConfig.enabled}
+                            />
+                            <span style={{fontSize:11,color:'var(--muted)'}}>tokens per badge = {fmtUSD(rewardConfig.badge_reward_tokens)}</span>
+                          </div>
+                          <div style={{fontSize:10,color:'var(--muted)',marginTop:4}}>Awarded automatically when a badge is earned</div>
+                        </div>
+                        <div style={{display:'flex',flexDirection:'column',justifyContent:'flex-end'}}>
+                          <div className="tools-label" style={{marginBottom:6}}>More Rewards</div>
+                          <div style={{fontSize:10,color:'var(--muted)',fontStyle:'italic'}}>Additional triggers (trading streaks, quiz answers…) coming soon</div>
+                        </div>
+                      </div>
+                      <div className="btn-row">
+                        <button className={`btn ${rewardConfig.enabled?'btn-red':'btn-green'}`} onClick={()=>setRewardConfig(c=>({...c,enabled:!c.enabled}))}>
+                          {rewardConfig.enabled?'Disable ClassReward':'Enable ClassReward'}
+                        </button>
+                        <button className="btn btn-gold" onClick={saveRewardConfig} disabled={rewardSaving}>
+                          {rewardSaving?'Saving...':'💾 Save Settings'}
+                        </button>
                       </div>
                     </div>
                   </div>

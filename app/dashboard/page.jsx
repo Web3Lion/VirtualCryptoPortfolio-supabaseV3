@@ -87,6 +87,8 @@ export default function Dashboard() {
   const [watchForm, setWatchForm] = useState({ coin: "", targetPrice: "", direction: "above" });
   const [watchStatus, setWatchStatus] = useState(null);
   const [earnedBadge, setEarnedBadge] = useState(null);
+  const [tokensAwarded, setTokensAwarded] = useState(0);
+  const [redeemingTokens, setRedeemingTokens] = useState(false);
   const [historyLimit, setHistoryLimit] = useState(50);
   const [historyFilter, setHistoryFilter] = useState("ALL");
   const [historySearch, setHistorySearch] = useState("");
@@ -141,6 +143,7 @@ export default function Dashboard() {
       if (res.ok) {
         setTradeStatus({ type: "success", msg: `✓ ${tradeForm.action} ${tradeForm.coin} executed` });
         if (data.newBadge) setEarnedBadge(data.newBadge);
+        if (data.tokensAwarded > 0) setTokensAwarded(data.tokensAwarded);
         setTradeForm((f) => ({ ...f, amount: "", reasoning: "" }));
         setTimeout(() => { fetchData(); setTradeStatus(null); }, 2000);
       } else setTradeStatus({ type: "error", msg: data.error || "Trade failed" });
@@ -158,6 +161,19 @@ export default function Dashboard() {
       else setTradeStatus({ type: "error", msg: data.error || "Failed" });
     } catch { setTradeStatus({ type: "error", msg: "Network error" }); }
     finally { setExecuting(false); }
+  };
+
+  const redeemTokens = async () => {
+    if (redeemingTokens) return;
+    setRedeemingTokens(true);
+    try {
+      const tokens = portfolio?.classRewardTokens || 0;
+      const res = await fetch("/api/rewards/redeem", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ classId: portfolio?.classId, tokens }) });
+      const data = await res.json();
+      if (res.ok) { setTradeStatus({ type: "success", msg: `🎁 Redeemed ${data.tokensRedeemed} tokens for ${fmtUSD(data.cashAdded)}!` }); setTimeout(() => { fetchData(); setTradeStatus(null); }, 2500); }
+      else setTradeStatus({ type: "error", msg: data.error || "Redemption failed" });
+    } catch { setTradeStatus({ type: "error", msg: "Network error" }); }
+    finally { setRedeemingTokens(false); }
   };
 
   const addWatch = async () => {
@@ -385,6 +401,23 @@ export default function Dashboard() {
                       </div>
                       <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 15 }}>{fmtUSD(cash)}</div>
                     </div>
+                    {portfolio?.classRewardEnabled && (portfolio?.classRewardTokens || 0) > 0 && (
+                      <div className="cash-row" style={{ marginTop: 8, background: "rgba(0,229,160,.05)", borderColor: "rgba(0,229,160,.2)" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                          <div style={{ width: 40, height: 40, borderRadius: 10, background: "rgba(0,229,160,.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>🎁</div>
+                          <div>
+                            <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 13, color: "var(--accent)" }}>ClassReward</div>
+                            <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 2 }}>{portfolio.classRewardTokens} tokens · $1.00 each</div>
+                          </div>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 15, color: "var(--accent)" }}>{fmtUSD(portfolio.classRewardTokens)}</div>
+                          <button onClick={redeemTokens} disabled={redeemingTokens} style={{ padding: "6px 12px", borderRadius: 8, border: "1px solid rgba(0,229,160,.4)", background: "rgba(0,229,160,.1)", color: "var(--accent)", cursor: "pointer", fontSize: 11, fontFamily: "'DM Mono',monospace", fontWeight: 500 }}>
+                            {redeemingTokens ? "..." : "Redeem →"}
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </>
                 )}
               </div>
@@ -678,7 +711,10 @@ export default function Dashboard() {
           <div style={{ fontSize: 24, marginBottom: 4 }}>🏅</div>
           <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 14, color: "var(--gold)" }}>Badge Earned!</div>
           <div style={{ fontSize: 12, color: "var(--text)", marginTop: 2 }}>{BADGE_NAMES[earnedBadge] || earnedBadge}</div>
-          <button onClick={() => setEarnedBadge(null)} style={{ marginTop: 8, background: "none", border: "none", color: "var(--muted)", cursor: "pointer", fontSize: 11 }}>dismiss</button>
+          {tokensAwarded > 0 && (
+            <div style={{ fontSize: 12, color: "var(--accent)", marginTop: 6, fontWeight: 600 }}>🎁 +{tokensAwarded} ClassReward tokens</div>
+          )}
+          <button onClick={() => { setEarnedBadge(null); setTokensAwarded(0); }} style={{ marginTop: 8, background: "none", border: "none", color: "var(--muted)", cursor: "pointer", fontSize: 11 }}>dismiss</button>
         </div>
       )}
     </>

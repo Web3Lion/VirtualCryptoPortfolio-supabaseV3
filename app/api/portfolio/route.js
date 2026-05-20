@@ -29,7 +29,11 @@ export async function GET(request) {
     (cached || []).forEach(r => { priceMap[r.symbol] = parseFloat(r.price); });
   }
 
-  const { data: cls } = await db.from('classes').select('seed_money').eq('id', classId).single();
+  const [{ data: cls }, { data: rewardCfg }, { data: rewardLedger }] = await Promise.all([
+    db.from('classes').select('seed_money').eq('id', classId).single(),
+    db.from('class_reward_config').select('enabled, badge_reward_tokens').eq('class_id', classId).single(),
+    db.from('class_reward_ledger').select('tokens').eq('student_id', student.id).eq('class_id', classId),
+  ]);
   const seedMoney = parseFloat(cls?.seed_money || 10000);
   const cash      = parseFloat(portfolio.cash);
   const feesPaid  = parseFloat(portfolio.fees_paid);
@@ -48,6 +52,8 @@ export async function GET(request) {
   const pl            = totalValue - seedMoney;
   const returnPct     = ((totalValue / seedMoney) - 1) * 100;
 
+  const classRewardTokens = (rewardLedger || []).reduce((sum, r) => sum + r.tokens, 0);
+
   return Response.json({
     classId,
     summary: { startCash: seedMoney, cash: cash.toFixed(2), holdingsVal: holdingsValue.toFixed(2), totalVal: totalValue.toFixed(2), pl: pl.toFixed(2), returnPct: returnPct.toFixed(2), fees: feesPaid.toFixed(2) },
@@ -55,5 +61,8 @@ export async function GET(request) {
     history:  trades.map(t => ({ id: t.id, action: t.action, coin: t.coin, quantity: parseFloat(t.quantity), price: parseFloat(t.price), grossValue: parseFloat(t.gross_value), fee: parseFloat(t.fee), cashAfter: parseFloat(t.cash_after), reasoning: t.reasoning, createdAt: t.created_at })),
     availableCoins: coins,
     prices: priceMap,
+    classRewardTokens,
+    classRewardEnabled: rewardCfg?.enabled || false,
+    badgeRewardTokens: rewardCfg?.badge_reward_tokens || 50,
   });
 }

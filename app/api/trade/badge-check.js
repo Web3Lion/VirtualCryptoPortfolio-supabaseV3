@@ -201,5 +201,24 @@ export async function checkBadgesAfterTrade({ studentId, classId, action, coin, 
   // ── Fee badges ────────────────────────────────────────────
   if (totalTrades >= 10 && totalFees < 50) await give('fee_conscious');
 
-  return earned.length > 0 ? earned[0] : null;
+  // ── Grant ClassReward tokens for each newly earned badge ─────
+  let tokensAwarded = 0;
+  if (earned.length > 0) {
+    try {
+      const { data: rewardCfg } = await db.from('class_reward_config')
+        .select('enabled, badge_reward_tokens').eq('class_id', classId).single();
+      if (rewardCfg?.enabled && rewardCfg.badge_reward_tokens > 0) {
+        await db.from('class_reward_ledger').insert(
+          earned.map(badgeId => ({
+            student_id: studentId, class_id: classId,
+            tokens: rewardCfg.badge_reward_tokens,
+            reason: `badge:${badgeId}`,
+          }))
+        );
+        tokensAwarded = earned.length * rewardCfg.badge_reward_tokens;
+      }
+    } catch (e) { console.error('ClassReward grant error:', e); }
+  }
+
+  return { badge: earned[0] || null, tokensAwarded };
 }

@@ -170,6 +170,26 @@ insert into config (key, value) values
   ('HEADLINE_HISTORY',     '[]')
 on conflict (key) do nothing;
 
+-- ── ClassReward config (per class, teacher-controlled) ────────
+create table if not exists class_reward_config (
+  class_id            uuid primary key references classes(id) on delete cascade,
+  enabled             boolean not null default false,
+  badge_reward_tokens integer not null default 50,
+  updated_at          timestamptz default now()
+);
+
+-- ── ClassReward ledger (immutable transaction log) ────────────
+-- tokens > 0 = credit (badge earned, teacher grant)
+-- tokens < 0 = debit  (redemption for cash)
+create table if not exists class_reward_ledger (
+  id          uuid primary key default gen_random_uuid(),
+  student_id  uuid not null references students(id) on delete cascade,
+  class_id    uuid not null references classes(id) on delete cascade,
+  tokens      integer not null,
+  reason      text not null,
+  created_at  timestamptz default now()
+);
+
 -- ── Indexes ───────────────────────────────────────────────────
 create index if not exists idx_class_students_class    on class_students(class_id);
 create index if not exists idx_class_students_student  on class_students(student_id);
@@ -180,3 +200,4 @@ create index if not exists idx_trades_created          on trades(created_at);
 create index if not exists idx_snapshots_student_class on snapshots(student_id, class_id);
 create index if not exists idx_invitations_token       on invitations(token);
 create index if not exists idx_invitations_email       on invitations(email);
+create index if not exists idx_reward_ledger_student_class on class_reward_ledger(student_id, class_id);

@@ -40,8 +40,9 @@ export async function POST(request) {
 
   // Check badges after successful trade
   let newBadge = null;
+  let tokensAwarded = 0;
   try {
-    newBadge = await checkBadgesAfterTrade({
+    const badgeResult = await checkBadgesAfterTrade({
       studentId:  student.id,
       classId,
       action,
@@ -51,9 +52,11 @@ export async function POST(request) {
       reasoning:  reasoning || '',
       newCash:    result.newCash,
     });
+    newBadge     = badgeResult?.badge ?? null;
+    tokensAwarded = badgeResult?.tokensAwarded ?? 0;
   } catch (e) {
     console.error('Badge check error:', e);
   }
 
-  return Response.json({ ...result, newBadge });
+  return Response.json({ ...result, newBadge, tokensAwarded });
 }
