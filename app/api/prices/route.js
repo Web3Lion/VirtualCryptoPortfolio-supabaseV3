@@ -36,8 +36,9 @@ function getSector(symbol) {
 }
 
 // Fetch fresh prices from CoinGecko
-async function fetchFromCoinGecko(symbols) {
-  const ids = symbols.map(s => COINGECKO_IDS[s.toUpperCase()]).filter(Boolean).join(',');
+async function fetchFromCoinGecko(symbols, extraIds = {}) {
+  const combined = { ...COINGECKO_IDS, ...extraIds };
+  const ids = symbols.map(s => combined[s.toUpperCase()]).filter(Boolean).join(',');
   if (!ids) return {};
 
   const url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}&order=market_cap_desc&per_page=250&sparkline=false&price_change_percentage=1h,24h,7d`;
@@ -50,7 +51,7 @@ async function fetchFromCoinGecko(symbols) {
 
   // Build reverse map: gecko_id → symbol
   const reverseMap = {};
-  Object.entries(COINGECKO_IDS).forEach(([sym, id]) => { reverseMap[id] = sym; });
+  Object.entries(combined).forEach(([sym, id]) => { reverseMap[id] = sym; });
 
   const result = {};
   data.forEach(coin => {
@@ -95,11 +96,15 @@ export async function GET(request) {
     }
   }
 
-  // Get coins for this class
+  // Get coins for this class (include gecko_id for manually-added coins not in COINGECKO_IDS)
   let symbols = [];
+  let extraIds = {};
   if (classId) {
-    const { data: classCoins } = await db.from('class_coins').select('symbol').eq('class_id', classId).eq('active', true);
+    const { data: classCoins } = await db.from('class_coins').select('symbol,gecko_id').eq('class_id', classId).eq('active', true);
     symbols = (classCoins || []).map(c => c.symbol);
+    (classCoins || []).forEach(c => {
+      if (c.gecko_id && !COINGECKO_IDS[c.symbol.toUpperCase()]) extraIds[c.symbol.toUpperCase()] = c.gecko_id;
+    });
   }
   if (!symbols.length) symbols = ['BTC','ETH','SOL','XRP','ADA','DOGE','AVAX','LINK','DOT','MATIC','BNB','SHIB'];
 
@@ -117,7 +122,7 @@ export async function GET(request) {
 
   // Fetch stale prices from CoinGecko
   if (staleSymbols.length > 0) {
-    const fresh = await fetchFromCoinGecko(staleSymbols);
+    const fresh = await fetchFromCoinGecko(staleSymbols, extraIds);
     if (Object.keys(fresh).length > 0) {
       const upserts = Object.values(fresh).map(p => ({
         symbol:    p.symbol,

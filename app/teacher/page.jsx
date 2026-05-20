@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import NewsTab from "./news-tab";
 import ThemeToggle from "@/components/ThemeToggle";
+import CoinPicker from "@/components/CoinPicker";
 import { applyTheme, getTheme } from "@/lib/theme";
 
 const fmtUSD = n => { const x=parseFloat(n); return isNaN(x)?'$0.00':new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(x); };
@@ -27,6 +28,13 @@ export default function Teacher() {
   const [newStudentName, setNewStudentName]   = useState('');
   const [newStudentEmail, setNewStudentEmail] = useState('');
   const [classCoins, setClassCoins] = useState([]);
+  const [studentsView, setStudentsView] = useState('class');
+  const [allStudents, setAllStudents] = useState([]);
+  const [allStudentsLoading, setAllStudentsLoading] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerCoins, setPickerCoins] = useState([]);
+  const [pickerLoading, setPickerLoading] = useState(false);
+  const [pickerSelected, setPickerSelected] = useState([]);
 
   useEffect(() => { applyTheme(getTheme()); }, []);
   useEffect(()=>{ if(status==='unauthenticated') router.replace('/'); },[status,router]);
@@ -91,6 +99,48 @@ export default function Teacher() {
     setActionMsg({type:'success',msg:`✅ ${symbol} added`});
     fetchData(activeClass.id);
   };
+
+  const fetchAllStudents = async () => {
+    setAllStudentsLoading(true);
+    try {
+      const results = await Promise.all(
+        classes.map(c =>
+          fetch(`/api/leaderboard?classId=${c.id}`)
+            .then(r => r.ok ? r.json() : [])
+            .then(data => (Array.isArray(data) ? data : []).filter(s => !s.isBot).map(s => ({ ...s, className: c.name })))
+        )
+      );
+      const merged = results.flat();
+      merged.sort((a, b) => b.total - a.total);
+      setAllStudents(merged);
+    } catch(e) { console.error(e); }
+    setAllStudentsLoading(false);
+  };
+
+  const openPicker = async () => {
+    setPickerOpen(true);
+    if (pickerCoins.length) return;
+    setPickerLoading(true);
+    try {
+      const res = await fetch('/api/coins?source=coingecko');
+      if (res.ok) setPickerCoins(await res.json());
+    } catch {}
+    setPickerLoading(false);
+  };
+
+  const addPickerSelected = async () => {
+    if (!pickerSelected.length || !activeClass) return;
+    setActionMsg({type:'pending',msg:`Adding ${pickerSelected.length} coin${pickerSelected.length>1?'s':''}...`});
+    await fetch('/api/coins',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({classId:activeClass.id,coins:pickerSelected.map(c=>({symbol:c.symbol,geckoId:c.geckoId,name:c.name,sector:c.sector}))})});
+    setActionMsg({type:'success',msg:`✅ ${pickerSelected.length} coin${pickerSelected.length>1?'s':''} added`});
+    setPickerSelected([]);
+    setPickerOpen(false);
+    fetchData(activeClass.id);
+  };
+
+  const togglePickerCoin = (coin) => setPickerSelected(prev =>
+    prev.some(c=>c.symbol===coin.symbol) ? prev.filter(c=>c.symbol!==coin.symbol) : [...prev, coin]
+  );
 
   const removeCoin = async (symbol) => {
     await fetch('/api/coins',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({classId:activeClass?.id,symbol})});
@@ -290,44 +340,80 @@ export default function Teacher() {
 
                 {activeSection==='students' && (
                   <>
-                    <div className="ctrl-card" style={{marginBottom:16}}>
-                      <div className="ctrl-title" style={{marginBottom:12}}>➕ Add Student</div>
-                      <div className="form-row">
-                        <div><label className="form-label">Name</label><input className="text-input" placeholder="Jane Smith" value={newStudentName} onChange={e=>setNewStudentName(e.target.value)} style={{marginBottom:0}}/></div>
-                        <div><label className="form-label">Email</label><input className="text-input" placeholder="jsmith@southfayette.org" value={newStudentEmail} onChange={e=>setNewStudentEmail(e.target.value)} style={{marginBottom:0}}/></div>
+                    {studentsView==='class' && (
+                      <div className="ctrl-card" style={{marginBottom:16}}>
+                        <div className="ctrl-title" style={{marginBottom:12}}>➕ Add Student</div>
+                        <div className="form-row">
+                          <div><label className="form-label">Name</label><input className="text-input" placeholder="Jane Smith" value={newStudentName} onChange={e=>setNewStudentName(e.target.value)} style={{marginBottom:0}}/></div>
+                          <div><label className="form-label">Email</label><input className="text-input" placeholder="jsmith@southfayette.org" value={newStudentEmail} onChange={e=>setNewStudentEmail(e.target.value)} style={{marginBottom:0}}/></div>
+                        </div>
+                        <div style={{height:10}}/>
+                        <button className="btn btn-green" onClick={()=>{if(newStudentName&&newStudentEmail&&activeClass){teacherAction('add-student',{name:newStudentName,email:newStudentEmail,classId:activeClass.id});setNewStudentName('');setNewStudentEmail('');}}} >➕ Add Student</button>
                       </div>
-                      <div style={{height:10}}/>
-                      <button className="btn btn-green" onClick={()=>{if(newStudentName&&newStudentEmail&&activeClass){teacherAction('add-student',{name:newStudentName,email:newStudentEmail,classId:activeClass.id});setNewStudentName('');setNewStudentEmail('');}}} >➕ Add Student</button>
-                    </div>
+                    )}
                     <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:20,padding:22,overflowX:'auto'}}>
                       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
-                        <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:15,color:'var(--text)'}}>Students ({humans.length})</div>
-                        <button className="btn btn-muted" onClick={()=>fetchData(activeClass.id)}>↻ Refresh</button>
+                        <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:15,color:'var(--text)'}}>
+                          {studentsView==='class' ? `Students (${humans.length})` : `All Students (${allStudents.length})`}
+                        </div>
+                        <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                          {classes.length > 1 && (
+                            <div style={{display:'flex',gap:2,background:'var(--surface2)',padding:3,borderRadius:10,border:'1px solid var(--border)'}}>
+                              <button style={{padding:'4px 12px',borderRadius:7,border:'none',background:studentsView==='class'?'var(--accent)':'transparent',color:studentsView==='class'?'#000':'var(--muted)',cursor:'pointer',fontSize:10,fontFamily:"'DM Mono',monospace",fontWeight:studentsView==='class'?600:400,transition:'all .2s'}} onClick={()=>setStudentsView('class')}>This Class</button>
+                              <button style={{padding:'4px 12px',borderRadius:7,border:'none',background:studentsView==='all'?'var(--accent)':'transparent',color:studentsView==='all'?'#000':'var(--muted)',cursor:'pointer',fontSize:10,fontFamily:"'DM Mono',monospace",fontWeight:studentsView==='all'?600:400,transition:'all .2s'}} onClick={()=>{setStudentsView('all');fetchAllStudents();}}>All Classes</button>
+                            </div>
+                          )}
+                          <button className="btn btn-muted" onClick={()=>studentsView==='class'?fetchData(activeClass.id):fetchAllStudents()}>↻ Refresh</button>
+                        </div>
                       </div>
-                      <table className="student-table">
-                        <thead><tr><th>Rank</th><th>Name</th><th>Portfolio</th><th>Return</th><th>P/L</th><th>Cash</th><th>Actions</th></tr></thead>
-                        <tbody>
-                          {students.map((s,i)=>{
-                            const ret=clean(s.returnPct),pl=clean(s.pl),isPos=ret>=0;
-                            return (
-                              <tr className="srow" key={i}>
-                                <td style={{color:'var(--muted)',fontWeight:700}}>{i+1}</td>
-                                <td><div style={{fontFamily:"'Syne',sans-serif",fontWeight:600,fontSize:13}}>{s.isBot?'🤖 ':''}{s.name}</div></td>
-                                <td style={{fontFamily:"'Syne',sans-serif",fontWeight:700}}>{fmtUSD(s.total)}</td>
-                                <td style={{color:isPos?'var(--up)':'var(--down)',fontWeight:500}}>{fmtPct(ret)}</td>
-                                <td style={{color:isPos?'var(--up)':'var(--down)'}}>{isPos?'+':''}{fmtUSD(pl)}</td>
-                                <td style={{color:'var(--muted)'}}>{fmtUSD(s.cash)}</td>
-                                <td>
-                                  <div className="btn-row">
-                                    <button className="btn btn-muted" style={{padding:'4px 10px',fontSize:10}} onClick={()=>{if(confirm(`Reset ${s.name}?`))teacherAction('reset-student',{studentId:s.id,classId:activeClass.id})}}>↺ Reset</button>
-                                    <button className="btn btn-red" style={{padding:'4px 10px',fontSize:10}} onClick={()=>{if(confirm(`Remove ${s.name}?`))teacherAction('remove-student',{studentId:s.id,classId:activeClass.id})}}>✕</button>
-                                  </div>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
+                      {studentsView==='class' ? (
+                        <table className="student-table">
+                          <thead><tr><th>Rank</th><th>Name</th><th>Portfolio</th><th>Return</th><th>P/L</th><th>Cash</th><th>Actions</th></tr></thead>
+                          <tbody>
+                            {students.map((s,i)=>{
+                              const ret=clean(s.returnPct),pl=clean(s.pl),isPos=ret>=0;
+                              return (
+                                <tr className="srow" key={i}>
+                                  <td style={{color:'var(--muted)',fontWeight:700}}>{i+1}</td>
+                                  <td><div style={{fontFamily:"'Syne',sans-serif",fontWeight:600,fontSize:13}}>{s.isBot?'🤖 ':''}{s.name}</div></td>
+                                  <td style={{fontFamily:"'Syne',sans-serif",fontWeight:700}}>{fmtUSD(s.total)}</td>
+                                  <td style={{color:isPos?'var(--up)':'var(--down)',fontWeight:500}}>{fmtPct(ret)}</td>
+                                  <td style={{color:isPos?'var(--up)':'var(--down)'}}>{isPos?'+':''}{fmtUSD(pl)}</td>
+                                  <td style={{color:'var(--muted)'}}>{fmtUSD(s.cash)}</td>
+                                  <td>
+                                    <div className="btn-row">
+                                      <button className="btn btn-muted" style={{padding:'4px 10px',fontSize:10}} onClick={()=>{if(confirm(`Reset ${s.name}?`))teacherAction('reset-student',{studentId:s.id,classId:activeClass.id})}}>↺ Reset</button>
+                                      <button className="btn btn-red" style={{padding:'4px 10px',fontSize:10}} onClick={()=>{if(confirm(`Remove ${s.name}?`))teacherAction('remove-student',{studentId:s.id,classId:activeClass.id})}}>✕</button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      ) : allStudentsLoading ? (
+                        <div style={{color:'var(--muted)',textAlign:'center',padding:32,fontSize:13}}>Loading all students...</div>
+                      ) : (
+                        <table className="student-table">
+                          <thead><tr><th>Rank</th><th>Name</th><th>Class</th><th>Portfolio</th><th>Return</th><th>P/L</th><th>Cash</th></tr></thead>
+                          <tbody>
+                            {allStudents.map((s,i)=>{
+                              const ret=clean(s.returnPct),pl=clean(s.pl),isPos=ret>=0;
+                              return (
+                                <tr className="srow" key={i}>
+                                  <td style={{color:'var(--muted)',fontWeight:700}}>{i+1}</td>
+                                  <td><div style={{fontFamily:"'Syne',sans-serif",fontWeight:600,fontSize:13}}>{s.name}</div></td>
+                                  <td style={{color:'var(--muted)',fontSize:11}}>{s.className}</td>
+                                  <td style={{fontFamily:"'Syne',sans-serif",fontWeight:700}}>{fmtUSD(s.total)}</td>
+                                  <td style={{color:isPos?'var(--up)':'var(--down)',fontWeight:500}}>{fmtPct(ret)}</td>
+                                  <td style={{color:isPos?'var(--up)':'var(--down)'}}>{isPos?'+':''}{fmtUSD(pl)}</td>
+                                  <td style={{color:'var(--muted)'}}>{fmtUSD(s.cash)}</td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      )}
                     </div>
                   </>
                 )}
@@ -345,10 +431,30 @@ export default function Teacher() {
                         </div>
                       ))}
                     </div>
-                    <div style={{display:'flex',gap:8}}>
-                      <input className="text-input" placeholder="Add coin symbol (e.g. BTC)" id="addCoinInput" style={{marginBottom:0}}/>
-                      <button className="btn btn-green" onClick={()=>{const v=document.getElementById('addCoinInput').value;if(v){addCoin(v);document.getElementById('addCoinInput').value='';}}}>Add</button>
+                    <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                      <button className={`btn ${pickerOpen?'btn-red':'btn-green'}`} onClick={()=>pickerOpen?(setPickerOpen(false),setPickerSelected([])):openPicker()}>
+                        {pickerOpen?'✕ Close':'+ Browse Coins'}
+                      </button>
+                      {pickerSelected.length>0&&(
+                        <button className="btn btn-accent" onClick={addPickerSelected}>
+                          ✓ Add {pickerSelected.length} Selected
+                        </button>
+                      )}
                     </div>
+                    {pickerOpen && (
+                      <div style={{marginTop:14,padding:16,background:'var(--surface2)',borderRadius:16,border:'1px solid var(--border)'}}>
+                        {pickerLoading ? (
+                          <div style={{color:'var(--muted)',textAlign:'center',padding:24,fontSize:13}}>Loading coins from CoinGecko...</div>
+                        ) : (
+                          <CoinPicker
+                            coins={pickerCoins}
+                            selected={pickerSelected}
+                            onToggle={togglePickerCoin}
+                            activeSymbols={classCoins.filter(c=>c.active).map(c=>c.symbol)}
+                          />
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
 

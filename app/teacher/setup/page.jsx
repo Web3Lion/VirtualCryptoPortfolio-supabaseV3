@@ -3,8 +3,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { applyTheme, getTheme } from "@/lib/theme";
-
-const SECTORS = ["All","Layer 1","Layer 2","DeFi","AI / Data","Gaming/NFT","Memecoin","Stablecoin","Exchange","Other"];
+import CoinPicker from "@/components/CoinPicker";
 
 export default function ClassSetup() {
   const { data: session, status } = useSession();
@@ -14,8 +13,6 @@ export default function ClassSetup() {
   const [createdClass, setCreatedClass] = useState(null);
   const [coins, setCoins]           = useState([]);
   const [selectedCoins, setSelectedCoins] = useState([]);
-  const [sectorFilter, setSectorFilter]   = useState("All");
-  const [coinSearch, setCoinSearch] = useState("");
   const [loadingCoins, setLoadingCoins] = useState(false);
   const [students, setStudents]     = useState([]);
   const [newName, setNewName]       = useState("");
@@ -115,12 +112,7 @@ export default function ClassSetup() {
     e.target.value = "";
   };
 
-  const filteredCoins = coins.filter(c => {
-    const matchSector = sectorFilter === "All" || c.sector === sectorFilter;
-    const matchSearch = !coinSearch || c.symbol.toLowerCase().includes(coinSearch.toLowerCase()) || c.name.toLowerCase().includes(coinSearch.toLowerCase());
-    return matchSector && matchSearch;
-  });
-  const toggleCoin = (coin) => setSelectedCoins(prev => prev.find(c => c.symbol === coin.symbol) ? prev.filter(c => c.symbol !== coin.symbol) : [...prev, coin]);
+  const toggleCoin = (coin) => setSelectedCoins(prev => prev.some(c => c.symbol === coin.symbol) ? prev.filter(c => c.symbol !== coin.symbol) : [...prev, coin]);
 
   const STEPS = ["1. Class Info", "2. Select Coins", "3. Add Students", "4. Launch!"];
   if (status === "loading") return <div style={{ background: "var(--bg,#080c14)", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", color: "#475569" }}>Loading...</div>;
@@ -151,16 +143,6 @@ export default function ClassSetup() {
         .btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border)}.btn-secondary:hover{border-color:var(--accent);color:var(--accent)}
         .btn-danger{background:rgba(244,63,94,.1);color:var(--down);border:1px solid rgba(244,63,94,.3)}
         .btn-row{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
-        .coin-filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
-        .filter-btn{padding:5px 12px;border-radius:20px;border:1px solid var(--border);background:transparent;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);cursor:pointer;transition:all .2s}
-        .filter-btn.active{background:rgba(0,229,160,.1);color:var(--accent);border-color:rgba(0,229,160,.3)}
-        .coin-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;max-height:400px;overflow-y:auto}
-        .coin-card{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px;cursor:pointer;transition:all .2s;position:relative}
-        .coin-card:hover{border-color:rgba(0,229,160,.3)}.coin-card.selected{background:rgba(0,229,160,.08);border-color:var(--accent)}
-        .coin-symbol{font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:var(--text)}
-        .coin-name{font-size:10px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-        .coin-sector{font-size:9px;color:var(--muted);margin-top:4px;padding:2px 6px;background:var(--border);border-radius:4px;display:inline-block}
-        .coin-check{position:absolute;top:8px;right:8px;width:18px;height:18px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:10px;color:#000;font-weight:700}
         .student-list{display:flex;flex-direction:column;gap:8px;margin-bottom:16px;max-height:320px;overflow-y:auto}
         .student-row{display:grid;grid-template-columns:1fr 1.5fr auto;gap:10px;align-items:center;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 14px}
         .add-row{display:grid;grid-template-columns:1fr 1.5fr auto;gap:10px;align-items:end;margin-bottom:12px}
@@ -232,31 +214,15 @@ export default function ClassSetup() {
         {step === 2 && (
           <div className="card">
             <div className="card-title">🪙 Select Coins for Trading</div>
-            <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 16 }}>Choose which coins students can trade. Prices update every 30 minutes.</div>
-            <div style={{ fontSize: 12, color: "var(--accent)", marginBottom: 12 }}>{selectedCoins.length} coins selected</div>
-            <input className="form-input" placeholder="Search coins..." value={coinSearch} onChange={e => setCoinSearch(e.target.value)} style={{ marginBottom: 12 }} />
-            <div className="coin-filters">
-              {SECTORS.map(s => <button key={s} className={`filter-btn${sectorFilter === s ? " active" : ""}`} onClick={() => setSectorFilter(s)}>{s}</button>)}
+            <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 16 }}>
+              Choose which coins students can trade. Filter by sector and consensus mechanism. Prices update every 30 minutes.
             </div>
             {loadingCoins ? (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(160px,1fr))", gap: 8 }}>
-                {[...Array(12)].map((_, i) => <div key={i} className="skeleton" style={{ height: 70 }} />)}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(148px,1fr))", gap: 8 }}>
+                {[...Array(12)].map((_, i) => <div key={i} className="skeleton" style={{ height: 90 }} />)}
               </div>
             ) : (
-              <div className="coin-grid">
-                {filteredCoins.map(coin => {
-                  const isSelected = selectedCoins.find(c => c.symbol === coin.symbol);
-                  return (
-                    <div key={coin.symbol} className={`coin-card${isSelected ? " selected" : ""}`} onClick={() => toggleCoin(coin)}>
-                      {isSelected && <div className="coin-check">✓</div>}
-                      <div className="coin-symbol">{coin.symbol}</div>
-                      <div className="coin-name">{coin.name}</div>
-                      <div className="coin-sector">{coin.sector}</div>
-                      <div style={{ fontSize: 10, color: "var(--muted)", marginTop: 4 }}>${parseFloat(coin.price || 0).toLocaleString()}</div>
-                    </div>
-                  );
-                })}
-              </div>
+              <CoinPicker coins={coins} selected={selectedCoins} onToggle={toggleCoin} activeSymbols={[]} />
             )}
             {statusMsg && <div className={`status-msg ${statusMsg.type}`}>{statusMsg.msg}</div>}
             <div className="btn-row">
