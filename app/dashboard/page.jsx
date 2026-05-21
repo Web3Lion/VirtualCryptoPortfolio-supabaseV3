@@ -6,53 +6,143 @@ import Link from "next/link";
 import ThemeToggle from "@/components/ThemeToggle";
 import { applyTheme, getTheme } from "@/lib/theme";
 
-const fmtUSD = (n) => { const x = parseFloat(n); return isNaN(x) ? "$0.00" : new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(x); };
-const fmtPct = (n) => { const x = parseFloat(n); return isNaN(x) ? "0.00%" : (x >= 0 ? "+" : "") + x.toFixed(2) + "%"; };
-const fmtNum = (n) => { const x = parseFloat(n); if (isNaN(x)) return "0"; if (x >= 1000) return x.toLocaleString("en-US", { maximumFractionDigits: 4 }); return x.toFixed(6).replace(/\.?0+$/, ""); };
+const fmtUSD = (n) => {
+  const x = parseFloat(n);
+  return isNaN(x)
+    ? "$0.00"
+    : new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+      }).format(x);
+};
+const fmtPct = (n) => {
+  const x = parseFloat(n);
+  return isNaN(x) ? "0.00%" : (x >= 0 ? "+" : "") + x.toFixed(2) + "%";
+};
+const fmtNum = (n) => {
+  const x = parseFloat(n);
+  if (isNaN(x)) return "0";
+  if (x >= 1000) return x.toLocaleString("en-US", { maximumFractionDigits: 4 });
+  return x.toFixed(6).replace(/\.?0+$/, "");
+};
 const clean = (s) => parseFloat(String(s || "").replace(/[$,%]/g, "")) || 0;
 
-const COIN_COLORS = { BTC:"#f7931a",ETH:"#627eea",SOL:"#9945ff",ADA:"#0033ad",DOGE:"#c2a633",AVAX:"#e84142",DOT:"#e6007a",LINK:"#2a5ada",MATIC:"#8247e5",XRP:"#00aae4",BNB:"#f3ba2f",SHIB:"#ff0000",LTC:"#bfbbbb",UNI:"#ff007a",ATOM:"#6f7390",DEFAULT:"#00e5a0" };
-const getCoinColor = (t) => COIN_COLORS[t?.toUpperCase()] || COIN_COLORS.DEFAULT;
+const COIN_COLORS = {
+  BTC: "#f7931a",
+  ETH: "#627eea",
+  SOL: "#9945ff",
+  ADA: "#0033ad",
+  DOGE: "#c2a633",
+  AVAX: "#e84142",
+  DOT: "#e6007a",
+  LINK: "#2a5ada",
+  MATIC: "#8247e5",
+  XRP: "#00aae4",
+  BNB: "#f3ba2f",
+  SHIB: "#ff0000",
+  LTC: "#bfbbbb",
+  UNI: "#ff007a",
+  ATOM: "#6f7390",
+  DEFAULT: "#00e5a0",
+};
+const getCoinColor = (t) =>
+  COIN_COLORS[t?.toUpperCase()] || COIN_COLORS.DEFAULT;
 
-const BADGE_NAMES = { first_watch:"👀 First Watch",serious_watch:"🎯 Serious Watchman",veteran_watch:"🔭 Veteran Watchman",analyst:"📝 Analyst",researcher:"📖 Researcher",due_diligence:"🔍 Due Diligence" };
+const BADGE_NAMES = {
+  first_watch: "👀 First Watch",
+  serious_watch: "🎯 Serious Watchman",
+  veteran_watch: "🔭 Veteran Watchman",
+  analyst: "📝 Analyst",
+  researcher: "📖 Researcher",
+  due_diligence: "🔍 Due Diligence",
+};
 
 function LineChart({ data, height = 160 }) {
   const ref = useRef(null);
   useEffect(() => {
     const c = ref.current;
     if (!c || !data || data.length < 2) return;
-    const ctx = c.getContext("2d"), W = c.offsetWidth || 600, H = height;
-    c.width = W; c.height = H; ctx.clearRect(0, 0, W, H);
-    const vals = data.map((d) => d.v), mn = Math.min(...vals), mx = Math.max(...vals), rng = mx - mn || 1;
-    const pad = { t: 10, b: 24, l: 8, r: 8 }, iW = W - pad.l - pad.r, iH = H - pad.t - pad.b;
-    const xS = (i) => pad.l + (i / (data.length - 1)) * iW, yS = (v) => pad.t + iH - ((v - mn) / rng) * iH;
+    const ctx = c.getContext("2d"),
+      W = c.offsetWidth || 600,
+      H = height;
+    c.width = W;
+    c.height = H;
+    ctx.clearRect(0, 0, W, H);
+    const vals = data.map((d) => d.v),
+      mn = Math.min(...vals),
+      mx = Math.max(...vals),
+      rng = mx - mn || 1;
+    const pad = { t: 10, b: 24, l: 8, r: 8 },
+      iW = W - pad.l - pad.r,
+      iH = H - pad.t - pad.b;
+    const xS = (i) => pad.l + (i / (data.length - 1)) * iW,
+      yS = (v) => pad.t + iH - ((v - mn) / rng) * iH;
     const g = ctx.createLinearGradient(0, pad.t, 0, H - pad.b);
-    g.addColorStop(0, "rgba(0,229,160,.2)"); g.addColorStop(1, "rgba(0,229,160,0)");
+    g.addColorStop(0, "rgba(0,229,160,.2)");
+    g.addColorStop(1, "rgba(0,229,160,0)");
     ctx.beginPath();
-    data.forEach((d, i) => i === 0 ? ctx.moveTo(xS(i), yS(d.v)) : ctx.lineTo(xS(i), yS(d.v)));
-    ctx.lineTo(xS(data.length - 1), H - pad.b); ctx.lineTo(xS(0), H - pad.b);
-    ctx.closePath(); ctx.fillStyle = g; ctx.fill();
+    data.forEach((d, i) =>
+      i === 0 ? ctx.moveTo(xS(i), yS(d.v)) : ctx.lineTo(xS(i), yS(d.v))
+    );
+    ctx.lineTo(xS(data.length - 1), H - pad.b);
+    ctx.lineTo(xS(0), H - pad.b);
+    ctx.closePath();
+    ctx.fillStyle = g;
+    ctx.fill();
     ctx.beginPath();
-    data.forEach((d, i) => i === 0 ? ctx.moveTo(xS(i), yS(d.v)) : ctx.lineTo(xS(i), yS(d.v)));
-    ctx.strokeStyle = "var(--accent,#00e5a0)"; ctx.lineWidth = 2; ctx.stroke();
-    ctx.fillStyle = "#475569"; ctx.font = "10px monospace"; ctx.textAlign = "center";
-    [[0, data[0].t],[Math.floor(data.length / 2), data[Math.floor(data.length / 2)]?.t],[data.length - 1, data[data.length - 1].t]].forEach(([i, l]) => {
+    data.forEach((d, i) =>
+      i === 0 ? ctx.moveTo(xS(i), yS(d.v)) : ctx.lineTo(xS(i), yS(d.v))
+    );
+    ctx.strokeStyle = "var(--accent,#00e5a0)";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.fillStyle = "#475569";
+    ctx.font = "10px monospace";
+    ctx.textAlign = "center";
+    [
+      [0, data[0].t],
+      [Math.floor(data.length / 2), data[Math.floor(data.length / 2)]?.t],
+      [data.length - 1, data[data.length - 1].t],
+    ].forEach(([i, l]) => {
       if (l) ctx.fillText(String(l).substring(0, 10), xS(i), H - 6);
     });
   }, [data, height]);
-  if (!data || data.length < 2) return <div style={{ height, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)", fontSize: 13 }}>No history yet</div>;
-  return <canvas ref={ref} style={{ width: "100%", height, display: "block" }} />;
+  if (!data || data.length < 2)
+    return (
+      <div
+        style={{
+          height,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: "var(--muted)",
+          fontSize: 13,
+        }}
+      >
+        No history yet
+      </div>
+    );
+  return (
+    <canvas ref={ref} style={{ width: "100%", height, display: "block" }} />
+  );
 }
 
 function DonutChart({ slices, total, size = 160 }) {
-  const cx = size / 2, cy = size / 2, r = size * 0.38, inn = size * 0.24;
+  const cx = size / 2,
+    cy = size / 2,
+    r = size * 0.38,
+    inn = size * 0.24;
   let cum = -Math.PI / 2;
   const paths = slices.map((s, i) => {
     const sw = (s.value / total) * 2 * Math.PI;
-    const x1 = cx + r * Math.cos(cum), y1 = cy + r * Math.sin(cum);
-    const x2 = cx + r * Math.cos(cum + sw), y2 = cy + r * Math.sin(cum + sw);
-    const xi1 = cx + inn * Math.cos(cum + sw), yi1 = cy + inn * Math.sin(cum + sw);
-    const xi2 = cx + inn * Math.cos(cum), yi2 = cy + inn * Math.sin(cum);
+    const x1 = cx + r * Math.cos(cum),
+      y1 = cy + r * Math.sin(cum);
+    const x2 = cx + r * Math.cos(cum + sw),
+      y2 = cy + r * Math.sin(cum + sw);
+    const xi1 = cx + inn * Math.cos(cum + sw),
+      yi1 = cy + inn * Math.sin(cum + sw);
+    const xi2 = cx + inn * Math.cos(cum),
+      yi2 = cy + inn * Math.sin(cum);
     const lg = sw > Math.PI ? 1 : 0;
     const d = `M${x1},${y1} A${r},${r} 0 ${lg},1 ${x2},${y2} L${xi1},${yi1} A${inn},${inn} 0 ${lg},0 ${xi2},${yi2} Z`;
     cum += sw;
@@ -62,8 +152,24 @@ function DonutChart({ slices, total, size = 160 }) {
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
       {paths}
       <circle cx={cx} cy={cy} r={inn - 2} fill="var(--surface,#0f172a)" />
-      <text x={cx} y={cy - 4} textAnchor="middle" fill="var(--muted,#94a3b8)" fontSize="10">{slices.length}</text>
-      <text x={cx} y={cy + 10} textAnchor="middle" fill="var(--text,#e2e8f0)" fontSize="9">assets</text>
+      <text
+        x={cx}
+        y={cy - 4}
+        textAnchor="middle"
+        fill="var(--muted,#94a3b8)"
+        fontSize="10"
+      >
+        {slices.length}
+      </text>
+      <text
+        x={cx}
+        y={cy + 10}
+        textAnchor="middle"
+        fill="var(--text,#e2e8f0)"
+        fontSize="9"
+      >
+        assets
+      </text>
     </svg>
   );
 }
@@ -77,14 +183,24 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("holdings");
   const [chartRange, setChartRange] = useState("1W");
-  const [tradeForm, setTradeForm] = useState({ action: "BUY", coin: "", amountType: "Dollar Amount", amount: "", reasoning: "" });
+  const [tradeForm, setTradeForm] = useState({
+    action: "BUY",
+    coin: "",
+    amountType: "Dollar Amount",
+    amount: "",
+    reasoning: "",
+  });
   const [tradeStatus, setTradeStatus] = useState(null);
   const [executing, setExecuting] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
   const [marketStatus, setMarketStatus] = useState(null);
   const [classId, setClassId] = useState(null);
   const [watchlist, setWatchlist] = useState([]);
-  const [watchForm, setWatchForm] = useState({ coin: "", targetPrice: "", direction: "above" });
+  const [watchForm, setWatchForm] = useState({
+    coin: "",
+    targetPrice: "",
+    direction: "above",
+  });
   const [watchStatus, setWatchStatus] = useState(null);
   const [earnedBadge, setEarnedBadge] = useState(null);
   const [tokensAwarded, setTokensAwarded] = useState(0);
@@ -93,22 +209,35 @@ export default function Dashboard() {
   const [historyFilter, setHistoryFilter] = useState("ALL");
   const [historySearch, setHistorySearch] = useState("");
 
-  useEffect(() => { applyTheme(getTheme()); }, []);
+  useEffect(() => {
+    applyTheme(getTheme());
+  }, []);
 
   const fetchData = useCallback(async () => {
     try {
       const [pRes, prRes, hRes, mRes, meRes] = await Promise.all([
-        fetch("/api/portfolio"), fetch("/api/prices"),
+        fetch("/api/portfolio"),
+        fetch("/api/prices"),
         fetch(`/api/history?range=${chartRange}`),
-        fetch("/api/market"), fetch("/api/me"),
+        fetch("/api/market"),
+        fetch("/api/me"),
       ]);
-      if (pRes.ok) { setPortfolio(await pRes.json()); setLastUpdated(new Date()); }
+      if (pRes.ok) {
+        setPortfolio(await pRes.json());
+        setLastUpdated(new Date());
+      }
       if (prRes.ok) setPrices(await prRes.json());
       if (hRes.ok) setHistory(await hRes.json());
       if (mRes.ok) setMarketStatus(await mRes.json());
-      if (meRes.ok) { const me = await meRes.json(); setClassId(me?.classes?.[0]?.id); }
-    } catch (e) { console.error(e); }
-    finally { setLoading(false); }
+      if (meRes.ok) {
+        const me = await meRes.json();
+        setClassId(me?.classes?.[0]?.id);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
   }, [chartRange]);
 
   const fetchWatchlist = useCallback(async () => {
@@ -116,11 +245,14 @@ export default function Dashboard() {
     if (res.ok) setWatchlist(await res.json());
   }, []);
 
-  useEffect(() => { if (status === "unauthenticated") router.replace("/"); }, [status, router]);
+  useEffect(() => {
+    if (status === "unauthenticated") router.replace("/");
+  }, [status, router]);
 
   useEffect(() => {
     if (status === "authenticated") {
-      fetchData(); fetchWatchlist();
+      fetchData();
+      fetchWatchlist();
       const iv = setInterval(fetchData, 60000);
       return () => clearInterval(iv);
     }
@@ -132,35 +264,75 @@ export default function Dashboard() {
   }, [chartRange]);
 
   if (status === "loading" || status === "unauthenticated")
-    return <div style={{ background: "var(--bg,#080c14)", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted,#475569)" }}>Loading...</div>;
+    return (
+      <div
+        style={{
+          background: "var(--bg,#080c14)",
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: "var(--muted,#475569)",
+        }}
+      >
+        Loading...
+      </div>
+    );
 
   const executeTrade = async () => {
-    if (!tradeForm.coin || !tradeForm.amount) { setTradeStatus({ type: "error", msg: "Fill in all fields." }); return; }
-    setExecuting(true); setTradeStatus({ type: "pending", msg: "Executing..." });
+    if (!tradeForm.coin || !tradeForm.amount) {
+      setTradeStatus({ type: "error", msg: "Fill in all fields." });
+      return;
+    }
+    setExecuting(true);
+    setTradeStatus({ type: "pending", msg: "Executing..." });
     try {
-      const res = await fetch("/api/trade", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(tradeForm) });
+      const res = await fetch("/api/trade", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(tradeForm),
+      });
       const data = await res.json();
       if (res.ok) {
-        setTradeStatus({ type: "success", msg: `✓ ${tradeForm.action} ${tradeForm.coin} executed` });
+        setTradeStatus({
+          type: "success",
+          msg: `✓ ${tradeForm.action} ${tradeForm.coin} executed`,
+        });
         if (data.newBadge) setEarnedBadge(data.newBadge);
         if (data.tokensAwarded > 0) setTokensAwarded(data.tokensAwarded);
         setTradeForm((f) => ({ ...f, amount: "", reasoning: "" }));
-        setTimeout(() => { fetchData(); setTradeStatus(null); }, 2000);
-      } else setTradeStatus({ type: "error", msg: data.error || "Trade failed" });
-    } catch { setTradeStatus({ type: "error", msg: "Network error" }); }
-    finally { setExecuting(false); }
+        setTimeout(() => {
+          fetchData();
+          setTradeStatus(null);
+        }, 2000);
+      } else
+        setTradeStatus({ type: "error", msg: data.error || "Trade failed" });
+    } catch {
+      setTradeStatus({ type: "error", msg: "Network error" });
+    } finally {
+      setExecuting(false);
+    }
   };
 
   const sellAll = async () => {
     if (!confirm("Sell ALL holdings? Cannot be undone.")) return;
-    setExecuting(true); setTradeStatus({ type: "pending", msg: "Liquidating..." });
+    setExecuting(true);
+    setTradeStatus({ type: "pending", msg: "Liquidating..." });
     try {
       const res = await fetch("/api/trade/sellall", { method: "POST" });
       const data = await res.json();
-      if (res.ok) { setTradeStatus({ type: "success", msg: "✓ All positions sold" }); setTimeout(() => { fetchData(); setTradeStatus(null); }, 2000); }
-      else setTradeStatus({ type: "error", msg: data.error || "Failed" });
-    } catch { setTradeStatus({ type: "error", msg: "Network error" }); }
-    finally { setExecuting(false); }
+      if (res.ok) {
+        setTradeStatus({ type: "success", msg: "✓ All positions sold" });
+        setTimeout(() => {
+          fetchData();
+          setTradeStatus(null);
+        }, 2000);
+      } else setTradeStatus({ type: "error", msg: data.error || "Failed" });
+    } catch {
+      setTradeStatus({ type: "error", msg: "Network error" });
+    } finally {
+      setExecuting(false);
+    }
   };
 
   const redeemTokens = async () => {
@@ -168,17 +340,45 @@ export default function Dashboard() {
     setRedeemingTokens(true);
     try {
       const tokens = portfolio?.classRewardTokens || 0;
-      const res = await fetch("/api/rewards/redeem", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ classId: portfolio?.classId, tokens }) });
+      const res = await fetch("/api/rewards/redeem", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ classId: portfolio?.classId, tokens }),
+      });
       const data = await res.json();
-      if (res.ok) { setTradeStatus({ type: "success", msg: `🎁 Redeemed ${data.tokensRedeemed} tokens for ${fmtUSD(data.cashAdded)}!` }); setTimeout(() => { fetchData(); setTradeStatus(null); }, 2500); }
-      else setTradeStatus({ type: "error", msg: data.error || "Redemption failed" });
-    } catch { setTradeStatus({ type: "error", msg: "Network error" }); }
-    finally { setRedeemingTokens(false); }
+      if (res.ok) {
+        setTradeStatus({
+          type: "success",
+          msg: `🎁 Redeemed ${data.tokensRedeemed} tokens for ${fmtUSD(
+            data.cashAdded
+          )}!`,
+        });
+        setTimeout(() => {
+          fetchData();
+          setTradeStatus(null);
+        }, 2500);
+      } else
+        setTradeStatus({
+          type: "error",
+          msg: data.error || "Redemption failed",
+        });
+    } catch {
+      setTradeStatus({ type: "error", msg: "Network error" });
+    } finally {
+      setRedeemingTokens(false);
+    }
   };
 
   const addWatch = async () => {
-    if (!watchForm.coin || !watchForm.targetPrice) { setWatchStatus({ type: "error", msg: "Fill in all fields" }); return; }
-    const res = await fetch("/api/watchlist", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...watchForm, classId }) });
+    if (!watchForm.coin || !watchForm.targetPrice) {
+      setWatchStatus({ type: "error", msg: "Fill in all fields" });
+      return;
+    }
+    const res = await fetch("/api/watchlist", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...watchForm, classId }),
+    });
     const data = await res.json();
     if (res.ok) {
       setWatchStatus({ type: "success", msg: "✅ Alert added" });
@@ -190,11 +390,19 @@ export default function Dashboard() {
   };
 
   const removeWatch = async (id) => {
-    await fetch("/api/watchlist", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
+    await fetch("/api/watchlist", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
     fetchWatchlist();
   };
 
-  const { summary, holdings = [], history: tradeHistory = [] } = portfolio || {};
+  const {
+    summary,
+    holdings = [],
+    history: tradeHistory = [],
+  } = portfolio || {};
   const cash = clean(summary?.cash);
   const totalVal = clean(summary?.totalVal);
   const pl = clean(summary?.pl);
@@ -204,27 +412,55 @@ export default function Dashboard() {
 
   const holdingsArr = Array.isArray(holdings) ? holdings : [];
   const holdingsWithVal = holdingsArr.map((h) => ({
-    ticker: h.coin || h[0], qty: h.qty || clean(h[1]),
-    avgBuy: h.avgBuy || clean(h[2]), curPrice: h.curPrice || clean(h[3]),
+    ticker: h.coin || h[0],
+    qty: h.qty || clean(h[1]),
+    avgBuy: h.avgBuy || clean(h[2]),
+    curPrice: h.curPrice || clean(h[3]),
     curVal: h.curVal || (h.qty || clean(h[1])) * (h.curPrice || clean(h[3])),
     plPct: h.plPct || clean(h[7]),
   }));
   const totalPortVal = holdingsWithVal.reduce((s, h) => s + h.curVal, 0) + cash;
-  const allSlices = [...holdingsWithVal.map((h) => ({ label: h.ticker, value: h.curVal, color: getCoinColor(h.ticker) })), { label: "Cash", value: cash, color: "#334155" }].filter((s) => s.value > 0);
-  const availableCoins = Object.keys(prices).length > 0 ? Object.keys(prices) : holdingsWithVal.map((h) => h.ticker);
+  const allSlices = [
+    ...holdingsWithVal.map((h) => ({
+      label: h.ticker,
+      value: h.curVal,
+      color: getCoinColor(h.ticker),
+    })),
+    { label: "Cash", value: cash, color: "#334155" },
+  ].filter((s) => s.value > 0);
+  const availableCoins =
+    Object.keys(prices).length > 0
+      ? Object.keys(prices)
+      : holdingsWithVal.map((h) => h.ticker);
 
   // Use intraday for short ranges, daily for longer
-  const chartData = ["1D","3D","1W"].includes(chartRange) ? history.intraday : history.daily;
+  const chartData = ["1D", "3D", "1W"].includes(chartRange)
+    ? history.intraday
+    : history.daily;
 
   const watchlistWithStatus = watchlist.map((w) => {
-    const currentPrice = prices[w.coin]?.price ? parseFloat(prices[w.coin].price) : null;
-    const triggered = currentPrice !== null && ((w.direction === "above" && currentPrice >= parseFloat(w.target_price)) || (w.direction === "below" && currentPrice <= parseFloat(w.target_price)));
+    const currentPrice = prices[w.coin]?.price
+      ? parseFloat(prices[w.coin].price)
+      : null;
+    const triggered =
+      currentPrice !== null &&
+      ((w.direction === "above" &&
+        currentPrice >= parseFloat(w.target_price)) ||
+        (w.direction === "below" &&
+          currentPrice <= parseFloat(w.target_price)));
     return { ...w, currentPrice, triggered };
   });
   const triggeredCount = watchlistWithStatus.filter((w) => w.triggered).length;
   const noteCharCount = tradeForm.reasoning?.length || 0;
   const noteHelpsBadge = noteCharCount >= 50;
-  const TABS = ["holdings","charts","allocation","trade","history","watchlist"];
+  const TABS = [
+    "holdings",
+    "charts",
+    "allocation",
+    "trade",
+    "history",
+    "watchlist",
+  ];
 
   return (
     <>
@@ -250,7 +486,7 @@ export default function Dashboard() {
         .stat-value{font-size:15px;font-weight:500;color:var(--text)}.stat-value.up{color:var(--up)}.stat-value.down{color:var(--down)}
         .hero-actions{display:flex;gap:10px;flex-wrap:wrap}
         .btn{padding:10px 20px;border-radius:12px;border:none;font-family:'DM Mono',monospace;font-size:11px;font-weight:500;cursor:pointer;transition:all .2s;letter-spacing:.5px;text-decoration:none;display:inline-block}
-        .btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{opacity:.9;transform:translateY(-1px)}.btn-primary:disabled{opacity:.5;cursor:not-allowed}
+        .btn-primary{background:var(--accent);color:var(--accent-text,#fff)}.btn-primary:hover{opacity:.9;transform:translateY(-1px)}.btn-primary:disabled{opacity:.5;cursor:not-allowed}
         .btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border)}.btn-secondary:hover{border-color:var(--accent);color:var(--accent)}
         .btn-danger{background:transparent;color:var(--down);border:1px solid rgba(220,38,38,.3)}.btn-danger:hover{background:rgba(220,38,38,.08)}
         .tabs{display:flex;gap:4px;margin-bottom:20px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:4px;flex-wrap:wrap}
@@ -314,59 +550,142 @@ export default function Dashboard() {
 
       <div className="page">
         <nav className="nav">
-          <div className="logo">CRYPTO<span>CLASS</span></div>
+          <div className="logo">
+            CRYPTO<span>CLASS</span>
+          </div>
           <div className="nav-links">
-            <a href="/dashboard" className="nav-link active">Wallet</a>
-            <Link href="/leaderboard" className="nav-link">Leaderboard</Link>
-            <Link href="/market" className="nav-link">Market</Link>
-            <Link href="/news" className="nav-link">News</Link>
-            <Link href="/badges" className="nav-link">Badges</Link>
+            <a href="/dashboard" className="nav-link active">
+              Wallet
+            </a>
+            <Link href="/leaderboard" className="nav-link">
+              Leaderboard
+            </Link>
+            <Link href="/market" className="nav-link">
+              Market
+            </Link>
+            <Link href="/news" className="nav-link">
+              News
+            </Link>
+            <Link href="/badges" className="nav-link">
+              Badges
+            </Link>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <ThemeToggle />
             <div className="nav-dot" />
-            <span style={{ fontSize: 10, color: "var(--muted)", letterSpacing: 1 }}>LIVE</span>
+            <span
+              style={{ fontSize: 10, color: "var(--muted)", letterSpacing: 1 }}
+            >
+              LIVE
+            </span>
           </div>
         </nav>
 
-        {marketStatus?.frozen && <div className="freeze-banner">🚫 {marketStatus.freezeReason}</div>}
-        {lastUpdated && <div style={{ fontSize: 10, color: "var(--muted)", textAlign: "right", marginBottom: 16 }}>Updated {lastUpdated.toLocaleTimeString()}</div>}
+        {marketStatus?.frozen && (
+          <div className="freeze-banner">🚫 {marketStatus.freezeReason}</div>
+        )}
+        {lastUpdated && (
+          <div
+            style={{
+              fontSize: 10,
+              color: "var(--muted)",
+              textAlign: "right",
+              marginBottom: 16,
+            }}
+          >
+            Updated {lastUpdated.toLocaleTimeString()}
+          </div>
+        )}
 
         {loading ? (
           <>
-            <div className="skeleton" style={{ height: 220, marginBottom: 20 }} />
-            <div className="skeleton" style={{ height: 44, marginBottom: 20 }} />
-            {[1, 2, 3].map((i) => <div key={i} className="skeleton" style={{ height: 70, marginBottom: 10 }} />)}
+            <div
+              className="skeleton"
+              style={{ height: 220, marginBottom: 20 }}
+            />
+            <div
+              className="skeleton"
+              style={{ height: 44, marginBottom: 20 }}
+            />
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="skeleton"
+                style={{ height: 70, marginBottom: 10 }}
+              />
+            ))}
           </>
         ) : (
           <>
             <div className="hero">
               <div className="hero-label">Total Portfolio Value</div>
-              <div className="hero-value" style={{ color: isProfitable ? "var(--up)" : "var(--down)" }}>
-                ${Math.floor(totalVal).toLocaleString()}<span style={{ fontSize: 30, opacity: 0.6 }}>.{totalVal.toFixed(2).split(".")[1]}</span>
+              <div
+                className="hero-value"
+                style={{ color: isProfitable ? "var(--up)" : "var(--down)" }}
+              >
+                ${Math.floor(totalVal).toLocaleString()}
+                <span style={{ fontSize: 30, opacity: 0.6 }}>
+                  .{totalVal.toFixed(2).split(".")[1]}
+                </span>
               </div>
               <div className={`hero-change ${isProfitable ? "up" : "down"}`}>
                 <span>{isProfitable ? "▲" : "▼"}</span>
-                <span>{isProfitable ? "+" : ""}{fmtUSD(pl)} ({fmtPct(returnPct)})</span>
+                <span>
+                  {isProfitable ? "+" : ""}
+                  {fmtUSD(pl)} ({fmtPct(returnPct)})
+                </span>
               </div>
               <div className="hero-stats">
-                <div className="stat"><div className="stat-label">Cash</div><div className="stat-value">{fmtUSD(cash)}</div></div>
-                <div className="stat"><div className="stat-label">Holdings</div><div className="stat-value">{fmtUSD(clean(summary?.holdingsVal))}</div></div>
-                <div className="stat"><div className="stat-label">Return</div><div className={`stat-value ${isProfitable ? "up" : "down"}`}>{fmtPct(returnPct)}</div></div>
-                <div className="stat"><div className="stat-label">Fees Paid</div><div className="stat-value" style={{ color: "var(--muted)" }}>{fmtUSD(fees)}</div></div>
+                <div className="stat">
+                  <div className="stat-label">Cash</div>
+                  <div className="stat-value">{fmtUSD(cash)}</div>
+                </div>
+                <div className="stat">
+                  <div className="stat-label">Holdings</div>
+                  <div className="stat-value">
+                    {fmtUSD(clean(summary?.holdingsVal))}
+                  </div>
+                </div>
+                <div className="stat">
+                  <div className="stat-label">Return</div>
+                  <div className={`stat-value ${isProfitable ? "up" : "down"}`}>
+                    {fmtPct(returnPct)}
+                  </div>
+                </div>
+                <div className="stat">
+                  <div className="stat-label">Fees Paid</div>
+                  <div className="stat-value" style={{ color: "var(--muted)" }}>
+                    {fmtUSD(fees)}
+                  </div>
+                </div>
               </div>
               <div className="hero-actions">
-                <button className="btn btn-primary" onClick={() => setActiveTab("trade")}>+ New Trade</button>
-                <button className="btn btn-secondary" onClick={fetchData}>↻ Refresh</button>
-                <Link href="/leaderboard" className="btn btn-secondary">🏆 Leaderboard</Link>
+                <button
+                  className="btn btn-primary"
+                  onClick={() => setActiveTab("trade")}
+                >
+                  + New Trade
+                </button>
+                <button className="btn btn-secondary" onClick={fetchData}>
+                  ↻ Refresh
+                </button>
+                <Link href="/leaderboard" className="btn btn-secondary">
+                  🏆 Leaderboard
+                </Link>
               </div>
             </div>
 
             <div className="tabs">
               {TABS.map((t) => (
-                <button key={t} className={`tab${activeTab === t ? " active" : ""}`} onClick={() => setActiveTab(t)}>
+                <button
+                  key={t}
+                  className={`tab${activeTab === t ? " active" : ""}`}
+                  onClick={() => setActiveTab(t)}
+                >
                   {t.charAt(0).toUpperCase() + t.slice(1)}
-                  {t === "watchlist" && triggeredCount > 0 && <span className="tab-badge">{triggeredCount}</span>}
+                  {t === "watchlist" && triggeredCount > 0 && (
+                    <span className="tab-badge">{triggeredCount}</span>
+                  )}
                 </button>
               ))}
             </div>
@@ -374,50 +693,220 @@ export default function Dashboard() {
             {activeTab === "holdings" && (
               <div className="panel">
                 {holdingsWithVal.length === 0 ? (
-                  <div className="empty">No holdings yet — make a trade to get started!</div>
+                  <div className="empty">
+                    No holdings yet — make a trade to get started!
+                  </div>
                 ) : (
                   <>
                     {holdingsWithVal.map((h, i) => (
                       <div className="holding-row" key={i}>
-                        <div className="coin-icon" style={{ background: `${getCoinColor(h.ticker)}22`, color: getCoinColor(h.ticker) }}>{h.ticker.slice(0, 3)}</div>
+                        <div
+                          className="coin-icon"
+                          style={{
+                            background: `${getCoinColor(h.ticker)}22`,
+                            color: getCoinColor(h.ticker),
+                          }}
+                        >
+                          {h.ticker.slice(0, 3)}
+                        </div>
                         <div>
-                          <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 13 }}>{h.ticker}</div>
-                          <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 2 }}>{prices[h.ticker] ? `$${parseFloat(prices[h.ticker].price).toLocaleString()}` : `Avg $${h.avgBuy.toFixed(4)}`}</div>
+                          <div
+                            style={{
+                              fontFamily: "'Syne',sans-serif",
+                              fontWeight: 700,
+                              fontSize: 13,
+                            }}
+                          >
+                            {h.ticker}
+                          </div>
+                          <div
+                            style={{
+                              fontSize: 11,
+                              color: "var(--muted)",
+                              marginTop: 2,
+                            }}
+                          >
+                            {prices[h.ticker]
+                              ? `$${parseFloat(
+                                  prices[h.ticker].price
+                                ).toLocaleString()}`
+                              : `Avg $${h.avgBuy.toFixed(4)}`}
+                          </div>
                         </div>
                         <div style={{ textAlign: "right" }}>
-                          <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 13 }}>{fmtUSD(h.curVal)}</div>
-                          <div style={{ fontSize: 10, color: "var(--muted)", marginTop: 2 }}>{fmtNum(h.qty)} {h.ticker}</div>
+                          <div
+                            style={{
+                              fontFamily: "'Syne',sans-serif",
+                              fontWeight: 700,
+                              fontSize: 13,
+                            }}
+                          >
+                            {fmtUSD(h.curVal)}
+                          </div>
+                          <div
+                            style={{
+                              fontSize: 10,
+                              color: "var(--muted)",
+                              marginTop: 2,
+                            }}
+                          >
+                            {fmtNum(h.qty)} {h.ticker}
+                          </div>
                         </div>
-                        <div className={`pct-badge ${h.plPct >= 0 ? "up" : "down"}`}>{h.plPct >= 0 ? "▲" : "▼"} {Math.abs(h.plPct).toFixed(2)}%</div>
+                        <div
+                          className={`pct-badge ${
+                            h.plPct >= 0 ? "up" : "down"
+                          }`}
+                        >
+                          {h.plPct >= 0 ? "▲" : "▼"}{" "}
+                          {Math.abs(h.plPct).toFixed(2)}%
+                        </div>
                       </div>
                     ))}
                     <div className="cash-row">
-                      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                        <div style={{ width: 40, height: 40, borderRadius: 10, background: "rgba(71,85,105,.3)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>💵</div>
-                        <div>
-                          <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 13 }}>Cash</div>
-                          <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 2 }}>Available</div>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 12,
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: 40,
+                            height: 40,
+                            borderRadius: 10,
+                            background: "rgba(71,85,105,.3)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontSize: 18,
+                          }}
+                        >
+                          💵
                         </div>
-                      </div>
-                      <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 15 }}>{fmtUSD(cash)}</div>
-                    </div>
-                    {portfolio?.classRewardEnabled && (portfolio?.classRewardTokens || 0) > 0 && (
-                      <div className="cash-row" style={{ marginTop: 8, background: "rgba(0,229,160,.05)", borderColor: "rgba(0,229,160,.2)" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                          <div style={{ width: 40, height: 40, borderRadius: 10, background: "rgba(0,229,160,.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>🎁</div>
-                          <div>
-                            <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 13, color: "var(--accent)" }}>ClassReward</div>
-                            <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 2 }}>{portfolio.classRewardTokens} tokens · $1.00 each</div>
+                        <div>
+                          <div
+                            style={{
+                              fontFamily: "'Syne',sans-serif",
+                              fontWeight: 700,
+                              fontSize: 13,
+                            }}
+                          >
+                            Cash
+                          </div>
+                          <div
+                            style={{
+                              fontSize: 11,
+                              color: "var(--muted)",
+                              marginTop: 2,
+                            }}
+                          >
+                            Available
                           </div>
                         </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 15, color: "var(--accent)" }}>{fmtUSD(portfolio.classRewardTokens)}</div>
-                          <button onClick={redeemTokens} disabled={redeemingTokens} style={{ padding: "6px 12px", borderRadius: 8, border: "1px solid rgba(0,229,160,.4)", background: "rgba(0,229,160,.1)", color: "var(--accent)", cursor: "pointer", fontSize: 11, fontFamily: "'DM Mono',monospace", fontWeight: 500 }}>
-                            {redeemingTokens ? "..." : "Redeem →"}
-                          </button>
-                        </div>
                       </div>
-                    )}
+                      <div
+                        style={{
+                          fontFamily: "'Syne',sans-serif",
+                          fontWeight: 700,
+                          fontSize: 15,
+                        }}
+                      >
+                        {fmtUSD(cash)}
+                      </div>
+                    </div>
+                    {portfolio?.classRewardEnabled &&
+                      (portfolio?.classRewardTokens || 0) > 0 && (
+                        <div
+                          className="cash-row"
+                          style={{
+                            marginTop: 8,
+                            background: "rgba(0,229,160,.05)",
+                            borderColor: "rgba(0,229,160,.2)",
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 12,
+                            }}
+                          >
+                            <div
+                              style={{
+                                width: 40,
+                                height: 40,
+                                borderRadius: 10,
+                                background: "rgba(0,229,160,.15)",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                fontSize: 18,
+                              }}
+                            >
+                              🎁
+                            </div>
+                            <div>
+                              <div
+                                style={{
+                                  fontFamily: "'Syne',sans-serif",
+                                  fontWeight: 700,
+                                  fontSize: 13,
+                                  color: "var(--accent)",
+                                }}
+                              >
+                                ClassReward
+                              </div>
+                              <div
+                                style={{
+                                  fontSize: 11,
+                                  color: "var(--muted)",
+                                  marginTop: 2,
+                                }}
+                              >
+                                {portfolio.classRewardTokens} tokens · $1.00
+                                each
+                              </div>
+                            </div>
+                          </div>
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 10,
+                            }}
+                          >
+                            <div
+                              style={{
+                                fontFamily: "'Syne',sans-serif",
+                                fontWeight: 700,
+                                fontSize: 15,
+                                color: "var(--accent)",
+                              }}
+                            >
+                              {fmtUSD(portfolio.classRewardTokens)}
+                            </div>
+                            <button
+                              onClick={redeemTokens}
+                              disabled={redeemingTokens}
+                              style={{
+                                padding: "6px 12px",
+                                borderRadius: 8,
+                                border: "1px solid rgba(0,229,160,.4)",
+                                background: "rgba(0,229,160,.1)",
+                                color: "var(--accent)",
+                                cursor: "pointer",
+                                fontSize: 11,
+                                fontFamily: "'DM Mono',monospace",
+                                fontWeight: 500,
+                              }}
+                            >
+                              {redeemingTokens ? "..." : "Redeem →"}
+                            </button>
+                          </div>
+                        </div>
+                      )}
                   </>
                 )}
               </div>
@@ -427,10 +916,27 @@ export default function Dashboard() {
               <div className="panel">
                 <div className="chart-card">
                   <div className="chart-header">
-                    <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 14, color: "var(--text)" }}>Portfolio Value Over Time</div>
+                    <div
+                      style={{
+                        fontFamily: "'Syne',sans-serif",
+                        fontWeight: 700,
+                        fontSize: 14,
+                        color: "var(--text)",
+                      }}
+                    >
+                      Portfolio Value Over Time
+                    </div>
                     <div className="range-btns">
-                      {["1D","3D","1W","1M","3M","ALL"].map((r) => (
-                        <button key={r} className={`range-btn${chartRange === r ? " active" : ""}`} onClick={() => setChartRange(r)}>{r}</button>
+                      {["1D", "3D", "1W", "1M", "3M", "ALL"].map((r) => (
+                        <button
+                          key={r}
+                          className={`range-btn${
+                            chartRange === r ? " active" : ""
+                          }`}
+                          onClick={() => setChartRange(r)}
+                        >
+                          {r}
+                        </button>
                       ))}
                     </div>
                   </div>
@@ -442,16 +948,41 @@ export default function Dashboard() {
             {activeTab === "allocation" && (
               <div className="panel">
                 <div className="card">
-                  {allSlices.length === 0 ? <div className="empty">No allocation data yet.</div> : (
+                  {allSlices.length === 0 ? (
+                    <div className="empty">No allocation data yet.</div>
+                  ) : (
                     <div className="alloc-inner">
                       <DonutChart slices={allSlices} total={totalPortVal} />
                       <div className="legend">
                         {allSlices.map((s, i) => (
                           <div className="legend-row" key={i}>
-                            <div className="legend-dot" style={{ background: s.color }} />
-                            <div style={{ flex: 1, fontSize: 11, color: "var(--text)" }}>{s.label}</div>
-                            <div style={{ fontSize: 11, color: "var(--muted)" }}>{((s.value / totalPortVal) * 100).toFixed(1)}%</div>
-                            <div style={{ fontSize: 11, color: "var(--muted)", marginLeft: 4 }}>{fmtUSD(s.value)}</div>
+                            <div
+                              className="legend-dot"
+                              style={{ background: s.color }}
+                            />
+                            <div
+                              style={{
+                                flex: 1,
+                                fontSize: 11,
+                                color: "var(--text)",
+                              }}
+                            >
+                              {s.label}
+                            </div>
+                            <div
+                              style={{ fontSize: 11, color: "var(--muted)" }}
+                            >
+                              {((s.value / totalPortVal) * 100).toFixed(1)}%
+                            </div>
+                            <div
+                              style={{
+                                fontSize: 11,
+                                color: "var(--muted)",
+                                marginLeft: 4,
+                              }}
+                            >
+                              {fmtUSD(s.value)}
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -465,164 +996,706 @@ export default function Dashboard() {
               <div className="panel">
                 <div className="trade-grid">
                   <div className="trade-card">
-                    <h3 style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 15, marginBottom: 16 }}>Execute Trade</h3>
+                    <h3
+                      style={{
+                        fontFamily: "'Syne',sans-serif",
+                        fontWeight: 700,
+                        fontSize: 15,
+                        marginBottom: 16,
+                      }}
+                    >
+                      Execute Trade
+                    </h3>
                     <div className="action-toggle">
-                      <button className={`action-btn${tradeForm.action === "BUY" ? " active-buy" : ""}`} onClick={() => setTradeForm((f) => ({ ...f, action: "BUY" }))}>▲ BUY</button>
-                      <button className={`action-btn${tradeForm.action === "SELL" ? " active-sell" : ""}`} onClick={() => setTradeForm((f) => ({ ...f, action: "SELL" }))}>▼ SELL</button>
+                      <button
+                        className={`action-btn${
+                          tradeForm.action === "BUY" ? " active-buy" : ""
+                        }`}
+                        onClick={() =>
+                          setTradeForm((f) => ({ ...f, action: "BUY" }))
+                        }
+                      >
+                        ▲ BUY
+                      </button>
+                      <button
+                        className={`action-btn${
+                          tradeForm.action === "SELL" ? " active-sell" : ""
+                        }`}
+                        onClick={() =>
+                          setTradeForm((f) => ({ ...f, action: "SELL" }))
+                        }
+                      >
+                        ▼ SELL
+                      </button>
                     </div>
                     <div className="form-group">
                       <label className="form-label">Coin</label>
-                      <select className="form-select" value={tradeForm.coin} onChange={(e) => setTradeForm((f) => ({ ...f, coin: e.target.value }))}>
+                      <select
+                        className="form-select"
+                        value={tradeForm.coin}
+                        onChange={(e) =>
+                          setTradeForm((f) => ({ ...f, coin: e.target.value }))
+                        }
+                      >
                         <option value="">Select a coin...</option>
-                        {availableCoins.map((c) => <option key={c} value={c}>{c}{prices[c] ? ` — $${parseFloat(prices[c].price).toLocaleString()}` : ""}</option>)}
+                        {availableCoins.map((c) => (
+                          <option key={c} value={c}>
+                            {c}
+                            {prices[c]
+                              ? ` — $${parseFloat(
+                                  prices[c].price
+                                ).toLocaleString()}`
+                              : ""}
+                          </option>
+                        ))}
                       </select>
                     </div>
                     {/* Holdings summary for selected coin */}
-                    {tradeForm.coin && (() => {
-                      const h = holdingsWithVal.find(x => x.ticker === tradeForm.coin);
-                      if (!h) return (
-                        <div style={{background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:10,padding:"10px 14px",marginBottom:12,fontSize:11,color:"var(--muted)"}}>
-                          You don't hold any {tradeForm.coin} yet
-                        </div>
-                      );
-                      const isUp = h.plPct >= 0;
-                      return (
-                        <div style={{background:isUp?"rgba(0,180,100,.08)":"rgba(220,38,38,.06)",border:`1px solid ${isUp?"rgba(0,180,100,.25)":"rgba(220,38,38,.25)"}`,borderRadius:10,padding:"12px 14px",marginBottom:12}}>
-                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-                            <span style={{fontSize:11,color:"var(--muted)",letterSpacing:1,textTransform:"uppercase"}}>Your {tradeForm.coin} Position</span>
-                            <span style={{fontSize:12,fontWeight:700,color:isUp?"var(--up)":"var(--down)"}}>
-                              {isUp?"▲":"▼"} {Math.abs(h.plPct).toFixed(2)}%
-                            </span>
+                    {tradeForm.coin &&
+                      (() => {
+                        const h = holdingsWithVal.find(
+                          (x) => x.ticker === tradeForm.coin
+                        );
+                        if (!h)
+                          return (
+                            <div
+                              style={{
+                                background: "var(--surface2)",
+                                border: "1px solid var(--border)",
+                                borderRadius: 10,
+                                padding: "10px 14px",
+                                marginBottom: 12,
+                                fontSize: 11,
+                                color: "var(--muted)",
+                              }}
+                            >
+                              You don't hold any {tradeForm.coin} yet
+                            </div>
+                          );
+                        const isUp = h.plPct >= 0;
+                        return (
+                          <div
+                            style={{
+                              background: isUp
+                                ? "rgba(0,180,100,.08)"
+                                : "rgba(220,38,38,.06)",
+                              border: `1px solid ${
+                                isUp
+                                  ? "rgba(0,180,100,.25)"
+                                  : "rgba(220,38,38,.25)"
+                              }`,
+                              borderRadius: 10,
+                              padding: "12px 14px",
+                              marginBottom: 12,
+                            }}
+                          >
+                            <div
+                              style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                                marginBottom: 8,
+                              }}
+                            >
+                              <span
+                                style={{
+                                  fontSize: 11,
+                                  color: "var(--muted)",
+                                  letterSpacing: 1,
+                                  textTransform: "uppercase",
+                                }}
+                              >
+                                Your {tradeForm.coin} Position
+                              </span>
+                              <span
+                                style={{
+                                  fontSize: 12,
+                                  fontWeight: 700,
+                                  color: isUp ? "var(--up)" : "var(--down)",
+                                }}
+                              >
+                                {isUp ? "▲" : "▼"}{" "}
+                                {Math.abs(h.plPct).toFixed(2)}%
+                              </span>
+                            </div>
+                            <div
+                              style={{
+                                display: "grid",
+                                gridTemplateColumns: "1fr 1fr 1fr",
+                                gap: 8,
+                              }}
+                            >
+                              <div>
+                                <div
+                                  style={{
+                                    fontSize: 9,
+                                    color: "var(--muted)",
+                                    letterSpacing: 1,
+                                    textTransform: "uppercase",
+                                    marginBottom: 2,
+                                  }}
+                                >
+                                  Quantity
+                                </div>
+                                <div
+                                  style={{
+                                    fontSize: 12,
+                                    fontWeight: 600,
+                                    color: "var(--text)",
+                                  }}
+                                >
+                                  {h.qty.toFixed(6)}
+                                </div>
+                              </div>
+                              <div>
+                                <div
+                                  style={{
+                                    fontSize: 9,
+                                    color: "var(--muted)",
+                                    letterSpacing: 1,
+                                    textTransform: "uppercase",
+                                    marginBottom: 2,
+                                  }}
+                                >
+                                  Avg Buy
+                                </div>
+                                <div
+                                  style={{
+                                    fontSize: 12,
+                                    fontWeight: 600,
+                                    color: "var(--text)",
+                                  }}
+                                >
+                                  ${h.avgBuy.toFixed(4)}
+                                </div>
+                              </div>
+                              <div>
+                                <div
+                                  style={{
+                                    fontSize: 9,
+                                    color: "var(--muted)",
+                                    letterSpacing: 1,
+                                    textTransform: "uppercase",
+                                    marginBottom: 2,
+                                  }}
+                                >
+                                  Cur Price
+                                </div>
+                                <div
+                                  style={{
+                                    fontSize: 12,
+                                    fontWeight: 600,
+                                    color: "var(--text)",
+                                  }}
+                                >
+                                  {prices[tradeForm.coin]
+                                    ? `$${parseFloat(
+                                        prices[tradeForm.coin].price
+                                      ).toLocaleString()}`
+                                    : `$${h.curPrice.toFixed(4)}`}
+                                </div>
+                              </div>
+                              <div>
+                                <div
+                                  style={{
+                                    fontSize: 9,
+                                    color: "var(--muted)",
+                                    letterSpacing: 1,
+                                    textTransform: "uppercase",
+                                    marginBottom: 2,
+                                  }}
+                                >
+                                  Total Value
+                                </div>
+                                <div
+                                  style={{
+                                    fontSize: 12,
+                                    fontWeight: 700,
+                                    color: "var(--text)",
+                                  }}
+                                >
+                                  {fmtUSD(h.curVal)}
+                                </div>
+                              </div>
+                              <div>
+                                <div
+                                  style={{
+                                    fontSize: 9,
+                                    color: "var(--muted)",
+                                    letterSpacing: 1,
+                                    textTransform: "uppercase",
+                                    marginBottom: 2,
+                                  }}
+                                >
+                                  P/L
+                                </div>
+                                <div
+                                  style={{
+                                    fontSize: 12,
+                                    fontWeight: 700,
+                                    color: isUp ? "var(--up)" : "var(--down)",
+                                  }}
+                                >
+                                  {isUp ? "+" : ""}
+                                  {fmtUSD(h.plTotal)}
+                                </div>
+                              </div>
+                              <div>
+                                <div
+                                  style={{
+                                    fontSize: 9,
+                                    color: "var(--muted)",
+                                    letterSpacing: 1,
+                                    textTransform: "uppercase",
+                                    marginBottom: 2,
+                                  }}
+                                >
+                                  Sell All
+                                </div>
+                                <button
+                                  onClick={() =>
+                                    setTradeForm((f) => ({
+                                      ...f,
+                                      action: "SELL",
+                                      amountType: "# of Coins",
+                                      amount: h.qty.toFixed(6),
+                                    }))
+                                  }
+                                  style={{
+                                    fontSize: 10,
+                                    padding: "3px 10px",
+                                    borderRadius: 6,
+                                    border: "1px solid rgba(220,38,38,.3)",
+                                    background: "rgba(220,38,38,.08)",
+                                    color: "var(--down)",
+                                    cursor: "pointer",
+                                    fontFamily: "'DM Mono',monospace",
+                                  }}
+                                >
+                                  Sell All
+                                </button>
+                              </div>
+                            </div>
                           </div>
-                          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
-                            <div>
-                              <div style={{fontSize:9,color:"var(--muted)",letterSpacing:1,textTransform:"uppercase",marginBottom:2}}>Quantity</div>
-                              <div style={{fontSize:12,fontWeight:600,color:"var(--text)"}}>{h.qty.toFixed(6)}</div>
-                            </div>
-                            <div>
-                              <div style={{fontSize:9,color:"var(--muted)",letterSpacing:1,textTransform:"uppercase",marginBottom:2}}>Avg Buy</div>
-                              <div style={{fontSize:12,fontWeight:600,color:"var(--text)"}}>${h.avgBuy.toFixed(4)}</div>
-                            </div>
-                            <div>
-                              <div style={{fontSize:9,color:"var(--muted)",letterSpacing:1,textTransform:"uppercase",marginBottom:2}}>Cur Price</div>
-                              <div style={{fontSize:12,fontWeight:600,color:"var(--text)"}}>{prices[tradeForm.coin] ? `$${parseFloat(prices[tradeForm.coin].price).toLocaleString()}` : `$${h.curPrice.toFixed(4)}`}</div>
-                            </div>
-                            <div>
-                              <div style={{fontSize:9,color:"var(--muted)",letterSpacing:1,textTransform:"uppercase",marginBottom:2}}>Total Value</div>
-                              <div style={{fontSize:12,fontWeight:700,color:"var(--text)"}}>{fmtUSD(h.curVal)}</div>
-                            </div>
-                            <div>
-                              <div style={{fontSize:9,color:"var(--muted)",letterSpacing:1,textTransform:"uppercase",marginBottom:2}}>P/L</div>
-                              <div style={{fontSize:12,fontWeight:700,color:isUp?"var(--up)":"var(--down)"}}>{isUp?"+":""}{fmtUSD(h.plTotal)}</div>
-                            </div>
-                            <div>
-                              <div style={{fontSize:9,color:"var(--muted)",letterSpacing:1,textTransform:"uppercase",marginBottom:2}}>Sell All</div>
-                              <button onClick={()=>setTradeForm(f=>({...f,action:"SELL",amountType:"# of Coins",amount:h.qty.toFixed(6)}))}
-                                style={{fontSize:10,padding:"3px 10px",borderRadius:6,border:"1px solid rgba(220,38,38,.3)",background:"rgba(220,38,38,.08)",color:"var(--down)",cursor:"pointer",fontFamily:"'DM Mono',monospace"}}>
-                                Sell All
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })()}
+                        );
+                      })()}
                     <div className="form-group">
                       <label className="form-label">Amount Type</label>
-                      <select className="form-select" value={tradeForm.amountType} onChange={(e) => setTradeForm((f) => ({ ...f, amountType: e.target.value }))}>
+                      <select
+                        className="form-select"
+                        value={tradeForm.amountType}
+                        onChange={(e) =>
+                          setTradeForm((f) => ({
+                            ...f,
+                            amountType: e.target.value,
+                          }))
+                        }
+                      >
                         <option value="Dollar Amount">Dollar Amount ($)</option>
                         <option value="# of Coins"># of Coins</option>
                       </select>
                     </div>
                     <div className="form-group">
-                      <label className="form-label">{tradeForm.amountType === "Dollar Amount" ? "Amount (USD)" : "Quantity"}</label>
-                      <input type="number" className="form-input" placeholder="0.00" min="0" step="any" value={tradeForm.amount} onChange={(e) => setTradeForm((f) => ({ ...f, amount: e.target.value }))} />
+                      <label className="form-label">
+                        {tradeForm.amountType === "Dollar Amount"
+                          ? "Amount (USD)"
+                          : "Quantity"}
+                      </label>
+                      <input
+                        type="number"
+                        className="form-input"
+                        placeholder="0.00"
+                        min="0"
+                        step="any"
+                        value={tradeForm.amount}
+                        onChange={(e) =>
+                          setTradeForm((f) => ({
+                            ...f,
+                            amount: e.target.value,
+                          }))
+                        }
+                      />
                     </div>
                     <div className="form-group">
-                      <label className="form-label" style={{ display: "flex", justifyContent: "space-between" }}>
+                      <label
+                        className="form-label"
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                        }}
+                      >
                         <span>💭 Trade Reasoning</span>
-                        <span style={{ color: noteHelpsBadge ? "var(--up)" : "var(--muted)", fontSize: 9 }}>
-                          {noteHelpsBadge ? "✓ Counts toward Due Diligence badge" : "Badges: 5 notes = Analyst, 15 = Researcher"}
+                        <span
+                          style={{
+                            color: noteHelpsBadge
+                              ? "var(--up)"
+                              : "var(--muted)",
+                            fontSize: 9,
+                          }}
+                        >
+                          {noteHelpsBadge
+                            ? "✓ Counts toward Due Diligence badge"
+                            : "Badges: 5 notes = Analyst, 15 = Researcher"}
                         </span>
                       </label>
-                      <textarea className="form-textarea" placeholder="Why are you making this trade? What's your strategy? (optional but earns badges!)" value={tradeForm.reasoning} onChange={(e) => setTradeForm((f) => ({ ...f, reasoning: e.target.value }))} />
+                      <textarea
+                        className="form-textarea"
+                        placeholder="Why are you making this trade? What's your strategy? (optional but earns badges!)"
+                        value={tradeForm.reasoning}
+                        onChange={(e) =>
+                          setTradeForm((f) => ({
+                            ...f,
+                            reasoning: e.target.value,
+                          }))
+                        }
+                      />
                       <div className="note-helper">
-                        <span style={{ color: noteHelpsBadge ? "var(--up)" : "var(--muted)" }}>{noteCharCount >= 50 ? "✓ 50+ chars" : `${noteCharCount}/50 for Due Diligence`}</span>
-                        <span style={{ color: "var(--muted)" }}>{noteCharCount} chars</span>
+                        <span
+                          style={{
+                            color: noteHelpsBadge
+                              ? "var(--up)"
+                              : "var(--muted)",
+                          }}
+                        >
+                          {noteCharCount >= 50
+                            ? "✓ 50+ chars"
+                            : `${noteCharCount}/50 for Due Diligence`}
+                        </span>
+                        <span style={{ color: "var(--muted)" }}>
+                          {noteCharCount} chars
+                        </span>
                       </div>
                     </div>
-                    {tradeForm.coin && tradeForm.amount && prices[tradeForm.coin] && (
-                      <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 10, padding: "7px 11px", background: "var(--surface2)", borderRadius: 8 }}>
-                        Est: {tradeForm.amountType === "Dollar Amount" ? `${(parseFloat(tradeForm.amount) / parseFloat(prices[tradeForm.coin].price)).toFixed(6)} ${tradeForm.coin}` : fmtUSD(parseFloat(tradeForm.amount) * parseFloat(prices[tradeForm.coin].price))}
-                        &nbsp;·&nbsp;Fee: {fmtUSD((parseFloat(tradeForm.amount) || 0) * 0.005)}
+                    {tradeForm.coin &&
+                      tradeForm.amount &&
+                      prices[tradeForm.coin] && (
+                        <div
+                          style={{
+                            fontSize: 11,
+                            color: "var(--muted)",
+                            marginBottom: 10,
+                            padding: "7px 11px",
+                            background: "var(--surface2)",
+                            borderRadius: 8,
+                          }}
+                        >
+                          Est:{" "}
+                          {tradeForm.amountType === "Dollar Amount"
+                            ? `${(
+                                parseFloat(tradeForm.amount) /
+                                parseFloat(prices[tradeForm.coin].price)
+                              ).toFixed(6)} ${tradeForm.coin}`
+                            : fmtUSD(
+                                parseFloat(tradeForm.amount) *
+                                  parseFloat(prices[tradeForm.coin].price)
+                              )}
+                          &nbsp;·&nbsp;Fee:{" "}
+                          {fmtUSD((parseFloat(tradeForm.amount) || 0) * 0.005)}
+                        </div>
+                      )}
+                    <button
+                      className="btn btn-primary"
+                      style={{ width: "100%" }}
+                      onClick={executeTrade}
+                      disabled={executing || marketStatus?.frozen}
+                    >
+                      {executing
+                        ? "Processing..."
+                        : marketStatus?.frozen
+                        ? "Market Frozen"
+                        : `${tradeForm.action} ${tradeForm.coin || "—"}`}
+                    </button>
+                    {tradeStatus && (
+                      <div className={`trade-status ${tradeStatus.type}`}>
+                        {tradeStatus.msg}
                       </div>
                     )}
-                    <button className="btn btn-primary" style={{ width: "100%" }} onClick={executeTrade} disabled={executing || marketStatus?.frozen}>
-                      {executing ? "Processing..." : marketStatus?.frozen ? "Market Frozen" : `${tradeForm.action} ${tradeForm.coin || "—"}`}
-                    </button>
-                    {tradeStatus && <div className={`trade-status ${tradeStatus.type}`}>{tradeStatus.msg}</div>}
                   </div>
                   <div className="trade-card">
-                    <h3 style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 15, marginBottom: 16 }}>Portfolio Summary</h3>
-                    {[["Starting Cash",fmtUSD(10000),""],["Cash Remaining",fmtUSD(cash),""],["Holdings Value",fmtUSD(clean(summary?.holdingsVal)),""],["Total Value",fmtUSD(totalVal),""],["Profit / Loss",fmtUSD(pl),isProfitable?"up":"down"],["Return %",fmtPct(returnPct),isProfitable?"up":"down"],["Total Fees",fmtUSD(fees),""]].map(([label,val,cls]) => (
-                      <div key={label} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid var(--border)" }}>
-                        <span style={{ fontSize: 11, color: "var(--muted)" }}>{label}</span>
-                        <span style={{ fontSize: 12, fontWeight: 500, color: cls === "up" ? "var(--up)" : cls === "down" ? "var(--down)" : "var(--text)" }}>{val}</span>
+                    <h3
+                      style={{
+                        fontFamily: "'Syne',sans-serif",
+                        fontWeight: 700,
+                        fontSize: 15,
+                        marginBottom: 16,
+                      }}
+                    >
+                      Portfolio Summary
+                    </h3>
+                    {[
+                      ["Starting Cash", fmtUSD(10000), ""],
+                      ["Cash Remaining", fmtUSD(cash), ""],
+                      [
+                        "Holdings Value",
+                        fmtUSD(clean(summary?.holdingsVal)),
+                        "",
+                      ],
+                      ["Total Value", fmtUSD(totalVal), ""],
+                      [
+                        "Profit / Loss",
+                        fmtUSD(pl),
+                        isProfitable ? "up" : "down",
+                      ],
+                      [
+                        "Return %",
+                        fmtPct(returnPct),
+                        isProfitable ? "up" : "down",
+                      ],
+                      ["Total Fees", fmtUSD(fees), ""],
+                    ].map(([label, val, cls]) => (
+                      <div
+                        key={label}
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          padding: "8px 0",
+                          borderBottom: "1px solid var(--border)",
+                        }}
+                      >
+                        <span style={{ fontSize: 11, color: "var(--muted)" }}>
+                          {label}
+                        </span>
+                        <span
+                          style={{
+                            fontSize: 12,
+                            fontWeight: 500,
+                            color:
+                              cls === "up"
+                                ? "var(--up)"
+                                : cls === "down"
+                                ? "var(--down)"
+                                : "var(--text)",
+                          }}
+                        >
+                          {val}
+                        </span>
                       </div>
                     ))}
                   </div>
                 </div>
                 <div className="sell-all-card">
                   <div>
-                    <strong style={{ color: "var(--down)", display: "block", marginBottom: 3, fontFamily: "'Syne',sans-serif" }}>⚠ Sell All Holdings</strong>
-                    <span style={{ fontSize: 12, color: "var(--muted)" }}>Liquidates every position at market price. Cannot be undone.</span>
+                    <strong
+                      style={{
+                        color: "var(--down)",
+                        display: "block",
+                        marginBottom: 3,
+                        fontFamily: "'Syne',sans-serif",
+                      }}
+                    >
+                      ⚠ Sell All Holdings
+                    </strong>
+                    <span style={{ fontSize: 12, color: "var(--muted)" }}>
+                      Liquidates every position at market price. Cannot be
+                      undone.
+                    </span>
                   </div>
-                  <button className="btn btn-danger" onClick={sellAll} disabled={executing || holdingsWithVal.length === 0}>Sell All</button>
+                  <button
+                    className="btn btn-danger"
+                    onClick={sellAll}
+                    disabled={executing || holdingsWithVal.length === 0}
+                  >
+                    Sell All
+                  </button>
                 </div>
               </div>
             )}
 
             {activeTab === "history" && (
               <div className="panel">
-                {!tradeHistory || tradeHistory.length === 0 ? <div className="empty">No trades yet.</div> : (
+                {!tradeHistory || tradeHistory.length === 0 ? (
+                  <div className="empty">No trades yet.</div>
+                ) : (
                   <>
-                  {(() => {
+                    {(() => {
                       const filtered = [...tradeHistory]
-                        .filter(t => historyFilter === "ALL" || t.action === historyFilter)
-                        .filter(t => !historySearch || t.coin?.toLowerCase().includes(historySearch.toLowerCase()))
+                        .filter(
+                          (t) =>
+                            historyFilter === "ALL" ||
+                            t.action === historyFilter
+                        )
+                        .filter(
+                          (t) =>
+                            !historySearch ||
+                            t.coin
+                              ?.toLowerCase()
+                              .includes(historySearch.toLowerCase())
+                        )
                         .reverse();
-                      const limited = historyLimit === "ALL" ? filtered : filtered.slice(0, historyLimit);
-                      return <>
-                        <div style={{display:"flex",gap:6,marginBottom:14,flexWrap:"wrap",alignItems:"center"}}>
-                          <span style={{fontSize:11,color:"var(--muted)"}}>Show:</span>
-                          {[25,50,100,200,"ALL"].map(n=>(
-                            <button key={n} onClick={()=>setHistoryLimit(n)} style={{padding:"3px 9px",borderRadius:7,border:"1px solid var(--border)",background:historyLimit===n?"var(--accent)":"transparent",color:historyLimit===n?"#000":"var(--muted)",fontFamily:"'DM Mono',monospace",fontSize:10,cursor:"pointer"}}>{n}</button>
-                          ))}
-                          <span style={{marginLeft:8,fontSize:11,color:"var(--muted)"}}>Filter:</span>
-                          {["ALL","BUY","SELL"].map(f=>(
-                            <button key={f} onClick={()=>setHistoryFilter(f)} style={{padding:"3px 9px",borderRadius:7,border:"1px solid var(--border)",background:historyFilter===f?"var(--surface2)":"transparent",color:historyFilter===f?"var(--accent)":"var(--muted)",fontFamily:"'DM Mono',monospace",fontSize:10,cursor:"pointer"}}>{f}</button>
-                          ))}
-                          <input placeholder="Coin..." value={historySearch} onChange={e=>setHistorySearch(e.target.value)}
-                            style={{padding:"3px 9px",borderRadius:7,border:"1px solid var(--border)",background:"var(--surface2)",color:"var(--text)",fontFamily:"'DM Mono',monospace",fontSize:10,outline:"none",width:80}}/>
-                          <span style={{fontSize:10,color:"var(--muted)",marginLeft:"auto"}}>Showing {limited.length} of {tradeHistory.length}</span>
-                        </div>
-                        {limited.map((t, i) => {
-                    const isBuy = t.action === "BUY";
-                    return (
-                      <div className="history-row" key={i}>
-                        <div className={`tx-icon ${isBuy ? "tx-buy" : "tx-sell"}`} style={{ marginTop: 2 }}>{isBuy ? "💰" : "📤"}</div>
-                        <div>
-                          <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 600, fontSize: 13 }}>{t.action} {t.coin}</div>
-                          <div style={{ fontSize: 10, color: "var(--muted)", marginTop: 2 }}>{new Date(t.createdAt || t.created_at).toLocaleString()} · {(t.quantity || 0).toFixed(4)} {t.coin} @ ${(t.price || 0).toLocaleString()}</div>
-                          {(t.reasoning || t.reasoning_text) && <div className="trade-note">💭 {t.reasoning || t.reasoning_text}</div>}
-                        </div>
-                        <div>
-                          <div style={{ fontSize: 12, fontWeight: 500, color: isBuy ? "var(--down)" : "var(--up)", textAlign: "right" }}>{isBuy ? "-" : "+"}{fmtUSD(t.grossValue || t.gross_value || 0)}</div>
-                          <div style={{ fontSize: 10, color: "var(--muted)", marginTop: 2, textAlign: "right" }}>Fee: {fmtUSD(t.fee || 0)}</div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                      </>;
+                      const limited =
+                        historyLimit === "ALL"
+                          ? filtered
+                          : filtered.slice(0, historyLimit);
+                      return (
+                        <>
+                          <div
+                            style={{
+                              display: "flex",
+                              gap: 6,
+                              marginBottom: 14,
+                              flexWrap: "wrap",
+                              alignItems: "center",
+                            }}
+                          >
+                            <span
+                              style={{ fontSize: 11, color: "var(--muted)" }}
+                            >
+                              Show:
+                            </span>
+                            {[25, 50, 100, 200, "ALL"].map((n) => (
+                              <button
+                                key={n}
+                                onClick={() => setHistoryLimit(n)}
+                                style={{
+                                  padding: "3px 9px",
+                                  borderRadius: 7,
+                                  border: "1px solid var(--border)",
+                                  background:
+                                    historyLimit === n
+                                      ? "var(--accent)"
+                                      : "transparent",
+                                  color:
+                                    historyLimit === n
+                                      ? "#000"
+                                      : "var(--muted)",
+                                  fontFamily: "'DM Mono',monospace",
+                                  fontSize: 10,
+                                  cursor: "pointer",
+                                }}
+                              >
+                                {n}
+                              </button>
+                            ))}
+                            <span
+                              style={{
+                                marginLeft: 8,
+                                fontSize: 11,
+                                color: "var(--muted)",
+                              }}
+                            >
+                              Filter:
+                            </span>
+                            {["ALL", "BUY", "SELL"].map((f) => (
+                              <button
+                                key={f}
+                                onClick={() => setHistoryFilter(f)}
+                                style={{
+                                  padding: "3px 9px",
+                                  borderRadius: 7,
+                                  border: "1px solid var(--border)",
+                                  background:
+                                    historyFilter === f
+                                      ? "var(--surface2)"
+                                      : "transparent",
+                                  color:
+                                    historyFilter === f
+                                      ? "var(--accent)"
+                                      : "var(--muted)",
+                                  fontFamily: "'DM Mono',monospace",
+                                  fontSize: 10,
+                                  cursor: "pointer",
+                                }}
+                              >
+                                {f}
+                              </button>
+                            ))}
+                            <input
+                              placeholder="Coin..."
+                              value={historySearch}
+                              onChange={(e) => setHistorySearch(e.target.value)}
+                              style={{
+                                padding: "3px 9px",
+                                borderRadius: 7,
+                                border: "1px solid var(--border)",
+                                background: "var(--surface2)",
+                                color: "var(--text)",
+                                fontFamily: "'DM Mono',monospace",
+                                fontSize: 10,
+                                outline: "none",
+                                width: 80,
+                              }}
+                            />
+                            <span
+                              style={{
+                                fontSize: 10,
+                                color: "var(--muted)",
+                                marginLeft: "auto",
+                              }}
+                            >
+                              Showing {limited.length} of {tradeHistory.length}
+                            </span>
+                          </div>
+                          {limited.map((t, i) => {
+                            const isBuy = t.action === "BUY";
+                            return (
+                              <div className="history-row" key={i}>
+                                <div
+                                  className={`tx-icon ${
+                                    isBuy ? "tx-buy" : "tx-sell"
+                                  }`}
+                                  style={{ marginTop: 2 }}
+                                >
+                                  {isBuy ? "💰" : "📤"}
+                                </div>
+                                <div>
+                                  <div
+                                    style={{
+                                      fontFamily: "'Syne',sans-serif",
+                                      fontWeight: 600,
+                                      fontSize: 13,
+                                    }}
+                                  >
+                                    {t.action} {t.coin}
+                                  </div>
+                                  <div
+                                    style={{
+                                      fontSize: 10,
+                                      color: "var(--muted)",
+                                      marginTop: 2,
+                                    }}
+                                  >
+                                    {new Date(
+                                      t.createdAt || t.created_at
+                                    ).toLocaleString()}{" "}
+                                    · {(t.quantity || 0).toFixed(4)} {t.coin} @
+                                    ${(t.price || 0).toLocaleString()}
+                                  </div>
+                                  {(t.reasoning || t.reasoning_text) && (
+                                    <div className="trade-note">
+                                      💭 {t.reasoning || t.reasoning_text}
+                                    </div>
+                                  )}
+                                </div>
+                                <div>
+                                  <div
+                                    style={{
+                                      fontSize: 12,
+                                      fontWeight: 500,
+                                      color: isBuy
+                                        ? "var(--down)"
+                                        : "var(--up)",
+                                      textAlign: "right",
+                                    }}
+                                  >
+                                    {isBuy ? "-" : "+"}
+                                    {fmtUSD(t.grossValue || t.gross_value || 0)}
+                                  </div>
+                                  <div
+                                    style={{
+                                      fontSize: 10,
+                                      color: "var(--muted)",
+                                      marginTop: 2,
+                                      textAlign: "right",
+                                    }}
+                                  >
+                                    Fee: {fmtUSD(t.fee || 0)}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </>
+                      );
                     })()}
                   </>
                 )}
@@ -632,71 +1705,251 @@ export default function Dashboard() {
             {activeTab === "watchlist" && (
               <div className="panel">
                 <div className="watch-form">
-                  <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 14, marginBottom: 12 }}>
+                  <div
+                    style={{
+                      fontFamily: "'Syne',sans-serif",
+                      fontWeight: 700,
+                      fontSize: 14,
+                      marginBottom: 12,
+                    }}
+                  >
                     👁 Add Price Alert
-                    <span style={{ fontSize: 10, color: "var(--muted)", fontFamily: "'DM Mono',monospace", fontWeight: 400, marginLeft: 8 }}>Earns badges at 1, 10, and 20 alerts</span>
+                    <span
+                      style={{
+                        fontSize: 10,
+                        color: "var(--muted)",
+                        fontFamily: "'DM Mono',monospace",
+                        fontWeight: 400,
+                        marginLeft: 8,
+                      }}
+                    >
+                      Earns badges at 1, 10, and 20 alerts
+                    </span>
                   </div>
                   <div className="watch-form-grid">
                     <div>
                       <label className="form-label">Coin</label>
-                      <select className="form-select" value={watchForm.coin} onChange={(e) => setWatchForm((f) => ({ ...f, coin: e.target.value }))}>
+                      <select
+                        className="form-select"
+                        value={watchForm.coin}
+                        onChange={(e) =>
+                          setWatchForm((f) => ({ ...f, coin: e.target.value }))
+                        }
+                      >
                         <option value="">Select...</option>
-                        {availableCoins.map((c) => <option key={c} value={c}>{c}{prices[c] ? ` $${parseFloat(prices[c].price).toLocaleString()}` : ""}</option>)}
+                        {availableCoins.map((c) => (
+                          <option key={c} value={c}>
+                            {c}
+                            {prices[c]
+                              ? ` $${parseFloat(
+                                  prices[c].price
+                                ).toLocaleString()}`
+                              : ""}
+                          </option>
+                        ))}
                       </select>
                     </div>
                     <div>
                       <label className="form-label">Direction</label>
-                      <select className="form-select" value={watchForm.direction} onChange={(e) => setWatchForm((f) => ({ ...f, direction: e.target.value }))}>
+                      <select
+                        className="form-select"
+                        value={watchForm.direction}
+                        onChange={(e) =>
+                          setWatchForm((f) => ({
+                            ...f,
+                            direction: e.target.value,
+                          }))
+                        }
+                      >
                         <option value="above">Goes Above</option>
                         <option value="below">Goes Below</option>
                       </select>
                     </div>
                     <div>
                       <label className="form-label">Target Price ($)</label>
-                      <input type="number" className="form-input" placeholder="0.00" step="any" value={watchForm.targetPrice} onChange={(e) => setWatchForm((f) => ({ ...f, targetPrice: e.target.value }))} />
+                      <input
+                        type="number"
+                        className="form-input"
+                        placeholder="0.00"
+                        step="any"
+                        value={watchForm.targetPrice}
+                        onChange={(e) =>
+                          setWatchForm((f) => ({
+                            ...f,
+                            targetPrice: e.target.value,
+                          }))
+                        }
+                      />
                     </div>
-                    <button className="btn btn-primary" onClick={addWatch} style={{ marginTop: 18 }}>+ Add</button>
+                    <button
+                      className="btn btn-primary"
+                      onClick={addWatch}
+                      style={{ marginTop: 18 }}
+                    >
+                      + Add
+                    </button>
                   </div>
-                  {watchStatus && <div className={`trade-status ${watchStatus.type}`} style={{ marginTop: 10 }}>{watchStatus.msg}</div>}
+                  {watchStatus && (
+                    <div
+                      className={`trade-status ${watchStatus.type}`}
+                      style={{ marginTop: 10 }}
+                    >
+                      {watchStatus.msg}
+                    </div>
+                  )}
                 </div>
                 {watchlistWithStatus.length === 0 ? (
                   <div className="empty">
                     <div style={{ fontSize: 36, marginBottom: 12 }}>👁</div>
                     <div style={{ marginBottom: 8 }}>No price alerts yet.</div>
-                    <div style={{ fontSize: 11 }}>Add your first alert above to earn the First Watch badge!</div>
+                    <div style={{ fontSize: 11 }}>
+                      Add your first alert above to earn the First Watch badge!
+                    </div>
                   </div>
                 ) : (
                   <>
                     {triggeredCount > 0 && (
-                      <div style={{ background: "rgba(245,158,11,.1)", border: "1px solid rgba(245,158,11,.3)", borderRadius: 12, padding: "10px 16px", marginBottom: 16, fontSize: 12, color: "var(--gold)" }}>
-                        🔔 {triggeredCount} alert{triggeredCount > 1 ? "s" : ""} triggered!
+                      <div
+                        style={{
+                          background: "rgba(245,158,11,.1)",
+                          border: "1px solid rgba(245,158,11,.3)",
+                          borderRadius: 12,
+                          padding: "10px 16px",
+                          marginBottom: 16,
+                          fontSize: 12,
+                          color: "var(--gold)",
+                        }}
+                      >
+                        🔔 {triggeredCount} alert{triggeredCount > 1 ? "s" : ""}{" "}
+                        triggered!
                       </div>
                     )}
                     {watchlistWithStatus.map((w, i) => {
                       const currentPrice = w.currentPrice;
-                      const pctAway = currentPrice && parseFloat(w.target_price) ? ((parseFloat(w.target_price) - currentPrice) / currentPrice) * 100 : null;
+                      const pctAway =
+                        currentPrice && parseFloat(w.target_price)
+                          ? ((parseFloat(w.target_price) - currentPrice) /
+                              currentPrice) *
+                            100
+                          : null;
                       return (
-                        <div key={i} className={`watch-row${w.triggered ? " triggered" : ""}`}>
+                        <div
+                          key={i}
+                          className={`watch-row${
+                            w.triggered ? " triggered" : ""
+                          }`}
+                        >
                           <div>
-                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                              <div className="coin-icon" style={{ width: 32, height: 32, borderRadius: 8, background: `${getCoinColor(w.coin)}22`, color: getCoinColor(w.coin), fontSize: 10 }}>{w.coin.slice(0, 3)}</div>
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 8,
+                              }}
+                            >
+                              <div
+                                className="coin-icon"
+                                style={{
+                                  width: 32,
+                                  height: 32,
+                                  borderRadius: 8,
+                                  background: `${getCoinColor(w.coin)}22`,
+                                  color: getCoinColor(w.coin),
+                                  fontSize: 10,
+                                }}
+                              >
+                                {w.coin.slice(0, 3)}
+                              </div>
                               <div>
-                                <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 13 }}>{w.coin}</div>
-                                <div style={{ fontSize: 10, color: "var(--muted)", marginTop: 1 }}>Alert when {w.direction} ${parseFloat(w.target_price).toLocaleString()}</div>
+                                <div
+                                  style={{
+                                    fontFamily: "'Syne',sans-serif",
+                                    fontWeight: 700,
+                                    fontSize: 13,
+                                  }}
+                                >
+                                  {w.coin}
+                                </div>
+                                <div
+                                  style={{
+                                    fontSize: 10,
+                                    color: "var(--muted)",
+                                    marginTop: 1,
+                                  }}
+                                >
+                                  Alert when {w.direction} $
+                                  {parseFloat(w.target_price).toLocaleString()}
+                                </div>
                               </div>
                             </div>
                           </div>
                           <div style={{ textAlign: "right" }}>
-                            {currentPrice && <div style={{ fontSize: 12, color: "var(--text)", fontWeight: 500 }}>${currentPrice.toLocaleString()}</div>}
-                            {pctAway !== null && <div style={{ fontSize: 10, color: w.triggered ? "var(--gold)" : "var(--muted)", marginTop: 2 }}>{w.triggered ? "🎯 Triggered!" : `${Math.abs(pctAway).toFixed(1)}% away`}</div>}
+                            {currentPrice && (
+                              <div
+                                style={{
+                                  fontSize: 12,
+                                  color: "var(--text)",
+                                  fontWeight: 500,
+                                }}
+                              >
+                                ${currentPrice.toLocaleString()}
+                              </div>
+                            )}
+                            {pctAway !== null && (
+                              <div
+                                style={{
+                                  fontSize: 10,
+                                  color: w.triggered
+                                    ? "var(--gold)"
+                                    : "var(--muted)",
+                                  marginTop: 2,
+                                }}
+                              >
+                                {w.triggered
+                                  ? "🎯 Triggered!"
+                                  : `${Math.abs(pctAway).toFixed(1)}% away`}
+                              </div>
+                            )}
                           </div>
-                          {w.triggered && <span className="watch-triggered-badge">TRIGGERED</span>}
-                          <button onClick={() => removeWatch(w.id)} style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer", fontSize: 16, padding: 4, borderRadius: 6 }}>✕</button>
+                          {w.triggered && (
+                            <span className="watch-triggered-badge">
+                              TRIGGERED
+                            </span>
+                          )}
+                          <button
+                            onClick={() => removeWatch(w.id)}
+                            style={{
+                              background: "none",
+                              border: "none",
+                              color: "var(--muted)",
+                              cursor: "pointer",
+                              fontSize: 16,
+                              padding: 4,
+                              borderRadius: 6,
+                            }}
+                          >
+                            ✕
+                          </button>
                         </div>
                       );
                     })}
-                    <div style={{ fontSize: 10, color: "var(--muted)", textAlign: "center", marginTop: 12 }}>
-                      {watchlist.length} alert{watchlist.length !== 1 ? "s" : ""} · {watchlist.length >= 20 ? "🔭 Veteran Watchman badge earned!" : watchlist.length >= 10 ? "🎯 Serious Watchman badge earned!" : `${10 - watchlist.length} more for Serious Watchman badge`}
+                    <div
+                      style={{
+                        fontSize: 10,
+                        color: "var(--muted)",
+                        textAlign: "center",
+                        marginTop: 12,
+                      }}
+                    >
+                      {watchlist.length} alert
+                      {watchlist.length !== 1 ? "s" : ""} ·{" "}
+                      {watchlist.length >= 20
+                        ? "🔭 Veteran Watchman badge earned!"
+                        : watchlist.length >= 10
+                        ? "🎯 Serious Watchman badge earned!"
+                        : `${
+                            10 - watchlist.length
+                          } more for Serious Watchman badge`}
                     </div>
                   </>
                 )}
@@ -709,12 +1962,47 @@ export default function Dashboard() {
       {earnedBadge && (
         <div className="badge-toast">
           <div style={{ fontSize: 24, marginBottom: 4 }}>🏅</div>
-          <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 14, color: "var(--gold)" }}>Badge Earned!</div>
-          <div style={{ fontSize: 12, color: "var(--text)", marginTop: 2 }}>{BADGE_NAMES[earnedBadge] || earnedBadge}</div>
+          <div
+            style={{
+              fontFamily: "'Syne',sans-serif",
+              fontWeight: 700,
+              fontSize: 14,
+              color: "var(--gold)",
+            }}
+          >
+            Badge Earned!
+          </div>
+          <div style={{ fontSize: 12, color: "var(--text)", marginTop: 2 }}>
+            {BADGE_NAMES[earnedBadge] || earnedBadge}
+          </div>
           {tokensAwarded > 0 && (
-            <div style={{ fontSize: 12, color: "var(--accent)", marginTop: 6, fontWeight: 600 }}>🎁 +{tokensAwarded} ClassReward tokens</div>
+            <div
+              style={{
+                fontSize: 12,
+                color: "var(--accent)",
+                marginTop: 6,
+                fontWeight: 600,
+              }}
+            >
+              🎁 +{tokensAwarded} ClassReward tokens
+            </div>
           )}
-          <button onClick={() => { setEarnedBadge(null); setTokensAwarded(0); }} style={{ marginTop: 8, background: "none", border: "none", color: "var(--muted)", cursor: "pointer", fontSize: 11 }}>dismiss</button>
+          <button
+            onClick={() => {
+              setEarnedBadge(null);
+              setTokensAwarded(0);
+            }}
+            style={{
+              marginTop: 8,
+              background: "none",
+              border: "none",
+              color: "var(--muted)",
+              cursor: "pointer",
+              fontSize: 11,
+            }}
+          >
+            dismiss
+          </button>
         </div>
       )}
     </>
