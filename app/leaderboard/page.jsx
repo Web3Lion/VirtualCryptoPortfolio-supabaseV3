@@ -240,11 +240,11 @@ export default function Leaderboard() {
         .card-sub{font-size:11px;color:var(--muted);margin-bottom:18px}
         .charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px}
         .chart-inner{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
-        .podium{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px}
+        .podium{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px;align-items:end}
         .podium-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:20px;text-align:center}
-        .podium-card.first{border-color:rgba(245,158,11,.4);background:linear-gradient(135deg,#0f172a,#1a1a00)}
-        .podium-card.second{border-color:rgba(148,163,184,.3)}
-        .podium-card.third{border-color:rgba(205,127,50,.3)}
+        .podium-card.first{border-color:rgba(245,158,11,.7);box-shadow:0 8px 32px rgba(245,158,11,.25);transform:scale(1.06);padding:28px 20px;background:linear-gradient(160deg,var(--surface),rgba(245,158,11,.08))}
+        .podium-card.second{border-color:rgba(148,163,184,.5);box-shadow:0 4px 16px rgba(148,163,184,.12);background:linear-gradient(160deg,var(--surface),rgba(148,163,184,.05))}
+        .podium-card.third{border-color:rgba(180,100,40,.5);box-shadow:0 4px 16px rgba(180,100,40,.12);background:linear-gradient(160deg,var(--surface),rgba(180,100,40,.05))}
         .lb-table{width:100%;border-collapse:collapse}
         .lb-table th{font-size:9px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;padding:10px 14px;text-align:left;border-bottom:1px solid var(--border)}
         .lb-row{border-bottom:1px solid rgba(30,41,59,.4);transition:background .15s}
