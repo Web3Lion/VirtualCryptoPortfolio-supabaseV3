@@ -103,8 +103,8 @@ export default function Badges() {
         .cat-title{font-family:'Syne',sans-serif;font-weight:700;font-size:16px;margin-bottom:14px;display:flex;align-items:center;gap:8px;color:var(--text)}
         .badge-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
         .badge-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px;text-align:center;transition:all .2s;position:relative}
-        .badge-card.earned{background:rgba(128,200,128,.06)}
-        .badge-card.locked{opacity:.45;filter:grayscale(.5)}
+        .badge-card.earned{background:rgba(0,229,160,.08);border-color:var(--accent);box-shadow:0 0 12px rgba(0,229,160,.1)}
+        .badge-card.locked{opacity:1;border:1px dashed rgba(128,128,128,.35)} .badge-card.locked .badge-emoji{opacity:.25;filter:grayscale(1)} .badge-card.locked .badge-name{color:var(--muted)} .badge-card.locked .badge-hint{color:var(--muted)}
         .badge-emoji{font-size:32px;margin-bottom:8px;display:block}
         .badge-name{font-family:'Syne',sans-serif;font-weight:700;font-size:11px;margin-bottom:4px;color:var(--text)}
         .badge-hint{font-size:9px;color:var(--muted);line-height:1.5}
