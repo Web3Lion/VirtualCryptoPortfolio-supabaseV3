@@ -2,7 +2,6 @@ import { db } from '@/lib/db';
 import { fetchBulkPrices, GECKO_ID_MAP } from '@/lib/prices';
 
 export async function GET(request) {
-  // Verify cron secret to prevent unauthorized calls
   const authHeader = request.headers.get('authorization');
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
@@ -37,17 +36,18 @@ export async function GET(request) {
         priceUpdateCount = rows.length;
       }
 
-      // Build a quick symbol→price map for the snapshot step below
       Object.entries(priceMap).forEach(([symbol, data]) => { freshPriceMap[symbol] = data.price; });
     }
 
-    // ── 2. Create daily snapshots (once per day per student) ──
-    const today = new Date();
-    today.setUTCHours(0, 0, 0, 0);
-    const todayIso = today.toISOString();
+    // ── 2. Snapshots: intraday every run, daily once per day ──
+    const now = new Date();
+    const todayMidnight = new Date(now);
+    todayMidnight.setUTCHours(0, 0, 0, 0);
+    const todayIso = todayMidnight.toISOString();
 
     const { data: classes } = await db.from('classes').select('id');
-    let snapCount = 0;
+    let intradayCount = 0;
+    let dailyCount = 0;
 
     for (const cls of classes || []) {
       const { data: classStudents } = await db.from('class_students')
@@ -58,23 +58,21 @@ export async function GET(request) {
       const studentIds = classStudents.map(r => r.student_id);
 
       // Which students already have a daily snapshot today?
-      const { data: existingSnaps } = await db.from('snapshots')
+      const { data: existingDaily } = await db.from('snapshots')
         .select('student_id')
         .eq('class_id', cls.id)
         .eq('snapshot_type', 'daily')
         .gte('created_at', todayIso)
         .in('student_id', studentIds);
 
-      const alreadySnapped = new Set((existingSnaps || []).map(s => s.student_id));
-      const needsSnapshot  = studentIds.filter(id => !alreadySnapped.has(id));
-      if (!needsSnapshot.length) continue;
+      const alreadyHaveDaily = new Set((existingDaily || []).map(s => s.student_id));
 
       const [portfoliosRes, holdingsRes] = await Promise.all([
-        db.from('portfolios').select('student_id, cash').in('student_id', needsSnapshot).eq('class_id', cls.id),
-        db.from('holdings').select('student_id, coin, quantity, margin_borrowed').in('student_id', needsSnapshot).eq('class_id', cls.id),
+        db.from('portfolios').select('student_id, cash').in('student_id', studentIds).eq('class_id', cls.id),
+        db.from('holdings').select('student_id, coin, quantity, margin_borrowed').in('student_id', studentIds).eq('class_id', cls.id),
       ]);
 
-      // Supplement freshPriceMap with any coins not in today's fetch
+      // Fill in any coins not returned by the bulk fetch
       const holdingCoins = [...new Set((holdingsRes.data || []).map(h => h.coin))];
       const missingCoins = holdingCoins.filter(c => !freshPriceMap[c]);
       if (missingCoins.length) {
@@ -91,7 +89,10 @@ export async function GET(request) {
         holdingsByStudent[h.student_id].push(h);
       });
 
-      const snapRows = needsSnapshot.map(studentId => {
+      const intradayRows = [];
+      const dailyRows    = [];
+
+      for (const studentId of studentIds) {
         const cash     = portfolioMap[studentId] ?? 0;
         const holdings = holdingsByStudent[studentId] || [];
         let holdingsVal = 0, borrowed = 0;
@@ -99,22 +100,26 @@ export async function GET(request) {
           holdingsVal += parseFloat(h.quantity) * (freshPriceMap[h.coin] || 0);
           borrowed    += parseFloat(h.margin_borrowed || 0);
         });
-        return {
-          student_id:    studentId,
-          class_id:      cls.id,
-          total_value:   cash + holdingsVal - borrowed,
-          cash,
-          snapshot_type: 'daily',
-        };
-      });
+        const totalValue = cash + holdingsVal - borrowed;
 
-      if (snapRows.length) {
-        await db.from('snapshots').insert(snapRows);
-        snapCount += snapRows.length;
+        intradayRows.push({ student_id: studentId, class_id: cls.id, total_value: totalValue, cash, snapshot_type: 'intraday' });
+
+        if (!alreadyHaveDaily.has(studentId)) {
+          dailyRows.push({ student_id: studentId, class_id: cls.id, total_value: totalValue, cash, snapshot_type: 'daily' });
+        }
+      }
+
+      if (intradayRows.length) {
+        await db.from('snapshots').insert(intradayRows);
+        intradayCount += intradayRows.length;
+      }
+      if (dailyRows.length) {
+        await db.from('snapshots').insert(dailyRows);
+        dailyCount += dailyRows.length;
       }
     }
 
-    return Response.json({ success: true, pricesUpdated: priceUpdateCount, dailySnapshotsCreated: snapCount, symbols });
+    return Response.json({ success: true, pricesUpdated: priceUpdateCount, intradaySnapshotsCreated: intradayCount, dailySnapshotsCreated: dailyCount, symbols });
   } catch (e) {
     return Response.json({ error: e.message }, { status: 500 });
   }
