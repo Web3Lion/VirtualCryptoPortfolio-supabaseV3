@@ -8,7 +8,8 @@ const TEACHER_EMAIL = process.env.TEACHER_EMAIL;
 export async function POST(request, { params }) {
   const session = await getServerSession(authOptions);
   if (session?.user?.email !== TEACHER_EMAIL) return Response.json({ error: 'Teacher only' }, { status: 403 });
-  const action = params.action;
+  // params.action is an array for catch-all routes, e.g. ['bull-run','start']
+  const action = Array.isArray(params.action) ? params.action.join('/') : params.action;
   let body = {};
   try { body = await request.json(); } catch {}
 
