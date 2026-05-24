@@ -189,6 +189,7 @@ export default function Dashboard() {
     amountType: "Dollar Amount",
     amount: "",
     reasoning: "",
+    leverageMultiplier: 1,
   });
   const [tradeStatus, setTradeStatus] = useState(null);
   const [executing, setExecuting] = useState(false);
@@ -418,10 +419,13 @@ export default function Dashboard() {
     curPrice: h.curPrice || clean(h[3]),
     curVal: h.curVal || (h.qty || clean(h[1])) * (h.curPrice || clean(h[3])),
     plPct: h.plPct || clean(h[7]),
+    isShort: h.isShort || false,
+    marginBorrowed: h.marginBorrowed || 0,
   }));
-  const totalPortVal = holdingsWithVal.reduce((s, h) => s + h.curVal, 0) + cash;
+  const totalBorrowed = holdingsWithVal.reduce((s, h) => s + (h.marginBorrowed || 0), 0);
+  const totalPortVal = holdingsWithVal.reduce((s, h) => s + h.curVal, 0) + cash - totalBorrowed;
   const allSlices = [
-    ...holdingsWithVal.map((h) => ({
+    ...holdingsWithVal.filter(h => !h.isShort && h.curVal > 0).map((h) => ({
       label: h.ticker,
       value: h.curVal,
       color: getCoinColor(h.ticker),
@@ -699,25 +703,29 @@ export default function Dashboard() {
                 ) : (
                   <>
                     {holdingsWithVal.map((h, i) => (
-                      <div className="holding-row" key={i}>
+                      <div className="holding-row" key={i} style={h.isShort ? {borderLeft:'2px solid rgba(251,146,60,.4)',background:'rgba(251,146,60,.04)'} : h.marginBorrowed>0 ? {borderLeft:'2px solid rgba(96,165,250,.4)',background:'rgba(96,165,250,.04)'} : {}}>
                         <div
                           className="coin-icon"
                           style={{
-                            background: `${getCoinColor(h.ticker)}22`,
-                            color: getCoinColor(h.ticker),
+                            background: h.isShort ? 'rgba(251,146,60,.15)' : `${getCoinColor(h.ticker)}22`,
+                            color: h.isShort ? '#fb923c' : getCoinColor(h.ticker),
                           }}
                         >
                           {h.ticker.slice(0, 3)}
                         </div>
                         <div>
-                          <div
-                            style={{
-                              fontFamily: "'Syne',sans-serif",
-                              fontWeight: 700,
-                              fontSize: 13,
-                            }}
-                          >
-                            {h.ticker}
+                          <div style={{display:'flex',alignItems:'center',gap:6}}>
+                            <div
+                              style={{
+                                fontFamily: "'Syne',sans-serif",
+                                fontWeight: 700,
+                                fontSize: 13,
+                              }}
+                            >
+                              {h.ticker}
+                            </div>
+                            {h.isShort && <span style={{fontSize:9,background:'rgba(251,146,60,.2)',color:'#fb923c',borderRadius:4,padding:'1px 5px',letterSpacing:'1px'}}>SHORT</span>}
+                            {!h.isShort && h.marginBorrowed>0 && <span style={{fontSize:9,background:'rgba(96,165,250,.2)',color:'#60a5fa',borderRadius:4,padding:'1px 5px',letterSpacing:'1px'}}>LEVERAGED</span>}
                           </div>
                           <div
                             style={{
@@ -726,10 +734,10 @@ export default function Dashboard() {
                               marginTop: 2,
                             }}
                           >
-                            {prices[h.ticker]
-                              ? `$${parseFloat(
-                                  prices[h.ticker].price
-                                ).toLocaleString()}`
+                            {h.isShort
+                              ? `Entry $${h.avgBuy.toFixed(2)} · ${fmtNum(Math.abs(h.qty))} short`
+                              : prices[h.ticker]
+                              ? `$${parseFloat(prices[h.ticker].price).toLocaleString()}`
                               : `Avg $${h.avgBuy.toFixed(4)}`}
                           </div>
                         </div>
@@ -739,9 +747,10 @@ export default function Dashboard() {
                               fontFamily: "'Syne',sans-serif",
                               fontWeight: 700,
                               fontSize: 13,
+                              color: h.isShort ? (h.plPct >= 0 ? 'var(--up)' : 'var(--down)') : undefined,
                             }}
                           >
-                            {fmtUSD(h.curVal)}
+                            {h.isShort ? (h.plPct >= 0 ? '+' : '') + fmtUSD((h.plPct / 100) * h.avgBuy * Math.abs(h.qty)) : fmtUSD(h.curVal)}
                           </div>
                           <div
                             style={{
@@ -750,7 +759,7 @@ export default function Dashboard() {
                               marginTop: 2,
                             }}
                           >
-                            {fmtNum(h.qty)} {h.ticker}
+                            {h.isShort ? `liability ${fmtUSD(Math.abs(h.curVal))}` : `${fmtNum(h.qty)} ${h.ticker}`}
                           </div>
                         </div>
                         <div
@@ -1006,13 +1015,13 @@ export default function Dashboard() {
                     >
                       Execute Trade
                     </h3>
-                    <div className="action-toggle">
+                    <div className="action-toggle" style={{gridTemplateColumns: marketStatus?.shortEnabled ? '1fr 1fr 1fr' : '1fr 1fr'}}>
                       <button
                         className={`action-btn${
                           tradeForm.action === "BUY" ? " active-buy" : ""
                         }`}
                         onClick={() =>
-                          setTradeForm((f) => ({ ...f, action: "BUY" }))
+                          setTradeForm((f) => ({ ...f, action: "BUY", leverageMultiplier: 1 }))
                         }
                       >
                         ▲ BUY
@@ -1022,12 +1031,45 @@ export default function Dashboard() {
                           tradeForm.action === "SELL" ? " active-sell" : ""
                         }`}
                         onClick={() =>
-                          setTradeForm((f) => ({ ...f, action: "SELL" }))
+                          setTradeForm((f) => ({ ...f, action: "SELL", leverageMultiplier: 1 }))
                         }
                       >
                         ▼ SELL
                       </button>
+                      {marketStatus?.shortEnabled && (
+                        <button
+                          className={`action-btn${
+                            tradeForm.action === "SHORT" ? " active-sell" : ""
+                          }`}
+                          onClick={() =>
+                            setTradeForm((f) => ({ ...f, action: "SHORT", leverageMultiplier: 1 }))
+                          }
+                          style={tradeForm.action === "SHORT" ? {background:'rgba(251,146,60,.12)',color:'#fb923c',borderColor:'rgba(251,146,60,.3)'} : {}}
+                        >
+                          ⬇ SHORT
+                        </button>
+                      )}
                     </div>
+                    {/* Leverage selector — shown when teacher enables margin and action is BUY */}
+                    {marketStatus?.marginEnabled && tradeForm.action === "BUY" && (
+                      <div style={{marginBottom:12}}>
+                        <div style={{fontSize:10,color:'var(--muted)',letterSpacing:'2px',textTransform:'uppercase',marginBottom:6}}>Leverage</div>
+                        <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+                          {[1,2,3,5,marketStatus.marginMult].filter((v,i,a)=>a.indexOf(v)===i).sort((a,b)=>a-b).filter(v=>v<=marketStatus.marginMult).map(m=>(
+                            <button key={m}
+                              onClick={()=>setTradeForm(f=>({...f,leverageMultiplier:m}))}
+                              style={{padding:'4px 12px',borderRadius:8,border:`1px solid ${tradeForm.leverageMultiplier===m?'var(--accent)':'var(--border)'}`,background:tradeForm.leverageMultiplier===m?'rgba(0,229,160,.15)':'var(--surface2)',color:tradeForm.leverageMultiplier===m?'var(--accent)':'var(--muted)',cursor:'pointer',fontSize:11,fontFamily:"'DM Mono',monospace"}}>
+                              {m}×{m===1?' (no leverage)':''}
+                            </button>
+                          ))}
+                        </div>
+                        {tradeForm.leverageMultiplier > 1 && (
+                          <div style={{fontSize:10,color:'#fb923c',marginTop:5}}>
+                            ⚠ {tradeForm.leverageMultiplier}× leverage — gains and losses are amplified
+                          </div>
+                        )}
+                      </div>
+                    )}
                     <div className="form-group">
                       <label className="form-label">Coin</label>
                       <select
@@ -1076,11 +1118,15 @@ export default function Dashboard() {
                         return (
                           <div
                             style={{
-                              background: isUp
+                              background: h.isShort
+                                ? "rgba(251,146,60,.08)"
+                                : isUp
                                 ? "rgba(0,180,100,.08)"
                                 : "rgba(220,38,38,.06)",
                               border: `1px solid ${
-                                isUp
+                                h.isShort
+                                  ? "rgba(251,146,60,.3)"
+                                  : isUp
                                   ? "rgba(0,180,100,.25)"
                                   : "rgba(220,38,38,.25)"
                               }`,
@@ -1100,12 +1146,12 @@ export default function Dashboard() {
                               <span
                                 style={{
                                   fontSize: 11,
-                                  color: "var(--muted)",
+                                  color: h.isShort ? "#fb923c" : "var(--muted)",
                                   letterSpacing: 1,
                                   textTransform: "uppercase",
                                 }}
                               >
-                                Your {tradeForm.coin} Position
+                                {h.isShort ? `⬇ Short ${tradeForm.coin}` : `Your ${tradeForm.coin} Position`}
                               </span>
                               <span
                                 style={{
@@ -1135,7 +1181,7 @@ export default function Dashboard() {
                                     marginBottom: 2,
                                   }}
                                 >
-                                  Quantity
+                                  {h.isShort ? "Short Qty" : "Quantity"}
                                 </div>
                                 <div
                                   style={{
@@ -1144,7 +1190,7 @@ export default function Dashboard() {
                                     color: "var(--text)",
                                   }}
                                 >
-                                  {h.qty.toFixed(6)}
+                                  {Math.abs(h.qty).toFixed(6)}
                                 </div>
                               </div>
                               <div>
@@ -1157,7 +1203,7 @@ export default function Dashboard() {
                                     marginBottom: 2,
                                   }}
                                 >
-                                  Avg Buy
+                                  {h.isShort ? "Entry Price" : "Avg Buy"}
                                 </div>
                                 <div
                                   style={{
@@ -1250,29 +1296,30 @@ export default function Dashboard() {
                                     marginBottom: 2,
                                   }}
                                 >
-                                  Sell All
+                                  {h.isShort ? "Cover All" : "Sell All"}
                                 </div>
                                 <button
                                   onClick={() =>
                                     setTradeForm((f) => ({
                                       ...f,
-                                      action: "SELL",
+                                      action: h.isShort ? "BUY" : "SELL",
                                       amountType: "# of Coins",
-                                      amount: h.qty.toFixed(6),
+                                      amount: Math.abs(h.qty).toFixed(6),
+                                      leverageMultiplier: 1,
                                     }))
                                   }
                                   style={{
                                     fontSize: 10,
                                     padding: "3px 10px",
                                     borderRadius: 6,
-                                    border: "1px solid rgba(220,38,38,.3)",
-                                    background: "rgba(220,38,38,.08)",
-                                    color: "var(--down)",
+                                    border: h.isShort ? "1px solid rgba(251,146,60,.3)" : "1px solid rgba(220,38,38,.3)",
+                                    background: h.isShort ? "rgba(251,146,60,.08)" : "rgba(220,38,38,.08)",
+                                    color: h.isShort ? "#fb923c" : "var(--down)",
                                     cursor: "pointer",
                                     fontFamily: "'DM Mono',monospace",
                                   }}
                                 >
-                                  Sell All
+                                  {h.isShort ? "Cover All" : "Sell All"}
                                 </button>
                               </div>
                             </div>
@@ -1627,15 +1674,17 @@ export default function Dashboard() {
                           </div>
                           {limited.map((t, i) => {
                             const isBuy = t.action === "BUY";
+                            const isShortTx = t.action === "SHORT";
+                            const isCover = t.action === "COVER";
                             return (
                               <div className="history-row" key={i}>
                                 <div
                                   className={`tx-icon ${
-                                    isBuy ? "tx-buy" : "tx-sell"
+                                    isBuy || isCover ? "tx-buy" : "tx-sell"
                                   }`}
-                                  style={{ marginTop: 2 }}
+                                  style={{ marginTop: 2, background: isShortTx ? 'rgba(251,146,60,.15)' : isCover ? 'rgba(0,180,100,.15)' : undefined, color: isShortTx ? '#fb923c' : isCover ? 'var(--up)' : undefined }}
                                 >
-                                  {isBuy ? "💰" : "📤"}
+                                  {isBuy ? "💰" : isShortTx ? "⬇" : isCover ? "↩" : "📤"}
                                 </div>
                                 <div>
                                   <div

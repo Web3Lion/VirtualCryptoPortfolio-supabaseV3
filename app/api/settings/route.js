@@ -6,7 +6,16 @@ export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session) return Response.json({ error: 'Not authenticated' }, { status: 401 });
   const cfg = await getAllConfig();
-  return Response.json({ tradingHoursOn: cfg.TRADING_HOURS_ON === '1', tradingHoursStart: cfg.TRADING_HOURS_START, tradingHoursEnd: cfg.TRADING_HOURS_END, dailyLimitOn: cfg.DAILY_LIMIT_ON === '1', dailyLimitN: parseInt(cfg.DAILY_LIMIT_N)||3, marginEnabled: cfg.MARGIN_ENABLED === '1', marginMult: parseInt(cfg.MARGIN_MULTIPLIER)||2 });
+  return Response.json({
+    tradingHoursOn:  cfg.TRADING_HOURS_ON === '1',
+    tradingHoursStart: cfg.TRADING_HOURS_START,
+    tradingHoursEnd:   cfg.TRADING_HOURS_END,
+    dailyLimitOn:    cfg.DAILY_LIMIT_ON === '1',
+    dailyLimitN:     parseInt(cfg.DAILY_LIMIT_N) || 3,
+    marginEnabled:   cfg.MARGIN_ENABLED === '1',
+    marginMult:      parseInt(cfg.MARGIN_MULTIPLIER) || 2,
+    shortEnabled:    cfg.SHORT_SELLING_ENABLED === '1',
+  });
 }
 export async function POST(request) {
   const session = await getServerSession(authOptions);
@@ -20,6 +29,7 @@ export async function POST(request) {
   if (body.dailyLimitN       !== undefined) updates.DAILY_LIMIT_N       = body.dailyLimitN;
   if (body.marginEnabled     !== undefined) updates.MARGIN_ENABLED      = body.marginEnabled     ? '1' : '0';
   if (body.marginMult        !== undefined) updates.MARGIN_MULTIPLIER   = body.marginMult;
+  if (body.shortEnabled      !== undefined) updates.SHORT_SELLING_ENABLED = body.shortEnabled    ? '1' : '0';
   await setConfigs(updates);
   return Response.json({ success: true, message: '✓ Settings saved' });
 }

@@ -39,16 +39,25 @@ export async function GET(request) {
   const feesPaid  = parseFloat(portfolio.fees_paid);
 
   const holdingsWithPrices = holdings.map(h => {
-    const curPrice = priceMap[h.coin] || parseFloat(h.avg_buy_price);
-    const qty      = parseFloat(h.quantity);
-    const avgBuy   = parseFloat(h.avg_buy_price);
-    const curVal   = qty * curPrice;
-    const plPct    = avgBuy > 0 ? ((curPrice / avgBuy) - 1) * 100 : 0;
-    return { coin: h.coin, qty, avgBuy, curPrice, curVal, plPct, plTotal: (curPrice - avgBuy) * qty };
+    const curPrice      = priceMap[h.coin] || parseFloat(h.avg_buy_price);
+    const qty           = parseFloat(h.quantity);
+    const avgBuy        = parseFloat(h.avg_buy_price);
+    const marginBorrowed = parseFloat(h.margin_borrowed || 0);
+    const isShort       = qty < 0;
+    const curVal        = qty * curPrice;
+    // Short P&L: profit when price falls — invert the ratio
+    const plPct = isShort
+      ? (avgBuy > 0 ? ((avgBuy - curPrice) / avgBuy) * 100 : 0)
+      : (avgBuy > 0 ? ((curPrice / avgBuy) - 1) * 100 : 0);
+    // plTotal works for both: (curPrice - avgBuy) * negative_qty = (avgBuy - curPrice) * abs(qty)
+    const plTotal = (curPrice - avgBuy) * qty;
+    return { coin: h.coin, qty, avgBuy, curPrice, curVal, plPct, plTotal, marginBorrowed, isShort };
   });
 
-  const holdingsValue = holdingsWithPrices.reduce((s, h) => s + h.curVal, 0);
-  const totalValue    = cash + holdingsValue;
+  const holdingsValue  = holdingsWithPrices.reduce((s, h) => s + h.curVal, 0);
+  const totalBorrowed  = holdingsWithPrices.reduce((s, h) => s + h.marginBorrowed, 0);
+  // Subtract borrowed capital so portfolio value reflects only student equity
+  const totalValue    = cash + holdingsValue - totalBorrowed;
   const pl            = totalValue - seedMoney;
   const returnPct     = ((totalValue / seedMoney) - 1) * 100;
 

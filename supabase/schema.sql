@@ -78,15 +78,19 @@ create table if not exists portfolios (
 
 -- ── Holdings ─────────────────────────────────────────────────
 create table if not exists holdings (
-  id            uuid primary key default gen_random_uuid(),
-  student_id    uuid not null references students(id) on delete cascade,
-  class_id      uuid not null references classes(id) on delete cascade,
-  coin          text not null,
-  quantity      numeric(20,8) not null default 0,
-  avg_buy_price numeric(20,8) not null default 0,
-  updated_at    timestamptz default now(),
+  id              uuid primary key default gen_random_uuid(),
+  student_id      uuid not null references students(id) on delete cascade,
+  class_id        uuid not null references classes(id) on delete cascade,
+  coin            text not null,
+  quantity        numeric(20,8) not null default 0,
+  avg_buy_price   numeric(20,8) not null default 0,
+  margin_borrowed numeric(20,8) not null default 0,
+  updated_at      timestamptz default now(),
   unique(student_id, class_id, coin)
 );
+
+-- Migration for existing deployments:
+-- alter table holdings add column if not exists margin_borrowed numeric(20,8) not null default 0;
 
 -- ── Trades ───────────────────────────────────────────────────
 create table if not exists trades (
