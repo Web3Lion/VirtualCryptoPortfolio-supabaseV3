@@ -37,15 +37,28 @@ export default function Teacher() {
   const [pickerSelected, setPickerSelected] = useState([]);
   const [rewardConfig, setRewardConfig] = useState({ enabled: false, badge_reward_tokens: 50 });
   const [rewardSaving, setRewardSaving] = useState(false);
+  const [tradeSettings, setTradeSettings] = useState({ marginEnabled: false, marginMult: 2, shortEnabled: false });
+  const [tradeSettingsSaving, setTradeSettingsSaving] = useState(false);
+  const [schemaReady, setSchemaReady] = useState(true);
+  const [migrating, setMigrating] = useState(false);
 
   useEffect(() => { applyTheme(getTheme()); }, []);
   useEffect(()=>{ if(status==='unauthenticated') router.replace('/'); },[status,router]);
 
   const fetchData = async (classId) => {
     try {
-      const [clsRes, mktRes] = await Promise.all([
-        fetch('/api/classes'), fetch('/api/teacher/market-status'),
+      const [clsRes, mktRes, settingsRes, schemaRes] = await Promise.all([
+        fetch('/api/classes'), fetch('/api/teacher/market-status'), fetch('/api/settings'),
+        fetch('/api/admin/migrate-schema'),
       ]);
+      if(settingsRes.ok) {
+        const s = await settingsRes.json();
+        setTradeSettings({ marginEnabled: s.marginEnabled||false, marginMult: s.marginMult||2, shortEnabled: s.shortEnabled||false });
+      }
+      if(schemaRes.ok) {
+        const sc = await schemaRes.json();
+        setSchemaReady(sc.columnExists !== false);
+      }
       if(clsRes.ok) {
         const cls = await clsRes.json();
         const clsArr = Array.isArray(cls) ? cls : [];
@@ -127,6 +140,25 @@ export default function Teacher() {
     if(res.ok) setActionMsg({type:'success',msg:'✅ ClassReward settings saved'});
     else setActionMsg({type:'error',msg:'Failed to save'});
     setRewardSaving(false);
+    setTimeout(()=>setActionMsg(null),3000);
+  };
+
+  const runMigration = async () => {
+    setMigrating(true);
+    const res = await fetch('/api/admin/migrate-schema',{method:'POST'});
+    const data = await res.json();
+    if(res.ok) { setSchemaReady(true); setActionMsg({type:'success',msg:'✅ Database updated for leverage/short trading'}); }
+    else setActionMsg({type:'error',msg:data.error||'Migration failed'});
+    setMigrating(false);
+    setTimeout(()=>setActionMsg(null),5000);
+  };
+
+  const saveTradeSettings = async () => {
+    setTradeSettingsSaving(true);
+    const res = await fetch('/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({marginEnabled:tradeSettings.marginEnabled,marginMult:tradeSettings.marginMult,shortEnabled:tradeSettings.shortEnabled})});
+    if(res.ok) setActionMsg({type:'success',msg:'✅ Trading settings saved'});
+    else setActionMsg({type:'error',msg:'Failed to save'});
+    setTradeSettingsSaving(false);
     setTimeout(()=>setActionMsg(null),3000);
   };
 
@@ -385,6 +417,62 @@ export default function Teacher() {
                         </button>
                         <button className="btn btn-gold" onClick={saveRewardConfig} disabled={rewardSaving}>
                           {rewardSaving?'Saving...':'💾 Save Settings'}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* DB migration banner */}
+                    {!schemaReady && (
+                      <div className="ctrl-card" style={{gridColumn:'1/-1',border:'1px solid rgba(251,146,60,.4)',background:'rgba(251,146,60,.08)'}}>
+                        <div className="ctrl-title" style={{color:'#fb923c',marginBottom:6}}>⚠ One-Time Setup Required</div>
+                        <div className="ctrl-desc">Leverage and short trading require a database update. This runs a safe <code>ALTER TABLE</code> migration that adds one column.</div>
+                        <button className="btn btn-gold" onClick={runMigration} disabled={migrating}>
+                          {migrating?'Running migration...':'🔧 Apply Database Migration'}
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Leverage Trading */}
+                    <div className="ctrl-card">
+                      <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:6}}>
+                        <div className="ctrl-title" style={{marginBottom:0}}>📈 Leverage Trading</div>
+                        <div className={`status-pill ${tradeSettings.marginEnabled?'on':'off'}`} style={{margin:0}}>{tradeSettings.marginEnabled?'🟢 ENABLED':'⚪ DISABLED'}</div>
+                      </div>
+                      <div className="ctrl-desc">Allow students to trade with borrowed capital. A 2× leveraged buy on $500 controls a $1,000 position — gains and losses are amplified.</div>
+                      <div style={{marginBottom:14}}>
+                        <div className="tools-label" style={{marginBottom:6}}>Max Multiplier</div>
+                        <div style={{display:'flex',gap:6}}>
+                          {[2,3,5,10].map(m=>(
+                            <button key={m} onClick={()=>setTradeSettings(s=>({...s,marginMult:m}))}
+                              style={{padding:'5px 12px',borderRadius:8,border:`1px solid ${tradeSettings.marginMult===m?'var(--accent)':'var(--border)'}`,background:tradeSettings.marginMult===m?'rgba(0,229,160,.15)':'var(--surface2)',color:tradeSettings.marginMult===m?'var(--accent)':'var(--muted)',cursor:'pointer',fontSize:11,fontFamily:"'DM Mono',monospace"}}>
+                              {m}×
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="btn-row">
+                        <button className={`btn ${tradeSettings.marginEnabled?'btn-red':'btn-green'}`} onClick={()=>setTradeSettings(s=>({...s,marginEnabled:!s.marginEnabled}))}>
+                          {tradeSettings.marginEnabled?'Disable Leverage':'Enable Leverage'}
+                        </button>
+                        <button className="btn btn-gold" onClick={saveTradeSettings} disabled={tradeSettingsSaving}>
+                          {tradeSettingsSaving?'Saving...':'💾 Save'}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Short Selling */}
+                    <div className="ctrl-card">
+                      <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:6}}>
+                        <div className="ctrl-title" style={{marginBottom:0}}>📉 Short Selling</div>
+                        <div className={`status-pill ${tradeSettings.shortEnabled?'on':'off'}`} style={{margin:0}}>{tradeSettings.shortEnabled?'🟢 ENABLED':'⚪ DISABLED'}</div>
+                      </div>
+                      <div className="ctrl-desc">Allow students to bet against coins. Shorting BTC means borrowing and selling it now, then buying it back later — profiting if the price falls.</div>
+                      <div className="btn-row">
+                        <button className={`btn ${tradeSettings.shortEnabled?'btn-red':'btn-green'}`} onClick={()=>setTradeSettings(s=>({...s,shortEnabled:!s.shortEnabled}))}>
+                          {tradeSettings.shortEnabled?'Disable Shorting':'Enable Shorting'}
+                        </button>
+                        <button className="btn btn-gold" onClick={saveTradeSettings} disabled={tradeSettingsSaving}>
+                          {tradeSettingsSaving?'Saving...':'💾 Save'}
                         </button>
                       </div>
                     </div>

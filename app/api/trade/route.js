@@ -15,9 +15,9 @@ export async function POST(request) {
   let body;
   try { body = await request.json(); } catch { return Response.json({ error: 'Invalid body' }, { status: 400 }); }
 
-  const { action, coin, amountType, amount, reasoning, classId: bodyClassId } = body;
+  const { action, coin, amountType, amount, reasoning, classId: bodyClassId, leverageMultiplier } = body;
 
-  if (!['BUY','SELL'].includes(action)) return Response.json({ error: 'Invalid action' }, { status: 400 });
+  if (!['BUY','SELL','SHORT'].includes(action)) return Response.json({ error: 'Invalid action' }, { status: 400 });
   if (!coin || !amount || parseFloat(amount) <= 0) return Response.json({ error: 'Invalid coin or amount' }, { status: 400 });
 
   let classId = bodyClassId;
@@ -34,6 +34,7 @@ export async function POST(request) {
     amountType: amountType || 'Dollar Amount',
     amount: parseFloat(amount),
     reasoning: reasoning || '',
+    leverageMultiplier: parseFloat(leverageMultiplier) || 1,
   });
 
   if (!result.success) return Response.json({ error: result.error }, { status: 400 });
