@@ -51,9 +51,9 @@ export async function GET(request) {
   if (!studentIds.length) return Response.json({ portfolioHistory: [], coinAllocation: [], sectorAllocation: [] });
 
   // ── Portfolio history with range ───────────────────────────
-  const cutoff = cfg.days !== null
-    ? new Date(Date.now() - (cfg.days || 0) * 24 * 60 * 60 * 1000).toISOString()
-    : cfg.hours
+  const cutoff = cfg.days != null
+    ? new Date(Date.now() - cfg.days * 24 * 60 * 60 * 1000).toISOString()
+    : cfg.hours != null
     ? new Date(Date.now() - cfg.hours * 60 * 60 * 1000).toISOString()
     : null;
 
