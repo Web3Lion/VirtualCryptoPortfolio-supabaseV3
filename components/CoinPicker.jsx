@@ -1,5 +1,5 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 
 // Consensus mechanism per coin (static — CoinGecko doesn't return this)
 const CONSENSUS = {
@@ -75,6 +75,9 @@ export default function CoinPicker({ coins = [], selected = [], onToggle, active
   const [sectorFilter,    setSectorFilter]    = useState('All');
   const [consensusFilter, setConsensusFilter] = useState('All');
   const [search, setSearch] = useState('');
+  const [geckoResults, setGeckoResults] = useState([]);
+  const [geckoLoading, setGeckoLoading] = useState(false);
+  const [geckoSearched, setGeckoSearched] = useState('');
 
   const filtered = useMemo(() => coins.filter(c => {
     const matchSector    = sectorFilter === 'All' || c.sector === sectorFilter;
@@ -84,6 +87,19 @@ export default function CoinPicker({ coins = [], selected = [], onToggle, active
     const matchSearch    = !search || c.symbol.toLowerCase().includes(q) || c.name.toLowerCase().includes(q);
     return matchSector && matchConsensus && matchSearch;
   }), [coins, sectorFilter, consensusFilter, search]);
+
+  const searchGecko = useCallback(async () => {
+    if (!search.trim()) return;
+    setGeckoLoading(true);
+    setGeckoResults([]);
+    try {
+      const res = await fetch(`/api/coins/search?q=${encodeURIComponent(search.trim())}`);
+      const data = await res.json();
+      setGeckoResults(Array.isArray(data) ? data : []);
+      setGeckoSearched(search.trim());
+    } catch {}
+    setGeckoLoading(false);
+  }, [search]);
 
   const pill = (label, active, onClick, color) => (
     <button
@@ -102,17 +118,31 @@ export default function CoinPicker({ coins = [], selected = [], onToggle, active
   return (
     <div>
       {/* Search */}
-      <input
-        placeholder="Search by name or symbol..."
-        value={search}
-        onChange={e => setSearch(e.target.value)}
-        style={{
-          width:'100%', background:'var(--surface,#0f172a)', border:'1px solid var(--border,#1e293b)',
-          borderRadius:10, padding:'9px 14px', color:'var(--text,#e2e8f0)',
-          fontFamily:"'DM Mono',monospace", fontSize:12, outline:'none',
-          marginBottom:10, boxSizing:'border-box',
-        }}
-      />
+      <div style={{ display:'flex', gap:8, marginBottom:10 }}>
+        <input
+          placeholder="Search by name or symbol..."
+          value={search}
+          onChange={e => { setSearch(e.target.value); setGeckoResults([]); setGeckoSearched(''); }}
+          onKeyDown={e => e.key === 'Enter' && filtered.length === 0 && searchGecko()}
+          style={{
+            flex:1, background:'var(--surface,#0f172a)', border:'1px solid var(--border,#1e293b)',
+            borderRadius:10, padding:'9px 14px', color:'var(--text,#e2e8f0)',
+            fontFamily:"'DM Mono',monospace", fontSize:12, outline:'none', boxSizing:'border-box',
+          }}
+        />
+        {search.length >= 2 && (
+          <button
+            onClick={searchGecko}
+            disabled={geckoLoading}
+            style={{
+              padding:'9px 14px', borderRadius:10, cursor:geckoLoading?'wait':'pointer',
+              background:'rgba(0,229,160,.1)', border:'1px solid rgba(0,229,160,.3)',
+              color:'var(--accent,#00e5a0)', fontFamily:"'DM Mono',monospace", fontSize:11,
+              whiteSpace:'nowrap', opacity:geckoLoading?0.6:1,
+            }}
+          >{geckoLoading ? '...' : '🔍 Search All'}</button>
+        )}
+      </div>
 
       {/* Sector filters */}
       <div style={{marginBottom:10}}>
@@ -184,12 +214,66 @@ export default function CoinPicker({ coins = [], selected = [], onToggle, active
             </div>
           );
         })}
-        {filtered.length === 0 && (
+        {filtered.length === 0 && geckoResults.length === 0 && !geckoLoading && (
           <div style={{gridColumn:'1/-1',textAlign:'center',padding:28,fontSize:12,color:'var(--muted,#475569)'}}>
             No coins match these filters
+            {search.length >= 2 && (
+              <div style={{marginTop:8,fontSize:11}}>
+                Not in top 100? <span onClick={searchGecko} style={{color:'var(--accent,#00e5a0)',cursor:'pointer',textDecoration:'underline'}}>Search all of CoinGecko</span>
+              </div>
+            )}
           </div>
         )}
       </div>
+
+      {/* CoinGecko search results */}
+      {(geckoResults.length > 0 || geckoLoading) && (
+        <div style={{marginTop:16}}>
+          <div style={{fontSize:9,color:'var(--muted,#475569)',letterSpacing:2,textTransform:'uppercase',marginBottom:8}}>
+            {geckoLoading ? 'Searching CoinGecko...' : `CoinGecko results for "${geckoSearched}" (${geckoResults.length})`}
+          </div>
+          <div style={{
+            display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(148px,1fr))',
+            gap:8, maxHeight:280, overflowY:'auto', paddingRight:4,
+          }}>
+            {geckoResults.map(coin => {
+              const isSelected = selected.some(c => c.symbol === coin.symbol);
+              const isActive   = activeSymbols.includes(coin.symbol);
+              const change     = parseFloat(coin.change24h || 0);
+              return (
+                <div
+                  key={coin.geckoId}
+                  onClick={() => !isActive && onToggle(coin)}
+                  style={{
+                    background: isSelected ? 'rgba(0,229,160,.08)' : isActive ? 'rgba(71,85,105,.08)' : 'var(--surface,#0f172a)',
+                    border: `1px solid ${isSelected ? 'var(--accent,#00e5a0)' : isActive ? 'rgba(71,85,105,.25)' : 'rgba(148,163,184,.2)'}`,
+                    borderRadius:12, padding:'10px 12px',
+                    cursor: isActive ? 'default' : 'pointer',
+                    opacity: isActive ? 0.45 : 1,
+                    position:'relative', transition:'border-color .15s',
+                  }}
+                >
+                  {isSelected && (
+                    <div style={{position:'absolute',top:8,right:8,width:16,height:16,borderRadius:'50%',background:'var(--accent,#00e5a0)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:9,color:'#000',fontWeight:700}}>✓</div>
+                  )}
+                  {isActive && (
+                    <div style={{position:'absolute',top:8,right:6,fontSize:8,color:'var(--muted,#475569)'}}>added</div>
+                  )}
+                  <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:13,color:'var(--text,#e2e8f0)',marginBottom:1}}>{coin.symbol}</div>
+                  <div style={{fontSize:9,color:'var(--muted,#475569)',marginBottom:4,overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}}>{coin.name}</div>
+                  <div style={{fontSize:11,fontWeight:600,color:'var(--text,#e2e8f0)',marginBottom:3}}>{fmtPrice(coin.price)}</div>
+                  <div style={{fontSize:9,color:change>=0?'var(--up,#00e5a0)':'var(--down,#f43f5e)',marginBottom:6}}>
+                    {change>=0?'+':''}{change.toFixed(2)}% 24h
+                  </div>
+                  <div style={{display:'flex',gap:3}}>
+                    <span style={{fontSize:8,padding:'2px 5px',borderRadius:4,background:'rgba(71,85,105,.25)',color:'var(--muted,#475569)'}}>{coin.sector||'Other'}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
