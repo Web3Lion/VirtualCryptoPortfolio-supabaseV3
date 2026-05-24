@@ -116,10 +116,12 @@ function LineChart({ data, height = 160 }) {
           alignItems: "center",
           justifyContent: "center",
           color: "var(--muted)",
-          fontSize: 13,
+          fontSize: 12,
+          textAlign: "center",
+          padding: "0 16px",
         }}
       >
-        No history yet
+        No chart data yet — make 2+ trades to see your portfolio value over time
       </div>
     );
   return (

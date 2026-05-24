@@ -9,36 +9,112 @@ export async function GET(request) {
   }
 
   try {
-    // Get all active coins across all classes (include gecko_id for manually-added coins)
+    // ── 1. Update price cache ─────────────────────────────────
     const { data: coins } = await db.from('class_coins').select('symbol,gecko_id').eq('active', true);
     const symbols = [...new Set((coins || []).map(c => c.symbol))];
 
-    if (!symbols.length) return Response.json({ success: true, message: 'No coins to update' });
+    let priceUpdateCount = 0;
+    let freshPriceMap = {};
 
-    // Build extra gecko ID map for coins not in the built-in GECKO_ID_MAP
-    const extraIds = {};
-    (coins || []).forEach(c => {
-      if (c.gecko_id && !GECKO_ID_MAP[c.symbol?.toUpperCase()]) extraIds[c.symbol.toUpperCase()] = c.gecko_id;
-    });
+    if (symbols.length) {
+      const extraIds = {};
+      (coins || []).forEach(c => {
+        if (c.gecko_id && !GECKO_ID_MAP[c.symbol?.toUpperCase()]) extraIds[c.symbol.toUpperCase()] = c.gecko_id;
+      });
 
-    // Fetch prices from CoinGecko
-    const priceMap = await fetchBulkPrices(symbols, extraIds);
+      const priceMap = await fetchBulkPrices(symbols, extraIds);
+      const rows = Object.entries(priceMap).map(([symbol, data]) => ({
+        symbol,
+        price:      data.price,
+        change_1h:  data.change1h,
+        change_24h: data.change24h,
+        change_7d:  data.change7d,
+        updated_at: new Date().toISOString(),
+      }));
 
-    // Save to price_cache
-    const rows = Object.entries(priceMap).map(([symbol, data]) => ({
-      symbol,
-      price:      data.price,
-      change_1h:  data.change1h,
-      change_24h: data.change24h,
-      change_7d:  data.change7d,
-      updated_at: new Date().toISOString(),
-    }));
+      if (rows.length > 0) {
+        await db.from('price_cache').upsert(rows, { onConflict: 'symbol' });
+        priceUpdateCount = rows.length;
+      }
 
-    if (rows.length > 0) {
-      await db.from('price_cache').upsert(rows, { onConflict: 'symbol' });
+      // Build a quick symbol→price map for the snapshot step below
+      Object.entries(priceMap).forEach(([symbol, data]) => { freshPriceMap[symbol] = data.price; });
     }
 
-    return Response.json({ success: true, updated: rows.length, symbols });
+    // ── 2. Create daily snapshots (once per day per student) ──
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+    const todayIso = today.toISOString();
+
+    const { data: classes } = await db.from('classes').select('id');
+    let snapCount = 0;
+
+    for (const cls of classes || []) {
+      const { data: classStudents } = await db.from('class_students')
+        .select('student_id')
+        .eq('class_id', cls.id);
+
+      if (!classStudents?.length) continue;
+      const studentIds = classStudents.map(r => r.student_id);
+
+      // Which students already have a daily snapshot today?
+      const { data: existingSnaps } = await db.from('snapshots')
+        .select('student_id')
+        .eq('class_id', cls.id)
+        .eq('snapshot_type', 'daily')
+        .gte('created_at', todayIso)
+        .in('student_id', studentIds);
+
+      const alreadySnapped = new Set((existingSnaps || []).map(s => s.student_id));
+      const needsSnapshot  = studentIds.filter(id => !alreadySnapped.has(id));
+      if (!needsSnapshot.length) continue;
+
+      const [portfoliosRes, holdingsRes] = await Promise.all([
+        db.from('portfolios').select('student_id, cash').in('student_id', needsSnapshot).eq('class_id', cls.id),
+        db.from('holdings').select('student_id, coin, quantity, margin_borrowed').in('student_id', needsSnapshot).eq('class_id', cls.id),
+      ]);
+
+      // Supplement freshPriceMap with any coins not in today's fetch
+      const holdingCoins = [...new Set((holdingsRes.data || []).map(h => h.coin))];
+      const missingCoins = holdingCoins.filter(c => !freshPriceMap[c]);
+      if (missingCoins.length) {
+        const { data: cached } = await db.from('price_cache').select('symbol, price').in('symbol', missingCoins);
+        (cached || []).forEach(r => { freshPriceMap[r.symbol] = parseFloat(r.price); });
+      }
+
+      const portfolioMap = {};
+      (portfoliosRes.data || []).forEach(p => { portfolioMap[p.student_id] = parseFloat(p.cash); });
+
+      const holdingsByStudent = {};
+      (holdingsRes.data || []).forEach(h => {
+        if (!holdingsByStudent[h.student_id]) holdingsByStudent[h.student_id] = [];
+        holdingsByStudent[h.student_id].push(h);
+      });
+
+      const snapRows = needsSnapshot.map(studentId => {
+        const cash     = portfolioMap[studentId] ?? 0;
+        const holdings = holdingsByStudent[studentId] || [];
+        let holdingsVal = 0, borrowed = 0;
+        holdings.forEach(h => {
+          holdingsVal += parseFloat(h.quantity) * (freshPriceMap[h.coin] || 0);
+          borrowed    += parseFloat(h.margin_borrowed || 0);
+        });
+        return {
+          student_id:    studentId,
+          class_id:      cls.id,
+          total_value:   cash + holdingsVal - borrowed,
+          cash,
+          snapshot_type: 'daily',
+        };
+      });
+
+      if (snapRows.length) {
+        await db.from('snapshots').insert(snapRows);
+        snapCount += snapRows.length;
+      }
+    }
+
+    return Response.json({ success: true, pricesUpdated: priceUpdateCount, dailySnapshotsCreated: snapCount, symbols });
   } catch (e) {
     return Response.json({ error: e.message }, { status: 500 });
   }

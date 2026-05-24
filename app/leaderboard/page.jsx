@@ -104,8 +104,9 @@ function LineChart({ data, studentNames }) {
   }, [data, studentNames]);
 
   if (!data?.length) return (
-    <div style={{height:280,display:'flex',alignItems:'center',justifyContent:'center',color:'#475569',fontSize:12}}>
-      No history data yet — snapshots appear after 24 hours of activity
+    <div style={{height:280,display:'flex',alignItems:'center',justifyContent:'center',color:'#475569',fontSize:12,flexDirection:'column',gap:8}}>
+      <span>No history data yet</span>
+      <span style={{fontSize:10}}>Students need to make at least 2 trades, or the teacher can click "Save Portfolio Snapshot" in Controls</span>
     </div>
   );
 

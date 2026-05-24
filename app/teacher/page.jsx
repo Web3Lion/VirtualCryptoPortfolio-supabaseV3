@@ -143,6 +143,15 @@ export default function Teacher() {
     setTimeout(()=>setActionMsg(null),3000);
   };
 
+  const takeSnapshot = async () => {
+    setActionMsg({type:'pending',msg:'Taking portfolio snapshot...'});
+    const res = await fetch('/api/cron/snapshots',{method:'POST',headers:{'x-teacher-email':session?.user?.email||''}});
+    const data = await res.json();
+    if(res.ok) setActionMsg({type:'success',msg:`✅ Snapshot saved (${data.snapshotsCreated} students)`});
+    else setActionMsg({type:'error',msg:data.error||'Snapshot failed'});
+    setTimeout(()=>setActionMsg(null),4000);
+  };
+
   const runMigration = async () => {
     setMigrating(true);
     const res = await fetch('/api/admin/migrate-schema',{method:'POST'});
@@ -377,7 +386,8 @@ export default function Teacher() {
                       <div className="btn-row" style={{flexDirection:'column'}}>
                         <button className="btn btn-gold" style={{width:'100%',marginBottom:8}} onClick={()=>teacherAction('pause')}>⏸ Pause</button>
                         <button className="btn btn-green" style={{width:'100%',marginBottom:8}} onClick={()=>teacherAction('resume')}>▶ Resume</button>
-                        <button className="btn btn-red" style={{width:'100%'}} onClick={()=>{if(confirm('End simulation?'))teacherAction('end')}}>🏁 End Simulation</button>
+                        <button className="btn btn-red" style={{width:'100%',marginBottom:8}} onClick={()=>{if(confirm('End simulation?'))teacherAction('end')}}>🏁 End Simulation</button>
+                        <button className="btn btn-muted" style={{width:'100%'}} onClick={takeSnapshot} title="Saves a daily portfolio snapshot for every student right now — useful for populating history charts">📸 Save Portfolio Snapshot</button>
                       </div>
                     </div>
 
