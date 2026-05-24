@@ -1,5 +1,6 @@
-import { db } from '@/lib/db';
+import { db, getMarketStatus } from '@/lib/db';
 import { fetchBulkPrices, GECKO_ID_MAP } from '@/lib/prices';
+import { executeTrade } from '@/lib/trade';
 
 export async function GET(request) {
   const authHeader = request.headers.get('authorization');
@@ -119,7 +120,49 @@ export async function GET(request) {
       }
     }
 
-    return Response.json({ success: true, pricesUpdated: priceUpdateCount, intradaySnapshotsCreated: intradayCount, dailySnapshotsCreated: dailyCount, symbols });
+    // ── 3. Execute pending limit orders ──────────────────────────
+    let ordersExecuted = 0, ordersFailed = 0;
+    const { data: pendingOrders } = await db.from('pending_orders')
+      .select('*').eq('status', 'pending').catch(() => ({ data: [] }));
+
+    for (const order of pendingOrders || []) {
+      const currentPrice = freshPriceMap[order.coin]
+        || (await db.from('price_cache').select('price').eq('symbol', order.coin).single()).data?.price;
+      if (!currentPrice) continue;
+
+      const price      = parseFloat(currentPrice);
+      const limitPrice = parseFloat(order.limit_price);
+      const shouldFire =
+        (order.action === 'BUY'   && price <= limitPrice) ||
+        (order.action === 'SELL'  && price >= limitPrice) ||
+        (order.action === 'SHORT' && price >= limitPrice);
+      if (!shouldFire) continue;
+
+      // Skip (don't fail) if the market is currently frozen/paused
+      const mkt = await getMarketStatus(order.class_id);
+      if (mkt.frozen || mkt.paused) continue;
+
+      const result = await executeTrade({
+        studentId:           order.student_id,
+        classId:             order.class_id,
+        action:              order.action,
+        coin:                order.coin,
+        amountType:          order.amount_type,
+        amount:              parseFloat(order.amount),
+        leverageMultiplier:  parseFloat(order.leverage_multiplier) || 1,
+        reasoning:           order.reasoning || `📋 Limit order triggered @ $${limitPrice.toLocaleString()}`,
+      });
+
+      if (result.success) {
+        await db.from('pending_orders').update({ status: 'executed', executed_at: new Date().toISOString(), executed_price: result.price }).eq('id', order.id);
+        ordersExecuted++;
+      } else {
+        await db.from('pending_orders').update({ status: 'failed', fail_reason: result.error }).eq('id', order.id);
+        ordersFailed++;
+      }
+    }
+
+    return Response.json({ success: true, pricesUpdated: priceUpdateCount, intradaySnapshotsCreated: intradayCount, dailySnapshotsCreated: dailyCount, ordersExecuted, ordersFailed, symbols });
   } catch (e) {
     return Response.json({ error: e.message }, { status: 500 });
   }

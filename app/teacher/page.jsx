@@ -41,15 +41,17 @@ export default function Teacher() {
   const [tradeSettingsSaving, setTradeSettingsSaving] = useState(false);
   const [schemaReady, setSchemaReady] = useState(true);
   const [migrating, setMigrating] = useState(false);
+  const [ordersTableReady, setOrdersTableReady] = useState(true);
+  const [migratingOrders, setMigratingOrders] = useState(false);
 
   useEffect(() => { applyTheme(getTheme()); }, []);
   useEffect(()=>{ if(status==='unauthenticated') router.replace('/'); },[status,router]);
 
   const fetchData = async (classId) => {
     try {
-      const [clsRes, mktRes, settingsRes, schemaRes] = await Promise.all([
+      const [clsRes, mktRes, settingsRes, schemaRes, ordersSchemaRes] = await Promise.all([
         fetch('/api/classes'), fetch('/api/teacher/market-status'), fetch('/api/settings'),
-        fetch('/api/admin/migrate-schema'),
+        fetch('/api/admin/migrate-schema'), fetch('/api/admin/migrate-orders'),
       ]);
       if(settingsRes.ok) {
         const s = await settingsRes.json();
@@ -58,6 +60,10 @@ export default function Teacher() {
       if(schemaRes.ok) {
         const sc = await schemaRes.json();
         setSchemaReady(sc.columnExists !== false);
+      }
+      if(ordersSchemaRes.ok) {
+        const osc = await ordersSchemaRes.json();
+        setOrdersTableReady(osc.tableExists !== false);
       }
       if(clsRes.ok) {
         const cls = await clsRes.json();
@@ -160,6 +166,16 @@ export default function Teacher() {
     else setActionMsg({type:'error',msg:data.error||'Migration failed'});
     setMigrating(false);
     setTimeout(()=>setActionMsg(null),5000);
+  };
+
+  const runOrdersMigration = async () => {
+    setMigratingOrders(true);
+    const res = await fetch('/api/admin/migrate-orders',{method:'POST'});
+    const data = await res.json();
+    if(res.ok) { setOrdersTableReady(true); setActionMsg({type:'success',msg:'✅ Limit orders table created'}); }
+    else setActionMsg({type:'error',msg:data.sql ? `Run this SQL in Supabase dashboard:\n${data.sql}` : data.error||'Migration failed'});
+    setMigratingOrders(false);
+    setTimeout(()=>setActionMsg(null),8000);
   };
 
   const saveTradeSettings = async () => {
@@ -438,6 +454,15 @@ export default function Teacher() {
                         <div className="ctrl-desc">Leverage and short trading require a database update. This runs a safe <code>ALTER TABLE</code> migration that adds one column.</div>
                         <button className="btn btn-gold" onClick={runMigration} disabled={migrating}>
                           {migrating?'Running migration...':'🔧 Apply Database Migration'}
+                        </button>
+                      </div>
+                    )}
+                    {!ordersTableReady && (
+                      <div className="ctrl-card" style={{gridColumn:'1/-1',border:'1px solid rgba(96,165,250,.4)',background:'rgba(96,165,250,.06)'}}>
+                        <div className="ctrl-title" style={{color:'#60a5fa',marginBottom:6}}>🎯 Limit Orders — Setup Required</div>
+                        <div className="ctrl-desc">Limit orders need a new <code>pending_orders</code> table. Click to create it automatically.</div>
+                        <button className="btn" style={{background:'rgba(96,165,250,.2)',color:'#60a5fa',border:'1px solid rgba(96,165,250,.4)'}} onClick={runOrdersMigration} disabled={migratingOrders}>
+                          {migratingOrders?'Creating table...':'🔧 Create Limit Orders Table'}
                         </button>
                       </div>
                     )}

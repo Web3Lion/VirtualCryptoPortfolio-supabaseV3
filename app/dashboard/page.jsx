@@ -211,6 +211,11 @@ export default function Dashboard() {
   const [historyLimit, setHistoryLimit] = useState(50);
   const [historyFilter, setHistoryFilter] = useState("ALL");
   const [historySearch, setHistorySearch] = useState("");
+  const [orderMode, setOrderMode] = useState("market");
+  const [limitPrice, setLimitPrice] = useState("");
+  const [pendingOrders, setPendingOrders] = useState([]);
+  const [ordersTableReady, setOrdersTableReady] = useState(true);
+  const [placingOrder, setPlacingOrder] = useState(false);
 
   useEffect(() => {
     applyTheme(getTheme());
@@ -248,6 +253,15 @@ export default function Dashboard() {
     if (res.ok) setWatchlist(await res.json());
   }, []);
 
+  const fetchOrders = useCallback(async () => {
+    const res = await fetch("/api/orders");
+    if (res.ok) {
+      const data = await res.json();
+      if (data.tableNotReady) { setOrdersTableReady(false); return; }
+      setPendingOrders(Array.isArray(data) ? data : []);
+    }
+  }, []);
+
   useEffect(() => {
     if (status === "unauthenticated") router.replace("/");
   }, [status, router]);
@@ -256,10 +270,11 @@ export default function Dashboard() {
     if (status === "authenticated") {
       fetchData();
       fetchWatchlist();
+      fetchOrders();
       const iv = setInterval(fetchData, 60000);
       return () => clearInterval(iv);
     }
-  }, [status, fetchData, fetchWatchlist]);
+  }, [status, fetchData, fetchWatchlist, fetchOrders]);
 
   // Refetch history when range changes
   useEffect(() => {
@@ -315,6 +330,41 @@ export default function Dashboard() {
     } finally {
       setExecuting(false);
     }
+  };
+
+  const placeOrder = async () => {
+    if (!tradeForm.coin || !tradeForm.amount || !limitPrice) {
+      setTradeStatus({ type: "error", msg: "Fill in coin, amount, and limit price." });
+      return;
+    }
+    setPlacingOrder(true);
+    setTradeStatus({ type: "pending", msg: "Placing limit order..." });
+    try {
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...tradeForm, limitPrice: parseFloat(limitPrice), classId }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setTradeStatus({ type: "success", msg: `✓ Limit order placed — ${tradeForm.action} ${tradeForm.coin} @ $${parseFloat(limitPrice).toLocaleString()}` });
+        setTradeForm((f) => ({ ...f, amount: "", reasoning: "" }));
+        setLimitPrice("");
+        fetchOrders();
+        setTimeout(() => setTradeStatus(null), 3000);
+      } else {
+        setTradeStatus({ type: "error", msg: data.error || "Failed to place order" });
+      }
+    } catch {
+      setTradeStatus({ type: "error", msg: "Network error" });
+    } finally {
+      setPlacingOrder(false);
+    }
+  };
+
+  const cancelOrder = async (id) => {
+    await fetch("/api/orders", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
+    fetchOrders();
   };
 
   const sellAll = async () => {
@@ -464,6 +514,7 @@ export default function Dashboard() {
     "charts",
     "allocation",
     "trade",
+    "orders",
     "history",
     "watchlist",
   ];
@@ -691,6 +742,9 @@ export default function Dashboard() {
                   {t.charAt(0).toUpperCase() + t.slice(1)}
                   {t === "watchlist" && triggeredCount > 0 && (
                     <span className="tab-badge">{triggeredCount}</span>
+                  )}
+                  {t === "orders" && pendingOrders.length > 0 && (
+                    <span className="tab-badge" style={{background:'var(--accent)',color:'#000'}}>{pendingOrders.length}</span>
                   )}
                 </button>
               ))}
@@ -1017,6 +1071,14 @@ export default function Dashboard() {
                     >
                       Execute Trade
                     </h3>
+                    {/* Market / Limit toggle */}
+                    <div style={{display:'flex',gap:6,marginBottom:10}}>
+                      {['market','limit'].map(m => (
+                        <button key={m} onClick={()=>setOrderMode(m)} style={{flex:1,padding:'6px',borderRadius:8,border:`1px solid ${orderMode===m?'var(--accent)':'var(--border)'}`,background:orderMode===m?'rgba(0,229,160,.12)':'transparent',color:orderMode===m?'var(--accent)':'var(--muted)',fontFamily:"'DM Mono',monospace",fontSize:11,cursor:'pointer',transition:'all .15s'}}>
+                          {m === 'market' ? '⚡ Market' : '🎯 Limit'}
+                        </button>
+                      ))}
+                    </div>
                     <div className="action-toggle" style={{gridTemplateColumns: marketStatus?.shortEnabled ? '1fr 1fr 1fr' : '1fr 1fr'}}>
                       <button
                         className={`action-btn${
@@ -1365,6 +1427,42 @@ export default function Dashboard() {
                         }
                       />
                     </div>
+                    {orderMode === 'limit' && (
+                      <div className="form-group">
+                        <label className="form-label">
+                          {tradeForm.action === 'BUY' ? '🎯 Buy when price drops to' : tradeForm.action === 'SELL' ? '🎯 Sell when price rises to' : '🎯 Short when price reaches'}
+                        </label>
+                        <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                          <input
+                            type="number"
+                            className="form-input"
+                            placeholder="0.00"
+                            min="0"
+                            step="any"
+                            value={limitPrice}
+                            onChange={e => setLimitPrice(e.target.value)}
+                            style={{flex:1}}
+                          />
+                          {tradeForm.coin && prices[tradeForm.coin] && (
+                            <button
+                              onClick={() => setLimitPrice(parseFloat(prices[tradeForm.coin].price).toFixed(2))}
+                              style={{padding:'8px 10px',borderRadius:8,border:'1px solid var(--border)',background:'var(--surface2)',color:'var(--muted)',fontSize:10,cursor:'pointer',fontFamily:"'DM Mono',monospace",whiteSpace:'nowrap'}}
+                            >Use current</button>
+                          )}
+                        </div>
+                        {tradeForm.coin && prices[tradeForm.coin] && limitPrice && (
+                          <div style={{fontSize:10,color:'var(--muted)',marginTop:5}}>
+                            Current price: ${parseFloat(prices[tradeForm.coin].price).toLocaleString()} · Limit: ${parseFloat(limitPrice).toLocaleString()}
+                            {tradeForm.action === 'BUY' && parseFloat(limitPrice) >= parseFloat(prices[tradeForm.coin].price) && (
+                              <span style={{color:'#fb923c'}}> · ⚠ Limit is at/above market — will fill immediately</span>
+                            )}
+                            {(tradeForm.action === 'SELL' || tradeForm.action === 'SHORT') && parseFloat(limitPrice) <= parseFloat(prices[tradeForm.coin].price) && (
+                              <span style={{color:'#fb923c'}}> · ⚠ Limit is at/below market — will fill immediately</span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
                     <div className="form-group">
                       <label
                         className="form-label"
@@ -1444,12 +1542,14 @@ export default function Dashboard() {
                       )}
                     <button
                       className="btn btn-primary"
-                      style={{ width: "100%" }}
-                      onClick={executeTrade}
-                      disabled={executing || marketStatus?.frozen}
+                      style={{ width: "100%", background: orderMode === 'limit' ? 'rgba(0,229,160,.85)' : undefined }}
+                      onClick={orderMode === 'limit' ? placeOrder : executeTrade}
+                      disabled={executing || placingOrder || (orderMode === 'market' && marketStatus?.frozen)}
                     >
-                      {executing
+                      {executing || placingOrder
                         ? "Processing..."
+                        : orderMode === 'limit'
+                        ? `🎯 Place Limit Order — ${tradeForm.action} ${tradeForm.coin || "—"}`
                         : marketStatus?.frozen
                         ? "Market Frozen"
                         : `${tradeForm.action} ${tradeForm.coin || "—"}`}
@@ -1546,6 +1646,51 @@ export default function Dashboard() {
                   >
                     Sell All
                   </button>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "orders" && (
+              <div className="panel">
+                <div className="card">
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+                    <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:15}}>Pending Limit Orders</div>
+                    <button className="btn btn-secondary" style={{fontSize:11,padding:'6px 14px'}} onClick={() => { setActiveTab('trade'); setOrderMode('limit'); }}>+ New Limit Order</button>
+                  </div>
+                  {!ordersTableReady ? (
+                    <div style={{background:'rgba(251,146,60,.08)',border:'1px solid rgba(251,146,60,.3)',borderRadius:12,padding:16,fontSize:12,color:'#fb923c'}}>
+                      ⚠ Limit orders table not set up yet. Ask your teacher to run the migration from the teacher settings page.
+                    </div>
+                  ) : pendingOrders.length === 0 ? (
+                    <div className="empty">No pending limit orders.<br/><span style={{fontSize:11}}>Go to Trade tab → select 🎯 Limit to place one.</span></div>
+                  ) : (
+                    pendingOrders.map(order => {
+                      const currentPrice = prices[order.coin]?.price ? parseFloat(prices[order.coin].price) : null;
+                      const pctAway = currentPrice ? ((parseFloat(order.limit_price) - currentPrice) / currentPrice * 100) : null;
+                      const isBuy = order.action === 'BUY';
+                      return (
+                        <div key={order.id} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:14,padding:'14px 16px',marginBottom:8,display:'grid',gridTemplateColumns:'1fr auto',gap:12,alignItems:'center'}}>
+                          <div>
+                            <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4}}>
+                              <span style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:13}}>{order.coin}</span>
+                              <span style={{fontSize:9,padding:'2px 7px',borderRadius:5,background:isBuy?'rgba(0,180,100,.15)':order.action==='SHORT'?'rgba(251,146,60,.15)':'rgba(220,38,38,.12)',color:isBuy?'var(--up)':order.action==='SHORT'?'#fb923c':'var(--down)',letterSpacing:1}}>{order.action}</span>
+                              {order.leverage_multiplier > 1 && <span style={{fontSize:9,padding:'2px 6px',borderRadius:5,background:'rgba(96,165,250,.15)',color:'#60a5fa'}}>{order.leverage_multiplier}×</span>}
+                            </div>
+                            <div style={{fontSize:11,color:'var(--muted)',marginBottom:2}}>
+                              {order.amount_type === 'Dollar Amount' ? fmtUSD(order.amount) : `${order.amount} coins`} when price {isBuy ? '≤' : '≥'} <span style={{color:'var(--text)',fontWeight:600}}>${parseFloat(order.limit_price).toLocaleString()}</span>
+                            </div>
+                            {currentPrice && pctAway !== null && (
+                              <div style={{fontSize:10,color:'var(--muted)'}}>
+                                Current: ${currentPrice.toLocaleString()} · <span style={{color: Math.abs(pctAway) < 5 ? '#fb923c' : 'var(--muted)'}}>{pctAway > 0 ? '+' : ''}{pctAway.toFixed(2)}% away</span>
+                              </div>
+                            )}
+                            <div style={{fontSize:10,color:'var(--muted)',marginTop:2}}>{new Date(order.created_at).toLocaleString()}</div>
+                          </div>
+                          <button onClick={() => cancelOrder(order.id)} style={{padding:'6px 12px',borderRadius:8,border:'1px solid rgba(220,38,38,.3)',background:'rgba(220,38,38,.06)',color:'var(--down)',fontSize:11,cursor:'pointer',fontFamily:"'DM Mono',monospace"}}>Cancel</button>
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
               </div>
             )}
