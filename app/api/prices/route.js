@@ -121,6 +121,8 @@ export async function GET(request) {
   });
 
   // Fetch stale prices from CoinGecko
+  let didRefresh = false;
+  const freshPriceMap = {};
   if (staleSymbols.length > 0) {
     const fresh = await fetchFromCoinGecko(staleSymbols, extraIds);
     if (Object.keys(fresh).length > 0) {
@@ -135,7 +137,33 @@ export async function GET(request) {
         updated_at: p.updatedAt,
       }));
       await db.from('price_cache').upsert(upserts, { onConflict: 'symbol' });
-      upserts.forEach(p => { cacheMap[p.symbol] = { ...p, updated_at: p.updated_at }; });
+      upserts.forEach(p => { cacheMap[p.symbol] = { ...p, updated_at: p.updated_at }; freshPriceMap[p.symbol] = p.price; });
+      didRefresh = true;
+    }
+  }
+
+  // When prices refresh, save an intraday snapshot for this student (non-blocking)
+  if (didRefresh && classId) {
+    const email = session.user.email.toLowerCase();
+    const isTeacher = email === process.env.TEACHER_EMAIL?.toLowerCase();
+    if (!isTeacher) {
+      db.from('students').select('id').eq('email', email).single().then(async ({ data: student }) => {
+        if (!student) return;
+        const [portRes, holdRes] = await Promise.all([
+          db.from('portfolios').select('cash').eq('student_id', student.id).eq('class_id', classId).single(),
+          db.from('holdings').select('coin, quantity, margin_borrowed').eq('student_id', student.id).eq('class_id', classId),
+        ]);
+        if (!portRes.data) return;
+        const pm = {};
+        Object.entries(cacheMap).forEach(([sym, c]) => { pm[sym] = parseFloat(c.price || c.price_cache?.price || 0); });
+        let holdVal = 0, borrowed = 0;
+        (holdRes.data || []).forEach(h => {
+          holdVal  += parseFloat(h.quantity) * (pm[h.coin] || 0);
+          borrowed += parseFloat(h.margin_borrowed || 0);
+        });
+        const total = parseFloat(portRes.data.cash) + holdVal - borrowed;
+        await db.from('snapshots').insert({ student_id: student.id, class_id: classId, total_value: total, cash: parseFloat(portRes.data.cash), snapshot_type: 'intraday' });
+      }).catch(() => {});
     }
   }
 
