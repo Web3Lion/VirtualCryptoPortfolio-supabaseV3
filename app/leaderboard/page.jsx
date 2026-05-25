@@ -183,6 +183,9 @@ export default function Leaderboard() {
   const [lastUpdated, setLastUpdated] = useState(null);
   const [activeTab, setActiveTab]   = useState('standings');
   const [chartRange, setChartRange]  = useState('1W');
+  const [selectedStudent, setSelectedStudent] = useState(null); // { id, classId }
+  const [studentProfile, setStudentProfile]   = useState(null);
+  const [profileLoading, setProfileLoading]   = useState(false);
 
   useEffect(() => { applyTheme(getTheme()); }, []);
   useEffect(()=>{ if(status==='unauthenticated') router.replace('/'); },[status,router]);
@@ -207,6 +210,17 @@ export default function Leaderboard() {
       return () => clearInterval(iv);
     }
   },[status, fetchAll]);
+
+  const openStudentProfile = useCallback(async (student) => {
+    setSelectedStudent(student);
+    setStudentProfile(null);
+    setProfileLoading(true);
+    try {
+      const res = await fetch(`/api/leaderboard/student?studentId=${student.id}&classId=${charts?.classId || ''}`);
+      if (res.ok) setStudentProfile(await res.json());
+    } catch(e) { console.error(e); }
+    finally { setProfileLoading(false); }
+  }, [charts?.classId]);
 
   useEffect(()=>{
     if(status==='authenticated') fetchAll(chartRange);
@@ -323,7 +337,7 @@ export default function Leaderboard() {
                       const ret=clean(s.returnPct), pl=clean(s.pl), isPos=ret>=0;
                       const color = STUDENT_COLORS[humans.indexOf(s) % STUDENT_COLORS.length];
                       return (
-                        <tr className="lb-row" key={i}>
+                        <tr className="lb-row" key={i} onClick={()=>openStudentProfile(s)} style={{cursor:'pointer'}} title={`View ${s.name}'s portfolio`}>
                           <td style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:16,color:'var(--muted)',width:40,paddingLeft:16}}>
                             {i<3?medals[i]:i+1}
                           </td>
@@ -453,6 +467,125 @@ export default function Leaderboard() {
           )
         )}
       </div>
+
+      {/* Student Profile Modal */}
+      {selectedStudent && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.75)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000,padding:16}} onClick={()=>setSelectedStudent(null)}>
+          <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:24,padding:28,width:'100%',maxWidth:620,maxHeight:'90vh',overflowY:'auto'}} onClick={e=>e.stopPropagation()}>
+            {profileLoading ? (
+              <div style={{textAlign:'center',padding:40,color:'#94a3b8'}}>Loading portfolio…</div>
+            ) : studentProfile ? (
+              <>
+                {/* Header */}
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20}}>
+                  <div>
+                    <div style={{fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:20,color:'var(--text)'}}>{studentProfile.student.isBot?'🤖 ':''}{studentProfile.student.name}</div>
+                    <div style={{fontSize:11,color:'#94a3b8',marginTop:2}}>Portfolio Overview</div>
+                  </div>
+                  <button onClick={()=>setSelectedStudent(null)} style={{background:'none',border:'none',color:'var(--muted)',cursor:'pointer',fontSize:20,lineHeight:1}}>✕</button>
+                </div>
+
+                {/* Summary Stats */}
+                {(() => {
+                  const s = studentProfile.summary;
+                  const ret = parseFloat(s.returnPct), isPos = ret >= 0;
+                  return (
+                    <>
+                      <div style={{textAlign:'center',marginBottom:20}}>
+                        <div style={{fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:36,color:isPos?'var(--up)':'var(--down)'}}>
+                          {fmtUSD(s.totalVal)}
+                        </div>
+                        <div style={{fontSize:14,color:isPos?'var(--up)':'var(--down)',marginTop:4}}>
+                          {isPos?'▲':'▼'} {fmtUSD(Math.abs(parseFloat(s.pl)))} ({fmtPct(ret)})
+                        </div>
+                      </div>
+                      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:10,marginBottom:20}}>
+                        {[['Cash',fmtUSD(s.cash),'var(--text)'],['Holdings',fmtUSD(s.holdingsVal),'var(--text)'],['Fees',fmtUSD(s.fees),'var(--muted)'],['Start',fmtUSD(s.seedMoney),'var(--muted)']].map(([label,val,color])=>(
+                          <div key={label} style={{background:'var(--surface2)',borderRadius:12,padding:'10px 12px',textAlign:'center'}}>
+                            <div style={{fontSize:10,color:'#94a3b8',marginBottom:4}}>{label}</div>
+                            <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:13,color}}>{val}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  );
+                })()}
+
+                {/* Risk Metrics */}
+                {(() => {
+                  const m = studentProfile.metrics;
+                  const metricItems = [
+                    ['Sharpe', m.sharpe, v => v>=1?'var(--up)':v>=0?'var(--text)':'var(--down)', v => v?.toFixed(2)],
+                    ['Sortino', m.sortino, v => v>=1?'var(--up)':v>=0?'var(--text)':'var(--down)', v => v?.toFixed(2)],
+                    ['Max DD', m.maxDrawdown, v => v>20?'var(--down)':v>10?'var(--text)':'var(--up)', v => v!=null?`-${v.toFixed(1)}%`:null],
+                    ['Win Rate', m.winRate, v => v>=50?'var(--up)':'var(--down)', v => v!=null?`${v.toFixed(1)}%`:null],
+                  ].filter(([,v]) => v != null);
+                  if (!metricItems.length) return null;
+                  return (
+                    <div style={{display:'grid',gridTemplateColumns:`repeat(${metricItems.length},1fr)`,gap:10,marginBottom:20}}>
+                      {metricItems.map(([label, val, colorFn, fmt]) => (
+                        <div key={label} style={{background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:12,padding:'10px 12px',textAlign:'center'}}>
+                          <div style={{fontSize:10,color:'#94a3b8',marginBottom:4}}>{label}</div>
+                          <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:14,color:colorFn(val)}}>{fmt(val)}</div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+
+                {/* Holdings */}
+                {studentProfile.holdings.length > 0 && (
+                  <div style={{marginBottom:20}}>
+                    <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:13,color:'var(--text)',marginBottom:10}}>Holdings</div>
+                    <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                      {studentProfile.holdings.map(h => {
+                        const isPos = h.plPct >= 0;
+                        return (
+                          <div key={h.coin} style={{display:'grid',gridTemplateColumns:'auto 1fr auto auto',alignItems:'center',gap:12,background:'var(--surface2)',borderRadius:12,padding:'10px 14px'}}>
+                            <div style={{width:8,height:8,borderRadius:'50%',background:getCoinColor(h.coin),flexShrink:0}}/>
+                            <div>
+                              <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:13,color:'var(--text)'}}>{h.isShort?'⬇ ':'+'}{h.coin}</div>
+                              <div style={{fontSize:10,color:'#94a3b8'}}>{Math.abs(h.qty).toFixed(4)} @ {fmtUSD(h.avgBuy)}</div>
+                            </div>
+                            <div style={{textAlign:'right'}}>
+                              <div style={{fontSize:13,fontWeight:600,color:'var(--text)'}}>{fmtUSD(h.curVal)}</div>
+                              <div style={{fontSize:10,color:'#94a3b8'}}>{fmtUSD(h.curPrice)}</div>
+                            </div>
+                            <div style={{textAlign:'right',minWidth:60}}>
+                              <div style={{fontSize:13,fontWeight:600,color:isPos?'var(--up)':'var(--down)'}}>{isPos?'+':''}{h.plPct.toFixed(1)}%</div>
+                              <div style={{fontSize:10,color:isPos?'var(--up)':'var(--down)'}}>{isPos?'+':''}{fmtUSD(h.plTotal)}</div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Recent Trades */}
+                {studentProfile.recentTrades.length > 0 && (
+                  <div>
+                    <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:13,color:'var(--text)',marginBottom:10}}>Recent Trades</div>
+                    <div style={{display:'flex',flexDirection:'column',gap:4}}>
+                      {studentProfile.recentTrades.map((t,i) => (
+                        <div key={i} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 12px',background:'var(--surface2)',borderRadius:10,fontSize:12}}>
+                          <span style={{color:t.action==='BUY'?'var(--up)':t.action==='SELL'||t.action==='SELL_ALL'?'var(--down)':'#8b5cf6',fontWeight:700,minWidth:52}}>{t.action}</span>
+                          <span style={{color:'var(--text)',fontWeight:600}}>{t.coin}</span>
+                          <span style={{color:'#94a3b8'}}>{Math.abs(t.quantity).toFixed(4)}</span>
+                          <span style={{color:'var(--text)'}}>{fmtUSD(t.price)}</span>
+                          <span style={{color:'#94a3b8',fontSize:10}}>{new Date(t.createdAt).toLocaleDateString()}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div style={{textAlign:'center',padding:40,color:'#94a3b8'}}>Could not load portfolio</div>
+            )}
+          </div>
+        </div>
+      )}
     </>
   );
 }
