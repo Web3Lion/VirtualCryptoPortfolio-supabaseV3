@@ -2,6 +2,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { getStudentByEmail, getStudentPortfolio, getClassCoins } from '@/lib/students';
 import { db } from '@/lib/db';
+import { calculateSharpe } from '@/lib/metrics';
 
 export async function GET(request) {
   const session = await getServerSession(authOptions);
@@ -29,10 +30,11 @@ export async function GET(request) {
     (cached || []).forEach(r => { priceMap[r.symbol] = parseFloat(r.price); });
   }
 
-  const [{ data: cls }, { data: rewardCfg }, { data: rewardLedger }] = await Promise.all([
+  const [{ data: cls }, { data: rewardCfg }, { data: rewardLedger }, { data: snapshots }] = await Promise.all([
     db.from('classes').select('seed_money').eq('id', classId).single(),
     db.from('class_reward_config').select('enabled, badge_reward_tokens').eq('class_id', classId).single(),
     db.from('class_reward_ledger').select('tokens').eq('student_id', student.id).eq('class_id', classId),
+    db.from('snapshots').select('total_value, created_at').eq('student_id', student.id).eq('class_id', classId).order('created_at', { ascending: true }),
   ]);
   const seedMoney = parseFloat(cls?.seed_money || 10000);
   const cash      = parseFloat(portfolio.cash);
@@ -62,6 +64,7 @@ export async function GET(request) {
   const returnPct     = ((totalValue / seedMoney) - 1) * 100;
 
   const classRewardTokens = (rewardLedger || []).reduce((sum, r) => sum + r.tokens, 0);
+  const sharpeRatio = calculateSharpe(snapshots);
 
   return Response.json({
     classId,
@@ -73,5 +76,6 @@ export async function GET(request) {
     classRewardTokens,
     classRewardEnabled: rewardCfg?.enabled || false,
     badgeRewardTokens: rewardCfg?.badge_reward_tokens || 50,
+    sharpeRatio,
   });
 }

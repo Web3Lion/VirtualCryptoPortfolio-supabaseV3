@@ -760,6 +760,14 @@ export default function Dashboard() {
                     {fmtUSD(fees)}
                   </div>
                 </div>
+                {portfolio?.sharpeRatio != null && (
+                  <div className="stat" title="Annualized Sharpe Ratio — risk-adjusted return (>1 is good, >2 is great, <0 means losses outweigh gains)">
+                    <div className="stat-label">Sharpe Ratio</div>
+                    <div className={`stat-value ${portfolio.sharpeRatio >= 1 ? "up" : portfolio.sharpeRatio >= 0 ? "" : "down"}`}>
+                      {portfolio.sharpeRatio.toFixed(2)}
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="hero-actions">
                 <button

@@ -309,7 +309,7 @@ export default function Leaderboard() {
               <div className="card" style={{overflowX:'auto',padding:0}}>
                 <table className="lb-table">
                   <thead>
-                    <tr><th style={{padding:'14px 16px'}}>Rank</th><th>Student</th><th>Portfolio</th><th>Return</th><th>P/L</th><th>Cash</th><th>Coins</th><th>Fees</th><th>Progress</th></tr>
+                    <tr><th style={{padding:'14px 16px'}}>Rank</th><th>Student</th><th>Portfolio</th><th>Return</th><th>P/L</th><th>Cash</th><th>Coins</th><th>Fees</th><th title="Annualized Sharpe Ratio — risk-adjusted return. Needs 5+ days of history.">Sharpe ⓘ</th><th>Progress</th></tr>
                   </thead>
                   <tbody>
                     {students.map((s,i)=>{
@@ -332,6 +332,13 @@ export default function Leaderboard() {
                           <td style={{color:'var(--muted)'}}>{fmtUSD(s.cash)}</td>
                           <td style={{color:'var(--muted)',textAlign:'center'}}>{s.coinCount||0}</td>
                           <td style={{color:'var(--muted)'}}>{fmtUSD(s.fees)}</td>
+                          <td style={{
+                            fontWeight:600,
+                            color: s.sharpeRatio == null ? 'var(--muted)' : s.sharpeRatio >= 1 ? 'var(--up)' : s.sharpeRatio >= 0 ? 'var(--text)' : 'var(--down)',
+                            textAlign:'center',
+                          }}>
+                            {s.sharpeRatio != null ? s.sharpeRatio.toFixed(2) : '—'}
+                          </td>
                           <td>
                             <div className="bar-wrap">
                               <div className="bar-fill" style={{width:`${Math.min(100,Math.abs(ret)*2)}%`,background:isPos?'var(--up)':'var(--down)'}}/>

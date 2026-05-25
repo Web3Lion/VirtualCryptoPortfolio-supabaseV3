@@ -1,6 +1,7 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { calculateSharpe } from '@/lib/metrics';
 
 export async function GET(request) {
   const session = await getServerSession(authOptions);
@@ -51,11 +52,12 @@ export async function GET(request) {
   // Get all portfolios, holdings, trades for this class
   const studentIds = students.map(s => s.id);
 
-  const [portfoliosRes, holdingsRes, tradesRes, pricesRes] = await Promise.all([
+  const [portfoliosRes, holdingsRes, tradesRes, pricesRes, snapshotsRes] = await Promise.all([
     db.from('portfolios').select('student_id, cash, fees_paid').in('student_id', studentIds).eq('class_id', classId),
     db.from('holdings').select('student_id, coin, quantity, avg_buy_price').in('student_id', studentIds).eq('class_id', classId).gt('quantity', 0),
     db.from('trades').select('student_id').in('student_id', studentIds).eq('class_id', classId),
     db.from('price_cache').select('symbol, price'),
+    db.from('snapshots').select('student_id, total_value, created_at').in('student_id', studentIds).eq('class_id', classId).order('created_at', { ascending: true }),
   ]);
 
   const portfolioMap = {};
@@ -74,6 +76,12 @@ export async function GET(request) {
 
   const priceMap = {};
   (pricesRes.data || []).forEach(p => { priceMap[p.symbol] = parseFloat(p.price); });
+
+  const snapshotsByStudent = {};
+  (snapshotsRes.data || []).forEach(s => {
+    if (!snapshotsByStudent[s.student_id]) snapshotsByStudent[s.student_id] = [];
+    snapshotsByStudent[s.student_id].push(s);
+  });
 
   // Build leaderboard rows
   const rows = students.map(student => {
@@ -106,6 +114,7 @@ export async function GET(request) {
       fees:       parseFloat(feesPaid.toFixed(2)),
       coinCount:  holdings.length,
       tradeCount: tradeCountMap[student.id] || 0,
+      sharpeRatio: calculateSharpe(snapshotsByStudent[student.id] || []),
     };
   });
 
