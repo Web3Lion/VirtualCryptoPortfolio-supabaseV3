@@ -1,7 +1,45 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { db, getMarketStatus } from '@/lib/db';
+import { db, getMarketStatus, setConfig } from '@/lib/db';
 import { fetchBulkPrices, GECKO_ID_MAP } from '@/lib/prices';
+
+const REFRESH_MILESTONES = [
+  { count: 1,   id: 'signal_found' },
+  { count: 5,   id: 'data_chef' },
+  { count: 25,  id: 'market_pulse' },
+  { count: 50,  id: 'price_oracle' },
+  { count: 100, id: 'omniscient' },
+];
+
+async function awardBadge(studentId, classId, badgeId) {
+  const { data: existing } = await db.from('badges').select('id')
+    .eq('student_id', studentId).eq('class_id', classId).eq('badge_id', badgeId).single();
+  if (existing) return null;
+  const { error } = await db.from('badges').insert({ student_id: studentId, class_id: classId, badge_id: badgeId, earned_at: new Date().toISOString() });
+  return error ? null : badgeId;
+}
+
+async function checkRefreshBadges(studentId, classId, newCount) {
+  const earned = [];
+  for (const { count, id } of REFRESH_MILESTONES) {
+    if (newCount >= count) {
+      const b = await awardBadge(studentId, classId, id);
+      if (b) earned.push(b);
+    }
+  }
+  // Grant ClassReward tokens if configured
+  let tokensAwarded = 0;
+  if (earned.length) {
+    try {
+      const { data: rewardCfg } = await db.from('class_reward_config').select('enabled, badge_reward_tokens').eq('class_id', classId).single();
+      if (rewardCfg?.enabled && rewardCfg.badge_reward_tokens > 0) {
+        await db.from('class_reward_ledger').insert(earned.map(badgeId => ({ student_id: studentId, class_id: classId, tokens: rewardCfg.badge_reward_tokens, reason: `badge:${badgeId}` })));
+        tokensAwarded = earned.length * rewardCfg.badge_reward_tokens;
+      }
+    } catch {}
+  }
+  return { badge: earned[0] || null, tokensAwarded };
+}
 
 const COOLDOWN_MS = 30 * 60 * 1000; // 30 minutes
 
@@ -135,6 +173,31 @@ export async function POST(request) {
     report.errors.push(`snapshots: ${e.message}`);
   }
 
+  // ── 3. Refresh badge tracking ──────────────────────────────────
+  let newBadge = null;
+  let tokensAwarded = 0;
+  try {
+    const email = session.user.email.toLowerCase();
+    const { data: studentRow } = await db.from('students').select('id').eq('email', email).single();
+    if (studentRow) {
+      // Increment per-student refresh counter stored in config table
+      const configKey = `REFRESH_COUNT_${studentRow.id}`;
+      const { data: cfgRow } = await db.from('config').select('value').eq('key', configKey).single();
+      const newCount = (parseInt(cfgRow?.value || '0', 10) || 0) + 1;
+      await setConfig(configKey, String(newCount));
+
+      // Find the student's active class for badge awarding
+      const { data: cs } = await db.from('class_students').select('class_id').eq('student_id', studentRow.id).order('joined_at', { ascending: false }).limit(1).single();
+      if (cs?.class_id) {
+        const result = await checkRefreshBadges(studentRow.id, cs.class_id, newCount);
+        newBadge = result.badge;
+        tokensAwarded = result.tokensAwarded;
+      }
+    }
+  } catch (e) {
+    report.errors.push(`badges: ${e.message}`);
+  }
+
   const nextRefreshAt = new Date(Date.now() + COOLDOWN_MS).toISOString();
-  return Response.json({ success: true, ...report, nextRefreshAt });
+  return Response.json({ success: true, ...report, nextRefreshAt, newBadge, tokensAwarded });
 }

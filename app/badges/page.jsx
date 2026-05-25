@@ -51,16 +51,24 @@ const ALL_BADGES = [
   {id:'most_improved',  cat:'simulation', emoji:'📊',name:'Most Improved',     hint:'Biggest week-over-week gain'},
   {id:'comeback_kid',   cat:'simulation', emoji:'🔄',name:'Comeback Kid',      hint:'Recover from last place to top 3'},
   {id:'fee_conscious',  cat:'simulation', emoji:'💸',name:'Fee Conscious',     hint:'10+ trades with total fees under $50'},
+  // Data Contributor
+  {id:'signal_found',   cat:'data',       emoji:'📡',name:'Signal Found',      hint:'Manually refresh prices for the first time'},
+  {id:'data_chef',      cat:'data',       emoji:'🍳',name:'Data Chef',         hint:'Refresh prices 5 times — cooking up fresh data!'},
+  {id:'market_pulse',   cat:'data',       emoji:'💓',name:'Market Pulse',      hint:'Refresh prices 25 times — you feel the heartbeat'},
+  {id:'price_oracle',   cat:'data',       emoji:'🔮',name:'Price Oracle',      hint:'Refresh prices 50 times — the market whispers to you'},
+  {id:'omniscient',     cat:'data',       emoji:'🌐',name:'Omniscient',        hint:'Refresh prices 100 times — you ARE the market'},
 ];
 
 const CAT_COLORS = {
   milestone:'#f59e0b', performance:'#00e5a0', strategy:'#3b82f6',
   learning:'#8b5cf6',  situational:'#f43f5e', simulation:'#06b6d4',
+  data:'#22d3ee',
 };
 
 const CAT_LABELS = {
   milestone:'Milestone', performance:'Performance', strategy:'Strategy',
   learning:'Learning',   situational:'Situational', simulation:'Simulation',
+  data:'Data Contributor',
 };
 
 export default function Badges() {

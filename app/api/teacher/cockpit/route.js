@@ -18,10 +18,12 @@ export async function GET(request) {
   const today = new Date(now); today.setHours(0, 0, 0, 0);
   const monthStart = new Date(now); monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
 
+  const teacherEmail = session.user.email; // use actual logged-in email (handles missing TEACHER_EMAIL env)
   if (!classId) {
-    const { data } = await db.from('classes').select('id').eq('teacher_email', TEACHER_EMAIL).order('created_at', { ascending: false }).limit(1).single();
+    const { data } = await db.from('classes').select('id').eq('teacher_email', teacherEmail).order('created_at', { ascending: false }).limit(1).single();
     classId = data?.id;
   }
+  if (!classId) return Response.json({ error: 'No class found for this teacher. Create a class first.' }, { status: 404 });
 
   const [
     cfg,
@@ -52,7 +54,7 @@ export async function GET(request) {
     db.from('price_cache').select('symbol, price, updated_at'),
     db.from('pending_orders').select('*', { count: 'exact', head: true }).eq('class_id', classId).eq('status', 'pending').catch(() => ({ count: 0 })),
     db.from('snapshots').select('*', { count: 'exact', head: true }).eq('class_id', classId).eq('snapshot_type', 'intraday').gte('created_at', today.toISOString()),
-    db.from('classes').select('id, name').eq('teacher_email', TEACHER_EMAIL),
+    db.from('classes').select('id, name').eq('teacher_email', teacherEmail),
   ]);
 
   // Price map

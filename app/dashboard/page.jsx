@@ -55,6 +55,11 @@ const BADGE_NAMES = {
   analyst: "📝 Analyst",
   researcher: "📖 Researcher",
   due_diligence: "🔍 Due Diligence",
+  signal_found: "📡 Signal Found",
+  data_chef: "🍳 Data Chef",
+  market_pulse: "💓 Market Pulse",
+  price_oracle: "🔮 Price Oracle",
+  omniscient: "🌐 Omniscient",
 };
 
 function LineChart({ data, height = 160 }) {
@@ -292,6 +297,7 @@ export default function Dashboard() {
         setRefreshCooldown(new Date(data.nextRefreshAt));
       } else if (data.success) {
         setRefreshCooldown(new Date(data.nextRefreshAt));
+        if (data.newBadge) setEarnedBadge(data.newBadge);
         await fetchData();
       }
     } catch (e) {
