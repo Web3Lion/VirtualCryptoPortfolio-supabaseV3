@@ -6,7 +6,10 @@ const TEACHER_EMAIL = process.env.TEACHER_EMAIL;
 
 export async function GET(request) {
   const session = await getServerSession(authOptions);
-  if (session?.user?.email?.toLowerCase() !== TEACHER_EMAIL?.toLowerCase()) return Response.json({ error: 'Teacher only' }, { status: 403 });
+  if (!session) return Response.json({ error: 'Not authenticated' }, { status: 401 });
+  // If TEACHER_EMAIL is set, enforce it; otherwise allow any authenticated user (dev/single-teacher setup)
+  if (TEACHER_EMAIL && session.user?.email?.toLowerCase() !== TEACHER_EMAIL.toLowerCase())
+    return Response.json({ error: `Teacher only — logged in as ${session.user?.email}, expected ${TEACHER_EMAIL}` }, { status: 403 });
 
   const { searchParams } = new URL(request.url);
   let classId = searchParams.get('classId');

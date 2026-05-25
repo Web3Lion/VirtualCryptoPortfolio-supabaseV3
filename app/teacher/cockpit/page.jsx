@@ -211,6 +211,7 @@ export default function TeacherCockpit() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [data, setData] = useState(null);
+  const [apiError, setApiError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState(null);
   const [tick, setTick] = useState(0);
@@ -225,10 +226,14 @@ export default function TeacherCockpit() {
       if (res.ok) {
         const d = await res.json();
         setData(d);
+        setApiError(null);
         if (!selectedClass) setSelectedClass(d.classId);
         setLastRefresh(new Date());
+      } else {
+        const body = await res.json().catch(() => ({}));
+        setApiError(body.error || `HTTP ${res.status}`);
       }
-    } catch {}
+    } catch(e) { setApiError(e.message); }
     finally { setLoading(false); }
   }, [selectedClass]);
 
@@ -259,10 +264,15 @@ export default function TeacherCockpit() {
 
   if (!data) return (
     <div style={{ background: '#05070d', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444', fontFamily: "'DM Mono',monospace", fontSize: 13, letterSpacing: '0.15em', textAlign: 'center' }}>
-      <div>
+      <div style={{ maxWidth: 500, padding: 24 }}>
         <div style={{ fontSize: 28, marginBottom: 12 }}>⚠</div>
         <div style={{ marginBottom: 12 }}>COCKPIT DATA UNAVAILABLE</div>
-        <div style={{ fontSize: 10, color: '#374151', marginBottom: 20 }}>Check that your TEACHER_EMAIL env var matches your login exactly</div>
+        {apiError && (
+          <div style={{ fontSize: 11, color: '#f59e0b', background: '#1a1200', border: '1px solid #f59e0b44', borderRadius: 8, padding: '10px 16px', marginBottom: 16, letterSpacing: 0, textAlign: 'left', wordBreak: 'break-word' }}>
+            {apiError}
+          </div>
+        )}
+        <div style={{ fontSize: 10, color: '#374151', marginBottom: 20 }}>Make sure TEACHER_EMAIL in your Vercel env vars exactly matches your Google login email</div>
         <button onClick={() => { setLoading(true); fetchData(selectedClass); }} style={{ padding: '8px 20px', background: 'transparent', border: '1px solid #374151', color: '#94a3b8', borderRadius: 8, cursor: 'pointer', fontFamily: "'DM Mono',monospace", fontSize: 11, letterSpacing: '0.1em' }}>
           ↻ RETRY
         </button>
