@@ -155,10 +155,18 @@ export async function GET(request) {
         ]);
         if (!portRes.data) return;
         const pm = {};
-        Object.entries(cacheMap).forEach(([sym, c]) => { pm[sym] = parseFloat(c.price || c.price_cache?.price || 0); });
+        Object.entries(cacheMap).forEach(([sym, c]) => { pm[sym] = parseFloat(c.price || 0); });
+        // Fill any holding coins missing from the class price map
+        const holdingCoins = [...new Set((holdRes.data || []).map(h => h.coin))];
+        const missingCoins = holdingCoins.filter(c => !pm[c]);
+        if (missingCoins.length) {
+          const { data: extraPrices } = await db.from('price_cache').select('symbol, price').in('symbol', missingCoins);
+          (extraPrices || []).forEach(r => { pm[r.symbol] = parseFloat(r.price); });
+        }
         let holdVal = 0, borrowed = 0;
         (holdRes.data || []).forEach(h => {
-          holdVal  += parseFloat(h.quantity) * (pm[h.coin] || 0);
+          const price = pm[h.coin] || parseFloat(h.avg_buy_price) || 0;
+          holdVal  += parseFloat(h.quantity) * price;
           borrowed += parseFloat(h.margin_borrowed || 0);
         });
         const total = parseFloat(portRes.data.cash) + holdVal - borrowed;

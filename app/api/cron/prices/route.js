@@ -87,7 +87,8 @@ export async function GET(request) {
           const holdings = holdingsByStudent[studentId] || [];
           let holdingsVal = 0, borrowed = 0;
           holdings.forEach(h => {
-            holdingsVal += parseFloat(h.quantity) * (freshPriceMap[h.coin] || 0);
+            const price = freshPriceMap[h.coin] || parseFloat(h.avg_buy_price) || 0;
+            holdingsVal += parseFloat(h.quantity) * price;
             borrowed    += parseFloat(h.margin_borrowed || 0);
           });
           const totalValue = cash + holdingsVal - borrowed;
