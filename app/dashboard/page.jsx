@@ -217,8 +217,10 @@ export default function Dashboard() {
   const [ordersTableReady, setOrdersTableReady] = useState(true);
   const [placingOrder, setPlacingOrder] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [refreshCooldown, setRefreshCooldown] = useState(null); // Date when refresh is next allowed
+  const [refreshCooldown, setRefreshCooldown] = useState(null);
   const [refreshCountdown, setRefreshCountdown] = useState("");
+  const [executedOrders, setExecutedOrders] = useState([]);
+  const [dismissedOrderAlerts, setDismissedOrderAlerts] = useState(false);
 
   useEffect(() => {
     applyTheme(getTheme());
@@ -257,11 +259,14 @@ export default function Dashboard() {
   }, []);
 
   const fetchOrders = useCallback(async () => {
-    const res = await fetch("/api/orders");
+    const res = await fetch("/api/orders?includeRecent=true");
     if (res.ok) {
       const data = await res.json();
       if (data.tableNotReady) { setOrdersTableReady(false); return; }
-      setPendingOrders(Array.isArray(data) ? data : []);
+      const all = Array.isArray(data) ? data : [];
+      setPendingOrders(all.filter(o => o.status === 'pending'));
+      const recent = all.filter(o => o.status === 'executed' && o.executed_at && Date.now() - new Date(o.executed_at).getTime() < 24 * 60 * 60 * 1000);
+      if (recent.length) setExecutedOrders(recent);
     }
   }, []);
 
@@ -595,6 +600,8 @@ export default function Dashboard() {
         .tab{flex:1;padding:9px;text-align:center;border-radius:10px;border:none;background:transparent;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);cursor:pointer;transition:all .2s;min-width:60px;position:relative}
         .tab.active{background:var(--surface2);color:var(--accent);border:1px solid var(--border)}
         .tab-badge{position:absolute;top:4px;right:4px;width:14px;height:14px;border-radius:50%;background:var(--down);color:#fff;font-size:8px;display:flex;align-items:center;justify-content:center;font-weight:700}
+        .tab-badge.alert{background:var(--gold);color:#000;animation:badgePulse 1.5s infinite}
+        @keyframes badgePulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.3);opacity:.8}}
         .panel{animation:fadeIn .25s ease}
         @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
         .card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:22px}
@@ -686,6 +693,15 @@ export default function Dashboard() {
         {marketStatus?.frozen && (
           <div className="freeze-banner">🚫 {marketStatus.freezeReason}</div>
         )}
+        {executedOrders.length > 0 && !dismissedOrderAlerts && (
+          <div style={{background:'rgba(0,229,160,.1)',border:'1px solid rgba(0,229,160,.3)',borderRadius:12,padding:'12px 16px',marginBottom:16,display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}>
+            <div style={{fontSize:13,color:'var(--accent)'}}>
+              🎯 <strong>{executedOrders.length} limit order{executedOrders.length>1?'s':''} executed</strong> in the last 24h:{' '}
+              {executedOrders.map(o=>`${o.action} ${o.coin} @ $${parseFloat(o.executed_price||o.limit_price).toLocaleString()}`).join(' · ')}
+            </div>
+            <button style={{background:'none',border:'none',color:'var(--muted)',cursor:'pointer',fontSize:16}} onClick={()=>setDismissedOrderAlerts(true)}>✕</button>
+          </div>
+        )}
         {lastUpdated && (
           <div
             style={{
@@ -762,9 +778,33 @@ export default function Dashboard() {
                 </div>
                 {portfolio?.sharpeRatio != null && (
                   <div className="stat" title="Annualized Sharpe Ratio — risk-adjusted return (>1 is good, >2 is great, <0 means losses outweigh gains)">
-                    <div className="stat-label">Sharpe Ratio</div>
+                    <div className="stat-label">Sharpe</div>
                     <div className={`stat-value ${portfolio.sharpeRatio >= 1 ? "up" : portfolio.sharpeRatio >= 0 ? "" : "down"}`}>
                       {portfolio.sharpeRatio.toFixed(2)}
+                    </div>
+                  </div>
+                )}
+                {portfolio?.sortinoRatio != null && (
+                  <div className="stat" title="Sortino Ratio — like Sharpe but only penalizes downside volatility (>1 is good)">
+                    <div className="stat-label">Sortino</div>
+                    <div className={`stat-value ${portfolio.sortinoRatio >= 1 ? "up" : portfolio.sortinoRatio >= 0 ? "" : "down"}`}>
+                      {portfolio.sortinoRatio.toFixed(2)}
+                    </div>
+                  </div>
+                )}
+                {portfolio?.maxDrawdown != null && (
+                  <div className="stat" title="Max Drawdown — largest peak-to-trough drop in your portfolio value">
+                    <div className="stat-label">Max DD</div>
+                    <div className={`stat-value ${portfolio.maxDrawdown > 20 ? "down" : portfolio.maxDrawdown > 10 ? "" : "up"}`}>
+                      -{portfolio.maxDrawdown.toFixed(1)}%
+                    </div>
+                  </div>
+                )}
+                {portfolio?.winRate != null && (
+                  <div className="stat" title="Win Rate — % of fully-closed coin positions that were profitable">
+                    <div className="stat-label">Win Rate</div>
+                    <div className={`stat-value ${portfolio.winRate >= 50 ? "up" : "down"}`}>
+                      {portfolio.winRate.toFixed(1)}%
                     </div>
                   </div>
                 )}
@@ -799,7 +839,7 @@ export default function Dashboard() {
                 >
                   {t.charAt(0).toUpperCase() + t.slice(1)}
                   {t === "watchlist" && triggeredCount > 0 && (
-                    <span className="tab-badge">{triggeredCount}</span>
+                    <span className={`tab-badge${triggeredCount > 0 ? ' alert' : ''}`}>{triggeredCount}</span>
                   )}
                   {t === "orders" && pendingOrders.length > 0 && (
                     <span className="tab-badge" style={{background:'var(--accent)',color:'#000'}}>{pendingOrders.length}</span>

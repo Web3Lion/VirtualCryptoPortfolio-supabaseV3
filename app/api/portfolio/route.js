@@ -2,7 +2,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { getStudentByEmail, getStudentPortfolio, getClassCoins } from '@/lib/students';
 import { db } from '@/lib/db';
-import { calculateSharpe } from '@/lib/metrics';
+import { calculateSharpe, calculateSortino, calculateMaxDrawdown, calculateWinRate } from '@/lib/metrics';
 
 export async function GET(request) {
   const session = await getServerSession(authOptions);
@@ -71,7 +71,10 @@ export async function GET(request) {
   const returnPct     = ((totalValue / seedMoney) - 1) * 100;
 
   const classRewardTokens = (rewardLedger || []).reduce((sum, r) => sum + r.tokens, 0);
-  const sharpeRatio = calculateSharpe(snapshots);
+  const sharpeRatio    = calculateSharpe(snapshots);
+  const sortinoRatio   = calculateSortino(snapshots);
+  const maxDrawdown    = calculateMaxDrawdown(snapshots);
+  const winRate        = calculateWinRate(trades);
 
   return Response.json({
     classId,
@@ -83,6 +86,6 @@ export async function GET(request) {
     classRewardTokens,
     classRewardEnabled: rewardCfg?.enabled || false,
     badgeRewardTokens: rewardCfg?.badge_reward_tokens || 50,
-    sharpeRatio,
+    sharpeRatio, sortinoRatio, maxDrawdown, winRate,
   });
 }

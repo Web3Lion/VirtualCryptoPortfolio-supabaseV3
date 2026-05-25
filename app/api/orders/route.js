@@ -9,10 +9,14 @@ export async function GET(request) {
   const { data: student } = await db.from('students').select('id').eq('email', session.user.email.toLowerCase()).single();
   if (!student) return Response.json([]);
 
+  const { searchParams } = new URL(request.url);
+  const includeRecent = searchParams.get('includeRecent') === 'true';
+  const statuses = includeRecent ? ['pending', 'executed'] : ['pending'];
+
   const { data, error } = await db.from('pending_orders')
     .select('*')
     .eq('student_id', student.id)
-    .in('status', ['pending'])
+    .in('status', statuses)
     .order('created_at', { ascending: false });
 
   if (error?.code === '42P01') return Response.json({ tableNotReady: true });

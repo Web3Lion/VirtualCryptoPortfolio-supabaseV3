@@ -27,6 +27,7 @@ const getCoinColor = c => COIN_COLORS[c?.toUpperCase()] || COIN_COLORS.DEFAULT;
 // ── Line Chart (Portfolio Values Over Time) ───────────────────
 function LineChart({ data, studentNames }) {
   const canvasRef = useRef(null);
+  const BTC_COLOR = '#f59e0b';
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || !data?.length || !studentNames?.length) return;
@@ -39,10 +40,11 @@ function LineChart({ data, studentNames }) {
     const PAD = { t: 20, b: 40, l: 70, r: 20 };
     const iW = W - PAD.l - PAD.r;
     const iH = H - PAD.t - PAD.b;
+    const hasBenchmark = data.some(d => d['BTC Benchmark']);
+    const allNames = hasBenchmark ? [...studentNames, 'BTC Benchmark'] : studentNames;
 
-    // Collect all values to get min/max
     const allVals = [];
-    data.forEach(d => studentNames.forEach(n => { if (d[n]) allVals.push(d[n]); }));
+    data.forEach(d => allNames.forEach(n => { if (d[n]) allVals.push(d[n]); }));
     if (!allVals.length) return;
     const minV = Math.min(...allVals) * 0.995;
     const maxV = Math.max(...allVals) * 1.005;
@@ -51,7 +53,6 @@ function LineChart({ data, studentNames }) {
     const xS = i => PAD.l + (i / (data.length - 1)) * iW;
     const yS = v => PAD.t + iH - ((v - minV) / range) * iH;
 
-    // Grid lines
     ctx.strokeStyle = 'rgba(30,41,59,.6)';
     ctx.lineWidth = 1;
     [0, 0.25, 0.5, 0.75, 1].forEach(t => {
@@ -62,7 +63,6 @@ function LineChart({ data, studentNames }) {
       ctx.fillText('$' + Math.round(val).toLocaleString(), PAD.l - 6, y + 4);
     });
 
-    // X axis labels (every ~5 dates)
     const step = Math.max(1, Math.floor(data.length / 8));
     data.forEach((d, i) => {
       if (i % step !== 0) return;
@@ -70,13 +70,11 @@ function LineChart({ data, studentNames }) {
       ctx.fillText(d.date, xS(i), H - 8);
     });
 
-    // Draw lines per student
+    // Student lines
     studentNames.forEach((name, si) => {
       const color = STUDENT_COLORS[si % STUDENT_COLORS.length];
       const points = data.map((d, i) => d[name] ? { x: xS(i), y: yS(d[name]) } : null).filter(Boolean);
       if (points.length < 2) return;
-
-      // Gradient fill
       const grad = ctx.createLinearGradient(0, PAD.t, 0, H - PAD.b);
       grad.addColorStop(0, color + '30'); grad.addColorStop(1, color + '00');
       ctx.beginPath();
@@ -84,22 +82,31 @@ function LineChart({ data, studentNames }) {
       ctx.lineTo(points[points.length-1].x, H - PAD.b);
       ctx.lineTo(points[0].x, H - PAD.b);
       ctx.closePath(); ctx.fillStyle = grad; ctx.fill();
-
-      // Line
       ctx.beginPath();
       points.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
-      ctx.strokeStyle = color; ctx.lineWidth = 2.5; ctx.stroke();
+      ctx.strokeStyle = color; ctx.lineWidth = 2.5; ctx.setLineDash([]); ctx.stroke();
     });
 
-    // Reference line at $10,000
+    // BTC benchmark dashed line
+    if (hasBenchmark) {
+      const points = data.map((d, i) => d['BTC Benchmark'] ? { x: xS(i), y: yS(d['BTC Benchmark']) } : null).filter(Boolean);
+      if (points.length >= 2) {
+        ctx.beginPath();
+        points.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+        ctx.setLineDash([6, 4]);
+        ctx.strokeStyle = BTC_COLOR; ctx.lineWidth = 1.5; ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = BTC_COLOR; ctx.font = '9px monospace'; ctx.textAlign = 'left';
+        ctx.fillText('₿ BTC', points[points.length-1].x + 4, points[points.length-1].y + 3);
+      }
+    }
+
     const y10k = yS(10000);
     if (y10k > PAD.t && y10k < H - PAD.b) {
       ctx.setLineDash([4, 4]);
       ctx.strokeStyle = 'rgba(255,255,255,.15)'; ctx.lineWidth = 1;
       ctx.beginPath(); ctx.moveTo(PAD.l, y10k); ctx.lineTo(W - PAD.r, y10k); ctx.stroke();
       ctx.setLineDash([]);
-      ctx.fillStyle = 'rgba(255,255,255,.3)'; ctx.font = '9px monospace'; ctx.textAlign = 'left';
-      ctx.fillText('Start $10k', PAD.l + 4, y10k - 4);
     }
   }, [data, studentNames]);
 
@@ -309,7 +316,7 @@ export default function Leaderboard() {
               <div className="card" style={{overflowX:'auto',padding:0}}>
                 <table className="lb-table">
                   <thead>
-                    <tr><th style={{padding:'14px 16px'}}>Rank</th><th>Student</th><th>Portfolio</th><th>Return</th><th>P/L</th><th>Cash</th><th>Coins</th><th>Fees</th><th title="Annualized Sharpe Ratio — risk-adjusted return. Needs 5+ days of history.">Sharpe ⓘ</th><th>Progress</th></tr>
+                    <tr><th style={{padding:'14px 16px'}}>Rank</th><th>Student</th><th>Portfolio</th><th>Return</th><th>P/L</th><th>Coins</th><th title="Annualized Sharpe Ratio">Sharpe ⓘ</th><th title="Sortino Ratio — only penalizes downside volatility">Sortino ⓘ</th><th title="Max Drawdown — largest peak-to-trough decline">Max DD ⓘ</th><th title="Win Rate — % of closed positions that were profitable">Win% ⓘ</th><th>Progress</th></tr>
                   </thead>
                   <tbody>
                     {students.map((s,i)=>{
@@ -331,13 +338,17 @@ export default function Leaderboard() {
                           <td style={{color:isPos?'var(--up)':'var(--down)'}}>{isPos?'+':''}{fmtUSD(pl)}</td>
                           <td style={{color:'var(--muted)'}}>{fmtUSD(s.cash)}</td>
                           <td style={{color:'var(--muted)',textAlign:'center'}}>{s.coinCount||0}</td>
-                          <td style={{color:'var(--muted)'}}>{fmtUSD(s.fees)}</td>
-                          <td style={{
-                            fontWeight:600,
-                            color: s.sharpeRatio == null ? 'var(--muted)' : s.sharpeRatio >= 1 ? 'var(--up)' : s.sharpeRatio >= 0 ? 'var(--text)' : 'var(--down)',
-                            textAlign:'center',
-                          }}>
-                            {s.sharpeRatio != null ? s.sharpeRatio.toFixed(2) : '—'}
+                          <td style={{fontWeight:600,textAlign:'center',color:s.sharpeRatio==null?'var(--muted)':s.sharpeRatio>=1?'var(--up)':s.sharpeRatio>=0?'var(--text)':'var(--down)'}}>
+                            {s.sharpeRatio!=null?s.sharpeRatio.toFixed(2):'—'}
+                          </td>
+                          <td style={{fontWeight:600,textAlign:'center',color:s.sortinoRatio==null?'var(--muted)':s.sortinoRatio>=1?'var(--up)':s.sortinoRatio>=0?'var(--text)':'var(--down)'}}>
+                            {s.sortinoRatio!=null?s.sortinoRatio.toFixed(2):'—'}
+                          </td>
+                          <td style={{fontWeight:600,textAlign:'center',color:s.maxDrawdown==null?'var(--muted)':s.maxDrawdown>20?'var(--down)':s.maxDrawdown>10?'var(--text)':'var(--up)'}}>
+                            {s.maxDrawdown!=null?`-${s.maxDrawdown.toFixed(1)}%`:'—'}
+                          </td>
+                          <td style={{fontWeight:600,textAlign:'center',color:s.winRate==null?'var(--muted)':s.winRate>=50?'var(--up)':'var(--down)'}}>
+                            {s.winRate!=null?`${s.winRate.toFixed(1)}%`:'—'}
                           </td>
                           <td>
                             <div className="bar-wrap">
@@ -385,6 +396,12 @@ export default function Leaderboard() {
                       <span style={{fontSize:11,color:'var(--text)'}}>{name}</span>
                     </div>
                   ))}
+                  {(charts?.portfolioHistory||[]).some(d=>d['BTC Benchmark']) && (
+                    <div style={{display:'flex',alignItems:'center',gap:6}}>
+                      <div style={{width:24,height:2,background:'#f59e0b',borderTop:'2px dashed #f59e0b'}}/>
+                      <span style={{fontSize:11,color:'#f59e0b'}}>₿ BTC Benchmark</span>
+                    </div>
+                  )}
                 </div>
 
                 <LineChart data={charts?.portfolioHistory || []} studentNames={charts?.studentNames || []}/>

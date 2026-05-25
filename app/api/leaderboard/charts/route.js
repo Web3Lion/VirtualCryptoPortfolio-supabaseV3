@@ -77,13 +77,46 @@ export async function GET(request) {
     dateStudentMap[key][snap.student_id] = parseFloat(snap.total_value);
   });
 
-  const portfolioHistory = Object.entries(dateStudentMap)
-    .sort(([,a],[,b]) => a._ts.localeCompare(b._ts))
-    .map(([date, values]) => {
-      const entry = { date };
-      students.forEach(s => { if (values[s.id]) entry[s.name] = parseFloat(values[s.id].toFixed(2)); });
-      return entry;
-    });
+  // Build BTC benchmark: seed_money * (btcPrice_at_each_point / btcPrice_at_start)
+  // We use BTC's price_change data from price_cache to approximate the benchmark
+  let btcBenchmark = null;
+  try {
+    const { data: cls } = await db.from('classes').select('seed_money').eq('id', classId).single();
+    const seedMoney = parseFloat(cls?.seed_money || 10000);
+    const days = cfg.days ?? (cfg.hours ? cfg.hours / 24 : 365);
+    const geckoUrl = `https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=${Math.ceil(days)}&interval=${cfg.type === 'intraday' ? 'hourly' : 'daily'}`;
+    const headers = {};
+    if (process.env.COINGECKO_API_KEY) headers['x-cg-demo-api-key'] = process.env.COINGECKO_API_KEY;
+    const gRes = await fetch(geckoUrl, { headers, next: { revalidate: 3600 } });
+    if (gRes.ok) {
+      const gData = await gRes.json();
+      const prices = gData.prices || [];
+      if (prices.length > 1) {
+        const startPrice = prices[0][1];
+        btcBenchmark = prices.map(([ts, price]) => ({
+          ts: new Date(ts).toISOString(),
+          value: parseFloat(((price / startPrice) * seedMoney).toFixed(2)),
+        }));
+      }
+    }
+  } catch {}
+
+  const sortedEntries = Object.entries(dateStudentMap).sort(([,a],[,b]) => a._ts.localeCompare(b._ts));
+
+  const portfolioHistory = sortedEntries.map(([date, values]) => {
+    const entry = { date };
+    students.forEach(s => { if (values[s.id]) entry[s.name] = parseFloat(values[s.id].toFixed(2)); });
+    // Attach nearest BTC benchmark value to each time bucket
+    if (btcBenchmark?.length) {
+      const ts = new Date(values._ts).getTime();
+      let closest = btcBenchmark[0];
+      for (const b of btcBenchmark) {
+        if (Math.abs(new Date(b.ts).getTime() - ts) < Math.abs(new Date(closest.ts).getTime() - ts)) closest = b;
+      }
+      entry['BTC Benchmark'] = closest.value;
+    }
+    return entry;
+  });
 
   // ── Coin + sector allocation ───────────────────────────────
   const { data: holdings } = await db.from('holdings').select('coin, quantity, avg_buy_price').in('student_id', studentIds).eq('class_id', classId).gt('quantity', 0);

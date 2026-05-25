@@ -85,6 +85,62 @@ export async function POST(request, { params }) {
       ]);
       return Response.json({ success: true, message: '✅ Reset' });
     }
+    case 'edit-class': {
+      if (!body.classId || !body.name) return Response.json({ error: 'classId and name required' }, { status: 400 });
+      await db.from('classes').update({ name: body.name }).eq('id', body.classId);
+      return Response.json({ success: true, message: '✅ Class renamed' });
+    }
+    case 'move-student': {
+      if (!body.studentId || !body.fromClassId || !body.toClassId)
+        return Response.json({ error: 'studentId, fromClassId, toClassId required' }, { status: 400 });
+      const { data: cls } = await db.from('classes').select('seed_money').eq('id', body.toClassId).single();
+      // Update all class-scoped records
+      await Promise.all([
+        db.from('class_students').delete().eq('student_id', body.studentId).eq('class_id', body.fromClassId),
+        db.from('class_students').upsert({ student_id: body.studentId, class_id: body.toClassId }, { onConflict: 'class_id,student_id' }),
+        db.from('portfolios').update({ class_id: body.toClassId }).eq('student_id', body.studentId).eq('class_id', body.fromClassId),
+        db.from('holdings').update({ class_id: body.toClassId }).eq('student_id', body.studentId).eq('class_id', body.fromClassId),
+        db.from('trades').update({ class_id: body.toClassId }).eq('student_id', body.studentId).eq('class_id', body.fromClassId),
+        db.from('snapshots').update({ class_id: body.toClassId }).eq('student_id', body.studentId).eq('class_id', body.fromClassId),
+      ]);
+      // Ensure portfolio row exists in target class
+      await db.from('portfolios').upsert({ student_id: body.studentId, class_id: body.toClassId, cash: parseFloat(cls?.seed_money || 10000), fees_paid: 0 }, { onConflict: 'student_id,class_id' });
+      return Response.json({ success: true, message: '✅ Student moved' });
+    }
+    case 'backfill-snapshots': {
+      if (!body.classId) return Response.json({ error: 'classId required' }, { status: 400 });
+      const { data: classStudents } = await db.from('class_students').select('student_id').eq('class_id', body.classId);
+      const studentIds = (classStudents || []).map(r => r.student_id);
+      if (!studentIds.length) return Response.json({ success: true, message: 'No students', count: 0 });
+      const [portfoliosRes, holdingsRes, pricesRes] = await Promise.all([
+        db.from('portfolios').select('student_id, cash').in('student_id', studentIds).eq('class_id', body.classId),
+        db.from('holdings').select('student_id, coin, quantity, margin_borrowed').in('student_id', studentIds).eq('class_id', body.classId),
+        db.from('price_cache').select('symbol, price'),
+      ]);
+      const pm = {};
+      (pricesRes.data || []).forEach(p => { pm[p.symbol] = parseFloat(p.price); });
+      const portfolioMap = {};
+      (portfoliosRes.data || []).forEach(p => { portfolioMap[p.student_id] = parseFloat(p.cash); });
+      const holdingsByStudent = {};
+      (holdingsRes.data || []).forEach(h => {
+        if (!holdingsByStudent[h.student_id]) holdingsByStudent[h.student_id] = [];
+        holdingsByStudent[h.student_id].push(h);
+      });
+      const today = new Date().toISOString().slice(0, 10);
+      const { data: existing } = await db.from('snapshots').select('student_id').eq('class_id', body.classId).eq('snapshot_type', 'daily').gte('created_at', today);
+      const alreadyHave = new Set((existing || []).map(s => s.student_id));
+      const rows = studentIds.filter(id => !alreadyHave.has(id)).map(studentId => {
+        const cash = portfolioMap[studentId] ?? 0;
+        let holdingsVal = 0, borrowed = 0;
+        (holdingsByStudent[studentId] || []).forEach(h => {
+          holdingsVal += parseFloat(h.quantity) * (pm[h.coin] || parseFloat(h.avg_buy_price) || 0);
+          borrowed += parseFloat(h.margin_borrowed || 0);
+        });
+        return { student_id: studentId, class_id: body.classId, total_value: cash + holdingsVal - borrowed, cash, snapshot_type: 'daily' };
+      });
+      if (rows.length) await db.from('snapshots').insert(rows);
+      return Response.json({ success: true, message: `✅ Backfilled ${rows.length} daily snapshots`, count: rows.length });
+    }
     default:
       return Response.json({ error: `Unknown action: ${action}` }, { status: 400 });
   }

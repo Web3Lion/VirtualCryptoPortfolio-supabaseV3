@@ -46,6 +46,11 @@ export default function Teacher() {
   const [refreshing, setRefreshing] = useState(false);
   const [refreshCooldown, setRefreshCooldown] = useState(null);
   const [refreshCountdown, setRefreshCountdown] = useState('');
+  const [editingClassName, setEditingClassName] = useState(false);
+  const [classNameInput, setClassNameInput] = useState('');
+  const [moveStudent, setMoveStudent] = useState(null); // student object to move
+  const [moveTargetClass, setMoveTargetClass] = useState('');
+  const [backfilling, setBackfilling] = useState(false);
 
   useEffect(() => { applyTheme(getTheme()); }, []);
   useEffect(()=>{ if(status==='unauthenticated') router.replace('/'); },[status,router]);
@@ -119,6 +124,31 @@ export default function Teacher() {
       else if(data.success) { setRefreshCooldown(new Date(data.nextRefreshAt)); fetchData(); }
     } catch(e){ console.error(e); }
     finally { setRefreshing(false); }
+  };
+
+  const saveClassName = async () => {
+    if (!classNameInput.trim() || !activeClass) return;
+    await teacherAction('edit-class', { classId: activeClass.id, name: classNameInput.trim() });
+    setEditingClassName(false);
+    fetchData(activeClass.id);
+  };
+
+  const doMoveStudent = async () => {
+    if (!moveStudent || !moveTargetClass) return;
+    await teacherAction('move-student', { studentId: moveStudent.id, fromClassId: activeClass.id, toClassId: moveTargetClass });
+    setMoveStudent(null); setMoveTargetClass('');
+    fetchData(activeClass.id);
+  };
+
+  const doBackfill = async () => {
+    setBackfilling(true);
+    try { await teacherAction('backfill-snapshots', { classId: activeClass.id }); }
+    catch(e) { console.error(e); }
+    setBackfilling(false);
+  };
+
+  const exportCSV = () => {
+    window.location.href = `/api/teacher/export?classId=${activeClass?.id}`;
   };
 
   if(status==='loading'||status==='unauthenticated') return (
@@ -331,6 +361,15 @@ export default function Teacher() {
                 {c.name} <span style={{opacity:.6}}>· {c.semester}</span>
               </button>
             ))}
+            {activeClass && (
+              editingClassName
+                ? <span style={{display:'flex',gap:6,alignItems:'center'}}>
+                    <input value={classNameInput} onChange={e=>setClassNameInput(e.target.value)} onKeyDown={e=>e.key==='Enter'&&saveClassName()} style={{padding:'4px 10px',borderRadius:8,border:'1px solid var(--accent)',background:'var(--surface2)',color:'var(--text)',fontSize:12,width:160}} autoFocus/>
+                    <button className="btn btn-accent" style={{padding:'4px 10px',fontSize:11}} onClick={saveClassName}>Save</button>
+                    <button className="btn btn-muted" style={{padding:'4px 10px',fontSize:11}} onClick={()=>setEditingClassName(false)}>✕</button>
+                  </span>
+                : <button className="btn btn-muted" style={{padding:'4px 10px',fontSize:11}} onClick={()=>{setClassNameInput(activeClass.name);setEditingClassName(true);}}>✏ Rename</button>
+            )}
           </div>
         )}
 
@@ -383,6 +422,15 @@ export default function Teacher() {
                           <button className="btn btn-muted" onClick={()=>router.push('/teacher/migrate')}>📦 Migrate from Sheets</button>
                           <button className="btn btn-muted" onClick={()=>router.push('/market')}>📈 Market & Heatmap</button>
                           <button className="btn btn-muted" onClick={()=>router.push('/news')}>📰 Student News Page</button>
+                        </div>
+                      </div>
+                      <div className="tools-divider">
+                        <div className="tools-label">Data</div>
+                        <div className="btn-row">
+                          <button className="btn btn-green" onClick={exportCSV}>⬇ Export Grades CSV</button>
+                          <button className="btn btn-muted" disabled={backfilling} onClick={doBackfill} title="Create today's daily snapshot for students missing one — fills gaps in portfolio history charts">
+                            {backfilling ? 'Backfilling…' : '📊 Backfill Snapshots'}
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -586,6 +634,7 @@ export default function Teacher() {
                                   <td style={{color:'var(--muted)'}}>{fmtUSD(s.cash)}</td>
                                   <td>
                                     <div className="btn-row">
+                                      {classes.length > 1 && <button className="btn btn-muted" style={{padding:'4px 10px',fontSize:10}} onClick={()=>{setMoveStudent(s);setMoveTargetClass('');}}>⇄ Move</button>}
                                       <button className="btn btn-muted" style={{padding:'4px 10px',fontSize:10}} onClick={()=>{if(confirm(`Reset ${s.name}?`))teacherAction('reset-student',{studentId:s.id,classId:activeClass.id})}}>↺ Reset</button>
                                       <button className="btn btn-red" style={{padding:'4px 10px',fontSize:10}} onClick={()=>{if(confirm(`Remove ${s.name}?`))teacherAction('remove-student',{studentId:s.id,classId:activeClass.id})}}>✕</button>
                                     </div>
@@ -669,6 +718,26 @@ export default function Teacher() {
         )}
       </div>
       {actionMsg&&<div className={`action-msg ${actionMsg.type}`}>{actionMsg.msg}</div>}
+
+      {/* Move Student Modal */}
+      {moveStudent && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.7)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000}} onClick={()=>setMoveStudent(null)}>
+          <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:20,padding:28,minWidth:320,maxWidth:400}} onClick={e=>e.stopPropagation()}>
+            <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:16,marginBottom:16,color:'var(--text)'}}>Move {moveStudent.name}</div>
+            <div style={{fontSize:12,color:'#94a3b8',marginBottom:12}}>Select the class to move this student to. Their portfolio, holdings, and trade history will follow.</div>
+            <select value={moveTargetClass} onChange={e=>setMoveTargetClass(e.target.value)} style={{width:'100%',padding:'10px 12px',borderRadius:10,border:'1px solid var(--border)',background:'var(--surface2)',color:'var(--text)',fontSize:13,marginBottom:16}}>
+              <option value="">— Select target class —</option>
+              {classes.filter(c=>c.id!==activeClass?.id).map(c=>(
+                <option key={c.id} value={c.id}>{c.name} · {c.semester}</option>
+              ))}
+            </select>
+            <div style={{display:'flex',gap:10}}>
+              <button className="btn btn-accent" style={{flex:1}} disabled={!moveTargetClass} onClick={doMoveStudent}>Move Student</button>
+              <button className="btn btn-muted" onClick={()=>setMoveStudent(null)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

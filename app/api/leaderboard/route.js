@@ -1,7 +1,7 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { calculateSharpe } from '@/lib/metrics';
+import { calculateSharpe, calculateSortino, calculateMaxDrawdown, calculateWinRate } from '@/lib/metrics';
 
 export async function GET(request) {
   const session = await getServerSession(authOptions);
@@ -55,7 +55,7 @@ export async function GET(request) {
   const [portfoliosRes, holdingsRes, tradesRes, pricesRes, snapshotsRes] = await Promise.all([
     db.from('portfolios').select('student_id, cash, fees_paid').in('student_id', studentIds).eq('class_id', classId),
     db.from('holdings').select('student_id, coin, quantity, avg_buy_price').in('student_id', studentIds).eq('class_id', classId).gt('quantity', 0),
-    db.from('trades').select('student_id').in('student_id', studentIds).eq('class_id', classId),
+    db.from('trades').select('student_id, action, coin, gross_value, fee').in('student_id', studentIds).eq('class_id', classId),
     db.from('price_cache').select('symbol, price'),
     db.from('snapshots').select('student_id, total_value, created_at').in('student_id', studentIds).eq('class_id', classId).order('created_at', { ascending: true }),
   ]);
@@ -70,8 +70,11 @@ export async function GET(request) {
   });
 
   const tradeCountMap = {};
+  const tradesByStudent = {};
   (tradesRes.data || []).forEach(t => {
     tradeCountMap[t.student_id] = (tradeCountMap[t.student_id] || 0) + 1;
+    if (!tradesByStudent[t.student_id]) tradesByStudent[t.student_id] = [];
+    tradesByStudent[t.student_id].push(t);
   });
 
   const priceMap = {};
@@ -113,8 +116,11 @@ export async function GET(request) {
       returnPct:  parseFloat(returnPct.toFixed(2)),
       fees:       parseFloat(feesPaid.toFixed(2)),
       coinCount:  holdings.length,
-      tradeCount: tradeCountMap[student.id] || 0,
+      tradeCount:  tradeCountMap[student.id] || 0,
       sharpeRatio: calculateSharpe(snapshotsByStudent[student.id] || []),
+      sortinoRatio: calculateSortino(snapshotsByStudent[student.id] || []),
+      maxDrawdown:  calculateMaxDrawdown(snapshotsByStudent[student.id] || []),
+      winRate:      calculateWinRate(tradesByStudent[student.id] || []),
     };
   });
 
