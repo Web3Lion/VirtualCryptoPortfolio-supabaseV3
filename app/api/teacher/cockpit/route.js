@@ -18,125 +18,122 @@ export async function GET(request) {
   const today = new Date(now); today.setHours(0, 0, 0, 0);
   const monthStart = new Date(now); monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
 
-  const teacherEmail = session.user.email; // use actual logged-in email (handles missing TEACHER_EMAIL env)
-  if (!classId) {
-    const { data } = await db.from('classes').select('id').eq('teacher_email', teacherEmail).order('created_at', { ascending: false }).limit(1).single();
-    classId = data?.id;
+  try {
+    const teacherEmail = session.user.email;
+    if (!classId) {
+      const { data } = await db.from('classes').select('id').eq('teacher_email', teacherEmail).order('created_at', { ascending: false }).limit(1).single();
+      classId = data?.id;
+    }
+    if (!classId) return Response.json({ error: 'No class found. Create a class first on the Teacher page.' }, { status: 404 });
+
+    const safe = (p) => p.then(r => r).catch(() => ({ data: null, count: 0 }));
+
+    const [
+      cfg,
+      tradesTodayRes,
+      tradesMonthRes,
+      tradesTotalRes,
+      priceCacheRes,
+      studentsRes,
+      activeTodayRes,
+      classCoinsRes,
+      portfoliosRes,
+      holdingsRes,
+      allPricesRes,
+      pendingOrdersRes,
+      snapshotTodayRes,
+      classesRes,
+    ] = await Promise.all([
+      getAllConfig().catch(() => ({})),
+      safe(db.from('trades').select('*', { count: 'exact', head: true }).eq('class_id', classId).gte('created_at', today.toISOString())),
+      safe(db.from('trades').select('*', { count: 'exact', head: true }).eq('class_id', classId).gte('created_at', monthStart.toISOString())),
+      safe(db.from('trades').select('*', { count: 'exact', head: true }).eq('class_id', classId)),
+      safe(db.from('price_cache').select('symbol, updated_at').order('updated_at', { ascending: true }).limit(1)),
+      safe(db.from('class_students').select('student_id').eq('class_id', classId)),
+      safe(db.from('trades').select('student_id').eq('class_id', classId).gte('created_at', today.toISOString())),
+      safe(db.from('class_coins').select('symbol').eq('class_id', classId).eq('active', true)),
+      safe(db.from('portfolios').select('cash').eq('class_id', classId)),
+      safe(db.from('holdings').select('coin, quantity, margin_borrowed').eq('class_id', classId).gt('quantity', 0)),
+      safe(db.from('price_cache').select('symbol, price, updated_at')),
+      safe(db.from('pending_orders').select('*', { count: 'exact', head: true }).eq('class_id', classId).eq('status', 'pending')),
+      safe(db.from('snapshots').select('*', { count: 'exact', head: true }).eq('class_id', classId).eq('snapshot_type', 'intraday').gte('created_at', today.toISOString())),
+      safe(db.from('classes').select('id, name').eq('teacher_email', teacherEmail)),
+    ]);
+
+    // Price map
+    const priceMap = {};
+    (allPricesRes.data || []).forEach(p => { priceMap[p.symbol] = parseFloat(p.price); });
+
+    // Portfolio totals
+    let totalCash = 0, totalHoldings = 0, totalBorrowed = 0;
+    (portfoliosRes.data || []).forEach(p => { totalCash += parseFloat(p.cash || 0); });
+    (holdingsRes.data || []).forEach(h => {
+      totalHoldings += parseFloat(h.quantity) * (priceMap[h.coin] || 0);
+      totalBorrowed  += parseFloat(h.margin_borrowed || 0);
+    });
+    const totalPortfolioValue = totalCash + totalHoldings - totalBorrowed;
+
+    const totalStudents = (studentsRes.data || []).length;
+    const activeToday   = new Set((activeTodayRes.data || []).map(t => t.student_id)).size;
+
+    const stalest       = priceCacheRes.data?.[0];
+    const cacheAgeMin   = stalest ? Math.floor((Date.now() - new Date(stalest.updated_at).getTime()) / 60000) : 999;
+    const priceCacheCount = (allPricesRes.data || []).length;
+
+    const msThisMonth   = now.getTime() - monthStart.getTime();
+    const cronRunsMonth = Math.floor(msThisMonth / (30 * 60 * 1000));
+    const apiCallsMonth = cronRunsMonth + (tradesMonthRes.count || 0);
+    const GECKO_LIMIT   = 10000;
+
+    const flashSaleActive = !!cfg.FLASH_SALE_COIN && new Date(cfg.FLASH_SALE_UNTIL || 0) > now;
+
+    return Response.json({
+      classId,
+      classes: classesRes.data || [],
+      features: {
+        frozen:          cfg.MARKET_FREEZE === '1',
+        freezeReason:    cfg.MARKET_FREEZE_REASON || '',
+        paused:          cfg.SIM_PAUSED === '1',
+        bullRunActive:   cfg.BULL_RUN_ACTIVE === '1',
+        bullRunMult:     cfg.BULL_RUN_MULTIPLIER || '2',
+        flashSaleActive,
+        flashSaleCoin:   cfg.FLASH_SALE_COIN || '',
+        flashSaleUntil:  cfg.FLASH_SALE_UNTIL || '',
+        marginEnabled:   cfg.MARGIN_ENABLED === '1',
+        marginMult:      cfg.MARGIN_MULTIPLIER || '2',
+        shortEnabled:    cfg.SHORT_SELLING_ENABLED === '1',
+        tradingHoursOn:  cfg.TRADING_HOURS_ON === '1',
+        tradingHoursStart: cfg.TRADING_HOURS_START || '09:00',
+        tradingHoursEnd:   cfg.TRADING_HOURS_END   || '15:00',
+        dailyLimitOn:    cfg.DAILY_LIMIT_ON === '1',
+        dailyLimitN:     cfg.DAILY_LIMIT_N || '3',
+      },
+      trades: {
+        today:          tradesTodayRes.count   || 0,
+        month:          tradesMonthRes.count   || 0,
+        total:          tradesTotalRes.count   || 0,
+        snapshotsToday: snapshotTodayRes.count || 0,
+      },
+      students: { total: totalStudents, activeToday },
+      portfolio: {
+        totalValue:    totalPortfolioValue,
+        totalCash,
+        totalHoldings,
+        coinCount:     (classCoinsRes.data || []).length,
+      },
+      api: {
+        cacheAgeMinutes: cacheAgeMin,
+        stalestSymbol:   stalest?.symbol || null,
+        cachedSymbols:   priceCacheCount,
+        callsThisMonth:  apiCallsMonth,
+        callsLimit:      GECKO_LIMIT,
+        cronRunsMonth,
+      },
+      orders: { pending: pendingOrdersRes.count || 0 },
+      fetchedAt: now.toISOString(),
+    });
+  } catch (err) {
+    console.error('Cockpit error:', err);
+    return Response.json({ error: `Server error: ${err.message}` }, { status: 500 });
   }
-  if (!classId) return Response.json({ error: 'No class found for this teacher. Create a class first.' }, { status: 404 });
-
-  const [
-    cfg,
-    tradesTodayRes,
-    tradesMonthRes,
-    tradesTotalRes,
-    priceCacheRes,
-    studentsRes,
-    activeTodayRes,
-    classCoinsRes,
-    portfoliosRes,
-    holdingsRes,
-    allPricesRes,
-    pendingOrdersRes,
-    snapshotTodayRes,
-    classesRes,
-  ] = await Promise.all([
-    getAllConfig(),
-    db.from('trades').select('*', { count: 'exact', head: true }).eq('class_id', classId).gte('created_at', today.toISOString()),
-    db.from('trades').select('*', { count: 'exact', head: true }).eq('class_id', classId).gte('created_at', monthStart.toISOString()),
-    db.from('trades').select('*', { count: 'exact', head: true }).eq('class_id', classId),
-    db.from('price_cache').select('symbol, updated_at').order('updated_at', { ascending: true }).limit(1),
-    db.from('class_students').select('student_id').eq('class_id', classId),
-    db.from('trades').select('student_id').eq('class_id', classId).gte('created_at', today.toISOString()),
-    db.from('class_coins').select('symbol').eq('class_id', classId).eq('active', true),
-    db.from('portfolios').select('cash').eq('class_id', classId),
-    db.from('holdings').select('coin, quantity, margin_borrowed').eq('class_id', classId).gt('quantity', 0),
-    db.from('price_cache').select('symbol, price, updated_at'),
-    db.from('pending_orders').select('*', { count: 'exact', head: true }).eq('class_id', classId).eq('status', 'pending').catch(() => ({ count: 0 })),
-    db.from('snapshots').select('*', { count: 'exact', head: true }).eq('class_id', classId).eq('snapshot_type', 'intraday').gte('created_at', today.toISOString()),
-    db.from('classes').select('id, name').eq('teacher_email', teacherEmail),
-  ]);
-
-  // Price map
-  const priceMap = {};
-  (allPricesRes.data || []).forEach(p => { priceMap[p.symbol] = parseFloat(p.price); });
-
-  // Portfolio totals
-  let totalCash = 0, totalHoldings = 0, totalBorrowed = 0;
-  (portfoliosRes.data || []).forEach(p => { totalCash += parseFloat(p.cash || 0); });
-  (holdingsRes.data || []).forEach(h => {
-    totalHoldings += parseFloat(h.quantity) * (priceMap[h.coin] || 0);
-    totalBorrowed  += parseFloat(h.margin_borrowed || 0);
-  });
-  const totalPortfolioValue = totalCash + totalHoldings - totalBorrowed;
-
-  // Student counts
-  const totalStudents     = (studentsRes.data || []).length;
-  const activeToday       = new Set((activeTodayRes.data || []).map(t => t.student_id)).size;
-
-  // Price cache health
-  const stalest       = priceCacheRes.data?.[0];
-  const cacheAgeMin   = stalest ? Math.floor((Date.now() - new Date(stalest.updated_at).getTime()) / 60000) : 999;
-  const priceCacheCount = (allPricesRes.data || []).length;
-
-  // API calls estimate
-  const msThisMonth     = now.getTime() - monthStart.getTime();
-  const cronRunsMonth   = Math.floor(msThisMonth / (30 * 60 * 1000));
-  const tradesMonth     = tradesMonthRes.count || 0;
-  const apiCallsMonth   = cronRunsMonth + tradesMonth;
-  const GECKO_LIMIT     = 10000;
-
-  // Features
-  const flashSaleActive = !!cfg.FLASH_SALE_COIN && new Date(cfg.FLASH_SALE_UNTIL || 0) > now;
-
-  return Response.json({
-    classId,
-    classes: classesRes.data || [],
-    features: {
-      frozen:          cfg.MARKET_FREEZE === '1',
-      freezeReason:    cfg.MARKET_FREEZE_REASON || '',
-      paused:          cfg.SIM_PAUSED === '1',
-      bullRunActive:   cfg.BULL_RUN_ACTIVE === '1',
-      bullRunMult:     cfg.BULL_RUN_MULTIPLIER || '2',
-      flashSaleActive,
-      flashSaleCoin:   cfg.FLASH_SALE_COIN || '',
-      flashSaleUntil:  cfg.FLASH_SALE_UNTIL || '',
-      marginEnabled:   cfg.MARGIN_ENABLED === '1',
-      marginMult:      cfg.MARGIN_MULTIPLIER || '2',
-      shortEnabled:    cfg.SHORT_SELLING_ENABLED === '1',
-      tradingHoursOn:  cfg.TRADING_HOURS_ON === '1',
-      tradingHoursStart: cfg.TRADING_HOURS_START || '09:00',
-      tradingHoursEnd:   cfg.TRADING_HOURS_END   || '15:00',
-      dailyLimitOn:    cfg.DAILY_LIMIT_ON === '1',
-      dailyLimitN:     cfg.DAILY_LIMIT_N || '3',
-    },
-    trades: {
-      today:     tradesTodayRes.count   || 0,
-      month:     tradesMonthRes.count   || 0,
-      total:     tradesTotalRes.count   || 0,
-      snapshotsToday: snapshotTodayRes.count || 0,
-    },
-    students: {
-      total:       totalStudents,
-      activeToday,
-    },
-    portfolio: {
-      totalValue:    totalPortfolioValue,
-      totalCash,
-      totalHoldings,
-      coinCount:     (classCoinsRes.data || []).length,
-    },
-    api: {
-      cacheAgeMinutes:  cacheAgeMin,
-      stalestSymbol:    stalest?.symbol || null,
-      cachedSymbols:    priceCacheCount,
-      callsThisMonth:   apiCallsMonth,
-      callsLimit:       GECKO_LIMIT,
-      cronRunsMonth,
-    },
-    orders: {
-      pending: pendingOrdersRes.count || 0,
-    },
-    fetchedAt: now.toISOString(),
-  });
 }
