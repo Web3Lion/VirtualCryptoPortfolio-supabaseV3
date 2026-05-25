@@ -100,11 +100,32 @@ export async function GET(request) {
   let symbols = [];
   let extraIds = {};
   if (classId) {
+    const email = session.user.email.toLowerCase();
+    const isTeacher = email === process.env.TEACHER_EMAIL?.toLowerCase();
+
+    // Active class coins
     const { data: classCoins } = await db.from('class_coins').select('symbol,gecko_id').eq('class_id', classId).eq('active', true);
     symbols = (classCoins || []).map(c => c.symbol);
     (classCoins || []).forEach(c => {
       if (c.gecko_id && !COINGECKO_IDS[c.symbol.toUpperCase()]) extraIds[c.symbol.toUpperCase()] = c.gecko_id;
     });
+
+    // Also include any coins the student currently holds (even if deactivated)
+    if (!isTeacher) {
+      const { data: studentRow } = await db.from('students').select('id').eq('email', email).single();
+      if (studentRow) {
+        const { data: heldCoins } = await db.from('holdings').select('coin').eq('student_id', studentRow.id).eq('class_id', classId);
+        const heldSymbols = (heldCoins || []).map(h => h.coin).filter(c => !symbols.includes(c));
+        if (heldSymbols.length) {
+          symbols = [...symbols, ...heldSymbols];
+          // Get gecko_ids for these deactivated coins so we can fetch live prices
+          const { data: inactiveCoins } = await db.from('class_coins').select('symbol,gecko_id').eq('class_id', classId).in('symbol', heldSymbols);
+          (inactiveCoins || []).forEach(c => {
+            if (c.gecko_id && !COINGECKO_IDS[c.symbol.toUpperCase()]) extraIds[c.symbol.toUpperCase()] = c.gecko_id;
+          });
+        }
+      }
+    }
   }
   if (!symbols.length) symbols = ['BTC','ETH','SOL','XRP','ADA','DOGE','AVAX','LINK','DOT','MATIC','BNB','SHIB'];
 

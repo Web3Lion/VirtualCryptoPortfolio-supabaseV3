@@ -20,15 +20,22 @@ export async function GET(request) {
   if (!classId) return Response.json({ error: 'No class found' }, { status: 404 });
 
   const { portfolio, holdings, trades } = await getStudentPortfolio(student.id, classId);
-  const coins = await getClassCoins(classId);
+  const activeCoins = await getClassCoins(classId);
 
-  // Get cached prices
-  const symbols = [...new Set(holdings.map(h => h.coin))];
+  // Get cached prices for all held coins
+  const heldSymbols = [...new Set(holdings.map(h => h.coin))];
   const priceMap = {};
-  if (symbols.length > 0) {
-    const { data: cached } = await db.from('price_cache').select('symbol, price').in('symbol', symbols);
+  if (heldSymbols.length > 0) {
+    const { data: cached } = await db.from('price_cache').select('symbol, price').in('symbol', heldSymbols);
     (cached || []).forEach(r => { priceMap[r.symbol] = parseFloat(r.price); });
   }
+
+  // Merge held coins into availableCoins so deactivated coins still show in the trade dropdown
+  const activeSymbols = new Set(activeCoins.map(c => c.symbol));
+  const heldButInactive = holdings
+    .filter(h => !activeSymbols.has(h.coin))
+    .map(h => ({ symbol: h.coin, gecko_id: null, name: h.coin, sector: 'Other', deactivated: true }));
+  const coins = [...activeCoins, ...heldButInactive];
 
   const [{ data: cls }, { data: rewardCfg }, { data: rewardLedger }, { data: snapshots }] = await Promise.all([
     db.from('classes').select('seed_money').eq('id', classId).single(),

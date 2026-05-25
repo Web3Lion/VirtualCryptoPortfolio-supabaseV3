@@ -13,14 +13,32 @@ export async function GET(request) {
   // ── 1. Update price cache ─────────────────────────────────────
   let freshPriceMap = {};
   try {
-    const { data: coins } = await db.from('class_coins').select('symbol,gecko_id').eq('active', true);
-    const symbols = [...new Set((coins || []).map(c => c.symbol))];
+    const [{ data: activeCoins }, { data: heldCoins }] = await Promise.all([
+      db.from('class_coins').select('symbol,gecko_id').eq('active', true),
+      db.from('holdings').select('coin'),
+    ]);
+
+    // Union of active class coins + all coins currently held by any student
+    const symbolSet = new Set([
+      ...(activeCoins || []).map(c => c.symbol),
+      ...(heldCoins  || []).map(h => h.coin),
+    ]);
+    const symbols = [...symbolSet];
 
     if (symbols.length) {
       const extraIds = {};
-      (coins || []).forEach(c => {
+      (activeCoins || []).forEach(c => {
         if (c.gecko_id && !GECKO_ID_MAP[c.symbol?.toUpperCase()]) extraIds[c.symbol.toUpperCase()] = c.gecko_id;
       });
+      // Also get gecko_ids for held-but-inactive coins
+      const inactiveHeld = symbols.filter(s => !(activeCoins || []).find(c => c.symbol === s));
+      if (inactiveHeld.length) {
+        const { data: inactiveCoins } = await db.from('class_coins').select('symbol,gecko_id').in('symbol', inactiveHeld);
+        (inactiveCoins || []).forEach(c => {
+          if (c.gecko_id && !GECKO_ID_MAP[c.symbol?.toUpperCase()]) extraIds[c.symbol.toUpperCase()] = c.gecko_id;
+        });
+      }
+
       const priceMap = await fetchBulkPrices(symbols, extraIds);
       const rows = Object.entries(priceMap).map(([symbol, data]) => ({
         symbol,
