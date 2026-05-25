@@ -403,7 +403,7 @@ export default function Leaderboard() {
                 <div className="card-sub">{['1D','3D','1W'].includes(chartRange)?'Intraday snapshots':'Daily snapshots'} — all students</div>
 
                 {/* Legend */}
-                <div style={{display:'flex',gap:16,flexWrap:'wrap',marginBottom:16}}>
+                <div style={{display:'flex',gap:16,flexWrap:'wrap',marginBottom:8,alignItems:'center'}}>
                   {(charts?.studentNames || []).map((name, i) => (
                     <div key={name} style={{display:'flex',alignItems:'center',gap:6}}>
                       <div style={{width:24,height:3,borderRadius:2,background:STUDENT_COLORS[i%STUDENT_COLORS.length]}}/>
@@ -411,12 +411,19 @@ export default function Leaderboard() {
                     </div>
                   ))}
                   {(charts?.portfolioHistory||[]).some(d=>d['BTC Benchmark']) && (
-                    <div style={{display:'flex',alignItems:'center',gap:6}}>
-                      <div style={{width:24,height:2,background:'#f59e0b',borderTop:'2px dashed #f59e0b'}}/>
+                    <div style={{display:'flex',alignItems:'center',gap:6,cursor:'help'}} title="BTC Benchmark: shows how the starting balance invested 100% in Bitcoin at the beginning of this period would have grown. If your line is above this, you're outperforming Bitcoin.">
+                      <svg width="24" height="10" viewBox="0 0 24 10"><line x1="0" y1="5" x2="24" y2="5" stroke="#f59e0b" strokeWidth="2" strokeDasharray="6,4"/></svg>
                       <span style={{fontSize:11,color:'#f59e0b'}}>₿ BTC Benchmark</span>
+                      <span style={{fontSize:10,color:'#f59e0b',opacity:0.7}}>ⓘ</span>
                     </div>
                   )}
                 </div>
+                {(charts?.portfolioHistory||[]).some(d=>d['BTC Benchmark']) && (
+                  <div style={{fontSize:10,color:'#64748b',marginBottom:14,lineHeight:1.5,background:'rgba(245,158,11,.06)',border:'1px solid rgba(245,158,11,.15)',borderRadius:8,padding:'7px 12px',display:'flex',alignItems:'flex-start',gap:8}}>
+                    <span style={{color:'#f59e0b',flexShrink:0}}>₿</span>
+                    <span>The <strong style={{color:'#f59e0b'}}>BTC Benchmark</strong> shows how the class starting balance would have grown if it were invested entirely in Bitcoin at the start of this period. Use it to see whether your strategy is beating — or trailing — a simple "just buy BTC" approach.</span>
+                  </div>
+                )}
 
                 <LineChart data={charts?.portfolioHistory || []} studentNames={charts?.studentNames || []}/>
               </div>
