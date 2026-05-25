@@ -104,10 +104,10 @@ export default function Badges() {
         .badge-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
         .badge-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px;text-align:center;transition:all .2s;position:relative}
         .badge-card.earned{background:rgba(0,229,160,.08);border-color:var(--accent);box-shadow:0 0 12px rgba(0,229,160,.1)}
-        .badge-card.locked{opacity:1;border:1px dashed rgba(128,128,128,.35)} .badge-card.locked .badge-emoji{opacity:.25;filter:grayscale(1)} .badge-card.locked .badge-name{color:var(--muted)} .badge-card.locked .badge-hint{color:var(--muted)}
+        .badge-card.locked{opacity:1;border:1px dashed rgba(128,128,128,.35)} .badge-card.locked .badge-emoji{opacity:.25;filter:grayscale(1)} .badge-card.locked .badge-name{color:#94a3b8} .badge-card.locked .badge-hint{color:#94a3b8}
         .badge-emoji{font-size:32px;margin-bottom:8px;display:block}
         .badge-name{font-family:'Syne',sans-serif;font-weight:700;font-size:11px;margin-bottom:4px;color:var(--text)}
-        .badge-hint{font-size:9px;color:var(--muted);line-height:1.5}
+        .badge-hint{font-size:10px;color:#94a3b8;line-height:1.5}
         .earned-check{position:absolute;top:8px;right:8px;font-size:14px}
         .skeleton{background:linear-gradient(90deg,var(--surface) 25%,var(--surface2) 50%,var(--surface) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:8px}
         @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
@@ -130,13 +130,13 @@ export default function Badges() {
         <div style={{fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:32,letterSpacing:-1,marginBottom:4,color:"var(--text)"}}>
           🏅 <span style={{color:"var(--accent)"}}>Badges</span>
         </div>
-        <div style={{fontSize:11,color:"var(--muted)",marginBottom:24}}>Earn badges by hitting trading milestones</div>
+        <div style={{fontSize:11,color:"#94a3b8",marginBottom:24}}>Earn badges by hitting trading milestones</div>
 
         {loading ? <div className="skeleton" style={{height:100,marginBottom:24}}/> : (
           <div className="progress-card">
             <div className="progress-num">{earnedCount}</div>
             <div style={{flex:1}}>
-              <div style={{fontSize:11,color:"var(--muted)",marginBottom:8}}>of {ALL_BADGES.length} badges earned</div>
+              <div style={{fontSize:11,color:"#94a3b8",marginBottom:8}}>of {ALL_BADGES.length} badges earned</div>
               <div className="progress-bar-wrap">
                 <div className="progress-bar-fill" style={{width:`${(earnedCount/ALL_BADGES.length)*100}%`}}/>
               </div>
@@ -149,7 +149,7 @@ export default function Badges() {
             <div className="cat-title">
               <span style={{width:12,height:12,borderRadius:3,background:CAT_COLORS[cat],display:'inline-block'}}/>
               {CAT_LABELS[cat]}
-              <span style={{fontSize:11,color:"var(--muted)",fontWeight:400}}>
+              <span style={{fontSize:11,color:"#94a3b8",fontWeight:400}}>
                 ({ALL_BADGES.filter(b=>b.cat===cat&&earned.includes(b.id)).length}/{ALL_BADGES.filter(b=>b.cat===cat).length})
               </span>
             </div>
