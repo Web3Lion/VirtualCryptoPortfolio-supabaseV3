@@ -216,6 +216,9 @@ export default function Dashboard() {
   const [pendingOrders, setPendingOrders] = useState([]);
   const [ordersTableReady, setOrdersTableReady] = useState(true);
   const [placingOrder, setPlacingOrder] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshCooldown, setRefreshCooldown] = useState(null); // Date when refresh is next allowed
+  const [refreshCountdown, setRefreshCountdown] = useState("");
 
   useEffect(() => {
     applyTheme(getTheme());
@@ -262,6 +265,47 @@ export default function Dashboard() {
     }
   }, []);
 
+  const fetchRefreshStatus = useCallback(async () => {
+    const res = await fetch("/api/refresh");
+    if (res.ok) {
+      const data = await res.json();
+      setRefreshCooldown(data.canRefresh ? null : new Date(data.nextRefreshAt));
+    }
+  }, []);
+
+  const handlePriceRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      const res = await fetch("/api/refresh", { method: "POST" });
+      const data = await res.json();
+      if (res.status === 429 || data.blocked) {
+        setRefreshCooldown(new Date(data.nextRefreshAt));
+      } else if (data.success) {
+        setRefreshCooldown(new Date(data.nextRefreshAt));
+        await fetchData();
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [fetchData]);
+
+  // Countdown ticker
+  useEffect(() => {
+    if (!refreshCooldown) { setRefreshCountdown(""); return; }
+    const tick = () => {
+      const diff = refreshCooldown.getTime() - Date.now();
+      if (diff <= 0) { setRefreshCooldown(null); setRefreshCountdown(""); return; }
+      const m = Math.floor(diff / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      setRefreshCountdown(`${m}:${s.toString().padStart(2, "0")}`);
+    };
+    tick();
+    const iv = setInterval(tick, 1000);
+    return () => clearInterval(iv);
+  }, [refreshCooldown]);
+
   useEffect(() => {
     if (status === "unauthenticated") router.replace("/");
   }, [status, router]);
@@ -271,10 +315,11 @@ export default function Dashboard() {
       fetchData();
       fetchWatchlist();
       fetchOrders();
+      fetchRefreshStatus();
       const iv = setInterval(fetchData, 60000);
       return () => clearInterval(iv);
     }
-  }, [status, fetchData, fetchWatchlist, fetchOrders]);
+  }, [status, fetchData, fetchWatchlist, fetchOrders, fetchRefreshStatus]);
 
   // Refetch history when range changes
   useEffect(() => {
@@ -723,8 +768,13 @@ export default function Dashboard() {
                 >
                   + New Trade
                 </button>
-                <button className="btn btn-secondary" onClick={fetchData}>
-                  ↻ Refresh
+                <button
+                  className="btn btn-secondary"
+                  onClick={refreshCooldown ? fetchData : handlePriceRefresh}
+                  disabled={refreshing}
+                  title={refreshCooldown ? `Next price refresh available in ${refreshCountdown}` : "Refresh prices & save a portfolio snapshot"}
+                >
+                  {refreshing ? "Refreshing…" : refreshCooldown ? `↻ ${refreshCountdown}` : "↻ Refresh Prices"}
                 </button>
                 <Link href="/leaderboard" className="btn btn-secondary">
                   🏆 Leaderboard

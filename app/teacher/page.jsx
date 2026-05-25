@@ -43,6 +43,9 @@ export default function Teacher() {
   const [migrating, setMigrating] = useState(false);
   const [ordersTableReady, setOrdersTableReady] = useState(true);
   const [migratingOrders, setMigratingOrders] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshCooldown, setRefreshCooldown] = useState(null);
+  const [refreshCountdown, setRefreshCountdown] = useState('');
 
   useEffect(() => { applyTheme(getTheme()); }, []);
   useEffect(()=>{ if(status==='unauthenticated') router.replace('/'); },[status,router]);
@@ -94,7 +97,29 @@ export default function Teacher() {
     finally { setLoading(false); }
   };
 
-  useEffect(()=>{ if(status==='authenticated') fetchData(); },[status]);
+  useEffect(()=>{ if(status==='authenticated') { fetchData(); fetch('/api/refresh').then(r=>r.ok&&r.json()).then(d=>{ if(d&&!d.canRefresh) setRefreshCooldown(new Date(d.nextRefreshAt)); }); } },[status]);
+
+  useEffect(()=>{
+    if(!refreshCooldown){setRefreshCountdown('');return;}
+    const tick=()=>{
+      const diff=refreshCooldown.getTime()-Date.now();
+      if(diff<=0){setRefreshCooldown(null);setRefreshCountdown('');return;}
+      const m=Math.floor(diff/60000),s=Math.floor((diff%60000)/1000);
+      setRefreshCountdown(`${m}:${s.toString().padStart(2,'0')}`);
+    };
+    tick();const iv=setInterval(tick,1000);return()=>clearInterval(iv);
+  },[refreshCooldown]);
+
+  const handlePriceRefresh = async () => {
+    setRefreshing(true);
+    try {
+      const res = await fetch('/api/refresh', { method: 'POST' });
+      const data = await res.json();
+      if(res.status===429||data.blocked) { setRefreshCooldown(new Date(data.nextRefreshAt)); }
+      else if(data.success) { setRefreshCooldown(new Date(data.nextRefreshAt)); fetchData(); }
+    } catch(e){ console.error(e); }
+    finally { setRefreshing(false); }
+  };
 
   if(status==='loading'||status==='unauthenticated') return (
     <div style={{background:'var(--bg,#080c14)',minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',color:'var(--muted,#475569)'}}>Loading...</div>
@@ -343,7 +368,9 @@ export default function Teacher() {
                     <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:20,padding:22}}>
                       <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:15,marginBottom:14,color:'var(--text)'}}>Quick Actions</div>
                       <div className="btn-row" style={{marginBottom:12}}>
-                        <button className="btn btn-muted" onClick={()=>fetchData(activeClass.id)}>↻ Refresh</button>
+                        <button className="btn btn-muted" onClick={refreshCooldown ? ()=>fetchData(activeClass.id) : handlePriceRefresh} disabled={refreshing} title={refreshCooldown?`Next price refresh in ${refreshCountdown}`:'Refresh prices & save snapshots for all students'}>
+                          {refreshing?'Refreshing…':refreshCooldown?`↻ ${refreshCountdown}`:'↻ Refresh Prices'}
+                        </button>
                         <button className="btn btn-gold" onClick={()=>setActiveSection('controls')}>⚙ Market Controls</button>
                         <button className="btn btn-muted" onClick={()=>setActiveSection('students')}>👥 Students</button>
                         <button className="btn btn-muted" onClick={()=>setActiveSection('news')}>📰 News</button>
