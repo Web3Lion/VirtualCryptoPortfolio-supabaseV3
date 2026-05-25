@@ -418,12 +418,17 @@ export default function Leaderboard() {
                     </div>
                   )}
                 </div>
-                {(charts?.portfolioHistory||[]).some(d=>d['BTC Benchmark']) && (
-                  <div style={{fontSize:10,color:'#64748b',marginBottom:14,lineHeight:1.5,background:'rgba(245,158,11,.06)',border:'1px solid rgba(245,158,11,.15)',borderRadius:8,padding:'7px 12px',display:'flex',alignItems:'flex-start',gap:8}}>
-                    <span style={{color:'#f59e0b',flexShrink:0}}>₿</span>
-                    <span>The <strong style={{color:'#f59e0b'}}>BTC Benchmark</strong> shows how the class starting balance would have grown if it were invested entirely in Bitcoin at the start of this period. Use it to see whether your strategy is beating — or trailing — a simple "just buy BTC" approach.</span>
-                  </div>
-                )}
+                {(charts?.portfolioHistory||[]).some(d=>d['BTC Benchmark']) && (() => {
+                  const rangeLabel = { '1D':'yesterday','3D':'3 days ago','1W':'1 week ago','1M':'1 month ago','3M':'3 months ago','ALL':'the start of the simulation' };
+                  const firstDate = charts.portfolioHistory.find(d=>d['BTC Benchmark'])?.date || '';
+                  const sinceStr = firstDate ? `since <strong style="color:#f59e0b">${firstDate}</strong>` : `since ${rangeLabel[chartRange]||'the start of the period'}`;
+                  return (
+                    <div style={{fontSize:10,color:'#64748b',marginBottom:14,lineHeight:1.6,background:'rgba(245,158,11,.06)',border:'1px solid rgba(245,158,11,.15)',borderRadius:8,padding:'7px 12px',display:'flex',alignItems:'flex-start',gap:8}}>
+                      <span style={{color:'#f59e0b',flexShrink:0}}>₿</span>
+                      <span>The <strong style={{color:'#f59e0b'}}>BTC Benchmark</strong> shows how the class starting balance would have grown if invested entirely in Bitcoin <span dangerouslySetInnerHTML={{__html: sinceStr}}/>. If your line is <em>above</em> this, you are outperforming Bitcoin for this period.</span>
+                    </div>
+                  );
+                })()}
 
                 <LineChart data={charts?.portfolioHistory || []} studentNames={charts?.studentNames || []}/>
               </div>

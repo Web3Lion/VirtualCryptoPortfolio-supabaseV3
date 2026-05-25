@@ -257,7 +257,18 @@ export default function TeacherCockpit() {
     );
   }
 
-  if (!data) return null;
+  if (!data) return (
+    <div style={{ background: '#05070d', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444', fontFamily: "'DM Mono',monospace", fontSize: 13, letterSpacing: '0.15em', textAlign: 'center' }}>
+      <div>
+        <div style={{ fontSize: 28, marginBottom: 12 }}>⚠</div>
+        <div style={{ marginBottom: 12 }}>COCKPIT DATA UNAVAILABLE</div>
+        <div style={{ fontSize: 10, color: '#374151', marginBottom: 20 }}>Check that your TEACHER_EMAIL env var matches your login exactly</div>
+        <button onClick={() => { setLoading(true); fetchData(selectedClass); }} style={{ padding: '8px 20px', background: 'transparent', border: '1px solid #374151', color: '#94a3b8', borderRadius: 8, cursor: 'pointer', fontFamily: "'DM Mono',monospace", fontSize: 11, letterSpacing: '0.1em' }}>
+          ↻ RETRY
+        </button>
+      </div>
+    </div>
+  );
 
   const { features, trades, students, portfolio, api, orders, classes } = data;
   const isHealthy  = api.cacheAgeMinutes < 35;
