@@ -1,6 +1,6 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { db } from '@/lib/db';
+import { db, getMarketStatus } from '@/lib/db';
 
 const COINGECKO_IDS = {
   BTC:'bitcoin',ETH:'ethereum',SOL:'solana',XRP:'ripple',ADA:'cardano',
@@ -213,10 +213,26 @@ export async function GET(request) {
     };
   });
 
+  // Apply active market events to displayed prices (cache always stores real prices)
+  const market = await getMarketStatus(classId).catch(() => null);
+  let marketEvent = null;
+  if (market) {
+    const bullActive  = market.bullRun;
+    const saleActive  = !!market.flashSale;
+    if (bullActive || saleActive) {
+      Object.keys(result).forEach(sym => {
+        if (bullActive)                        result[sym].price *= market.bullMult;
+        if (saleActive && market.flashSale.coin === sym) result[sym].price *= market.flashSale.factor;
+      });
+    }
+    if (bullActive) marketEvent = { type: 'bull_run', mult: market.bullMult };
+    else if (saleActive) marketEvent = { type: 'flash_sale', coin: market.flashSale.coin, factor: market.flashSale.factor };
+  }
+
   // ?full=true returns array format for compatibility
   if (full) {
     return Response.json(Object.values(result));
   }
 
-  return Response.json(result);
+  return Response.json({ ...result, __marketEvent: marketEvent });
 }

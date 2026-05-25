@@ -197,6 +197,7 @@ export default function Dashboard() {
   const [executing, setExecuting] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
   const [marketStatus, setMarketStatus] = useState(null);
+  const [activeMarketEvent, setActiveMarketEvent] = useState(null);
   const [classId, setClassId] = useState(null);
   const [watchlist, setWatchlist] = useState([]);
   const [watchForm, setWatchForm] = useState({
@@ -239,7 +240,11 @@ export default function Dashboard() {
         setPortfolio(await pRes.json());
         setLastUpdated(new Date());
       }
-      if (prRes.ok) setPrices(await prRes.json());
+      if (prRes.ok) {
+        const prData = await prRes.json();
+        setActiveMarketEvent(prData.__marketEvent || null);
+        setPrices(prData);
+      }
       if (hRes.ok) setHistory(await hRes.json());
       if (mRes.ok) setMarketStatus(await mRes.json());
       if (meRes.ok) {
@@ -692,6 +697,24 @@ export default function Dashboard() {
 
         {marketStatus?.frozen && (
           <div className="freeze-banner">🚫 {marketStatus.freezeReason}</div>
+        )}
+        {activeMarketEvent?.type === 'bull_run' && (
+          <div style={{background:'rgba(245,158,11,.12)',border:'1px solid rgba(245,158,11,.4)',borderRadius:12,padding:'10px 16px',marginBottom:12,display:'flex',alignItems:'center',gap:10,boxShadow:'0 0 20px rgba(245,158,11,.1)'}}>
+            <span style={{fontSize:18}}>🐂</span>
+            <div>
+              <span style={{fontSize:13,fontWeight:700,color:'#f59e0b'}}>BULL RUN ACTIVE</span>
+              <span style={{fontSize:12,color:'#fbbf24',marginLeft:8}}>All prices are {activeMarketEvent.mult}× — trades execute at boosted prices!</span>
+            </div>
+          </div>
+        )}
+        {activeMarketEvent?.type === 'flash_sale' && (
+          <div style={{background:'rgba(251,146,60,.12)',border:'1px solid rgba(251,146,60,.4)',borderRadius:12,padding:'10px 16px',marginBottom:12,display:'flex',alignItems:'center',gap:10,boxShadow:'0 0 20px rgba(251,146,60,.1)'}}>
+            <span style={{fontSize:18}}>⚡</span>
+            <div>
+              <span style={{fontSize:13,fontWeight:700,color:'#fb923c'}}>FLASH SALE — {activeMarketEvent.coin}</span>
+              <span style={{fontSize:12,color:'#fdba74',marginLeft:8}}>{Math.round((1-activeMarketEvent.factor)*100)}% off! Limited time discount price.</span>
+            </div>
+          </div>
         )}
         {executedOrders.length > 0 && !dismissedOrderAlerts && (
           <div style={{background:'rgba(0,229,160,.1)',border:'1px solid rgba(0,229,160,.3)',borderRadius:12,padding:'12px 16px',marginBottom:16,display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}>
@@ -1921,8 +1944,17 @@ export default function Dashboard() {
                             const isBuy = t.action === "BUY";
                             const isShortTx = t.action === "SHORT";
                             const isCover = t.action === "COVER";
+                            // Parse optional market event tag: [EVENT:type:...] prefix
+                            const rawReasoning = t.reasoning || t.reasoning_text || '';
+                            const eventMatch = rawReasoning.match(/^\[EVENT:(bull_run|flash_sale):([^\]]*)\]/);
+                            const eventTag = eventMatch ? { type: eventMatch[1], detail: eventMatch[2] } : null;
+                            const userReasoning = eventTag ? rawReasoning.slice(eventMatch[0].length) : rawReasoning;
+                            const isBullRun = eventTag?.type === 'bull_run';
+                            const isFlashSale = eventTag?.type === 'flash_sale';
+                            const rowBorderColor = isBullRun ? 'rgba(245,158,11,.45)' : isFlashSale ? 'rgba(251,146,60,.45)' : 'var(--border)';
+                            const rowBg = isBullRun ? 'rgba(245,158,11,.04)' : isFlashSale ? 'rgba(251,146,60,.04)' : undefined;
                             return (
-                              <div className="history-row" key={i}>
+                              <div className="history-row" key={i} style={{border:`1px solid ${rowBorderColor}`,background:rowBg}}>
                                 <div
                                   className={`tx-icon ${
                                     isBuy || isCover ? "tx-buy" : "tx-sell"
@@ -1932,14 +1964,26 @@ export default function Dashboard() {
                                   {isBuy ? "💰" : isShortTx ? "⬇" : isCover ? "↩" : "📤"}
                                 </div>
                                 <div>
-                                  <div
-                                    style={{
-                                      fontFamily: "'Syne',sans-serif",
-                                      fontWeight: 600,
-                                      fontSize: 13,
-                                    }}
-                                  >
-                                    {t.action} {t.coin}
+                                  <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
+                                    <div
+                                      style={{
+                                        fontFamily: "'Syne',sans-serif",
+                                        fontWeight: 600,
+                                        fontSize: 13,
+                                      }}
+                                    >
+                                      {t.action} {t.coin}
+                                    </div>
+                                    {isBullRun && (
+                                      <span style={{fontSize:9,fontWeight:700,background:'rgba(245,158,11,.18)',color:'#f59e0b',border:'1px solid rgba(245,158,11,.4)',borderRadius:5,padding:'1px 6px',letterSpacing:'0.08em'}}>
+                                        🐂 BULL RUN ×{eventTag.detail}
+                                      </span>
+                                    )}
+                                    {isFlashSale && (
+                                      <span style={{fontSize:9,fontWeight:700,background:'rgba(251,146,60,.18)',color:'#fb923c',border:'1px solid rgba(251,146,60,.4)',borderRadius:5,padding:'1px 6px',letterSpacing:'0.08em'}}>
+                                        ⚡ FLASH SALE {eventTag.detail.split(':')[1]}% OFF
+                                      </span>
+                                    )}
                                   </div>
                                   <div
                                     style={{
@@ -1954,9 +1998,9 @@ export default function Dashboard() {
                                     · {(t.quantity || 0).toFixed(4)} {t.coin} @
                                     ${(t.price || 0).toLocaleString()}
                                   </div>
-                                  {(t.reasoning || t.reasoning_text) && (
+                                  {userReasoning && (
                                     <div className="trade-note">
-                                      💭 {t.reasoning || t.reasoning_text}
+                                      💭 {userReasoning}
                                     </div>
                                   )}
                                 </div>
