@@ -46,6 +46,7 @@ export default function Teacher() {
   const [refreshing, setRefreshing] = useState(false);
   const [refreshCooldown, setRefreshCooldown] = useState(null);
   const [refreshCountdown, setRefreshCountdown] = useState('');
+  const [refreshResult, setRefreshResult] = useState(null);
   const [editingClassName, setEditingClassName] = useState(false);
   const [classNameInput, setClassNameInput] = useState('');
   const [moveStudent, setMoveStudent] = useState(null); // student object to move
@@ -117,12 +118,19 @@ export default function Teacher() {
 
   const handlePriceRefresh = async () => {
     setRefreshing(true);
+    setRefreshResult(null);
     try {
       const res = await fetch('/api/refresh', { method: 'POST' });
       const data = await res.json();
-      if(res.status===429||data.blocked) { setRefreshCooldown(new Date(data.nextRefreshAt)); }
-      else if(data.success) { setRefreshCooldown(new Date(data.nextRefreshAt)); fetchData(); }
-    } catch(e){ console.error(e); }
+      if(res.status===429||data.blocked) {
+        setRefreshCooldown(new Date(data.nextRefreshAt));
+        setRefreshResult({ blocked: true });
+      } else if(data.success) {
+        setRefreshCooldown(new Date(data.nextRefreshAt));
+        setRefreshResult({ pricesUpdated: data.pricesUpdated||0, snapshots: data.intradaySnapshots||0, errors: data.errors||[], at: new Date() });
+        fetchData();
+      }
+    } catch(e){ console.error(e); setRefreshResult({ error: e.message }); }
     finally { setRefreshing(false); }
   };
 
@@ -333,6 +341,7 @@ export default function Teacher() {
         .action-msg.pending{background:rgba(59,130,246,.1);color:#60a5fa;border:1px solid rgba(59,130,246,.3)}
         .skeleton{background:linear-gradient(90deg,var(--surface) 25%,var(--surface2) 50%,var(--surface) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:8px}
         @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+        @keyframes spin{to{transform:rotate(360deg)}}
         @media(max-width:640px){.stats-grid{grid-template-columns:1fr 1fr}.controls-grid{grid-template-columns:1fr}}
       `}</style>
 
@@ -407,14 +416,29 @@ export default function Teacher() {
                     <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:20,padding:22}}>
                       <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:15,marginBottom:14,color:'var(--text)'}}>Quick Actions</div>
                       <div className="btn-row" style={{marginBottom:12}}>
-                        <button className="btn btn-muted" onClick={refreshCooldown ? ()=>fetchData(activeClass.id) : handlePriceRefresh} disabled={refreshing} title={refreshCooldown?`Next price refresh in ${refreshCountdown}`:'Refresh prices & save snapshots for all students'}>
-                          {refreshing?'Refreshing…':refreshCooldown?`↻ ${refreshCountdown}`:'↻ Refresh Prices'}
+                        <button className="btn btn-muted" onClick={refreshCooldown ? ()=>fetchData(activeClass.id) : handlePriceRefresh} disabled={refreshing} title={refreshCooldown?`Next price refresh in ${refreshCountdown}`:'Refresh prices & save snapshots for all students'} style={{minWidth:148,transition:'all .2s'}}>
+                          {refreshing ? <span style={{display:'flex',alignItems:'center',gap:6,justifyContent:'center'}}><span style={{display:'inline-block',width:10,height:10,border:'2px solid currentColor',borderTopColor:'transparent',borderRadius:'50%',animation:'spin .7s linear infinite'}}/>Refreshing…</span> : refreshCooldown?`↻ ${refreshCountdown}`:'↻ Refresh Prices'}
                         </button>
                         <button className="btn btn-gold" onClick={()=>setActiveSection('controls')}>⚙ Market Controls</button>
                         <button className="btn btn-muted" onClick={()=>setActiveSection('students')}>👥 Students</button>
                         <button className="btn btn-muted" onClick={()=>setActiveSection('news')}>📰 News</button>
                         <Link href={`/leaderboard?classId=${activeClass.id}`} style={{textDecoration:'none'}}><button className="btn btn-muted">🏆 Leaderboard</button></Link>
                       </div>
+                      {refreshResult && !refreshResult.blocked && !refreshResult.error && (
+                        <div style={{background:'rgba(0,229,160,.08)',border:'1px solid rgba(0,229,160,.3)',borderRadius:12,padding:'10px 14px',marginBottom:12,display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,fontSize:12}}>
+                          <div style={{display:'flex',alignItems:'center',gap:8}}>
+                            <span style={{fontSize:15}}>✅</span>
+                            <span style={{fontWeight:600,color:'var(--accent)'}}>Refresh complete</span>
+                            <span style={{color:'#94a3b8'}}>
+                              {refreshResult.pricesUpdated} coin{refreshResult.pricesUpdated!==1?'s':''} updated
+                              {refreshResult.snapshots>0?` · ${refreshResult.snapshots} snapshot${refreshResult.snapshots!==1?'s':''} saved`:''}
+                              {refreshResult.at?` · ${refreshResult.at.toLocaleTimeString()}`:''}
+                            </span>
+                            {refreshResult.errors?.length>0&&<span style={{color:'#f59e0b'}}>⚠ {refreshResult.errors[0]}</span>}
+                          </div>
+                          <button onClick={()=>setRefreshResult(null)} style={{background:'none',border:'none',color:'var(--muted)',cursor:'pointer',fontSize:14}}>✕</button>
+                        </div>
+                      )}
                       <div className="tools-divider">
                         <div className="tools-label">Tools</div>
                         <div className="btn-row">

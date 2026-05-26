@@ -225,6 +225,7 @@ export default function Dashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [refreshCooldown, setRefreshCooldown] = useState(null);
   const [refreshCountdown, setRefreshCountdown] = useState("");
+  const [refreshResult, setRefreshResult] = useState(null);
   const [executedOrders, setExecutedOrders] = useState([]);
   const [dismissedOrderAlerts, setDismissedOrderAlerts] = useState(false);
 
@@ -290,18 +291,27 @@ export default function Dashboard() {
 
   const handlePriceRefresh = useCallback(async () => {
     setRefreshing(true);
+    setRefreshResult(null);
     try {
       const res = await fetch("/api/refresh", { method: "POST" });
       const data = await res.json();
       if (res.status === 429 || data.blocked) {
         setRefreshCooldown(new Date(data.nextRefreshAt));
+        setRefreshResult({ blocked: true });
       } else if (data.success) {
         setRefreshCooldown(new Date(data.nextRefreshAt));
         if (data.newBadge) setEarnedBadge(data.newBadge);
+        setRefreshResult({
+          pricesUpdated: data.pricesUpdated || 0,
+          snapshots: data.intradaySnapshots || 0,
+          errors: data.errors || [],
+          at: new Date(),
+        });
         await fetchData();
       }
     } catch (e) {
       console.error(e);
+      setRefreshResult({ error: e.message });
     } finally {
       setRefreshing(false);
     }
@@ -658,6 +668,7 @@ export default function Dashboard() {
         .legend-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
         .nav-dot{width:7px;height:7px;border-radius:50%;background:var(--accent);animation:pulse 2s infinite}
         @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+        @keyframes spin{to{transform:rotate(360deg)}}
         .watch-row{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;display:grid;grid-template-columns:1fr auto auto auto;align-items:center;gap:12px;margin-bottom:8px;transition:all .2s}
         .watch-row.triggered{border-color:var(--gold);background:rgba(245,158,11,.05)}
         .watch-triggered-badge{font-size:9px;font-weight:700;padding:3px 8px;border-radius:6px;background:rgba(245,158,11,.15);color:var(--gold);letter-spacing:1px}
@@ -720,6 +731,23 @@ export default function Dashboard() {
               <span style={{fontSize:13,fontWeight:700,color:'#fb923c'}}>FLASH SALE — {activeMarketEvent.coin}</span>
               <span style={{fontSize:12,color:'#fdba74',marginLeft:8}}>{Math.round((1-activeMarketEvent.factor)*100)}% off! Limited time discount price.</span>
             </div>
+          </div>
+        )}
+        {refreshResult && !refreshResult.blocked && !refreshResult.error && (
+          <div style={{background:'rgba(0,229,160,.08)',border:'1px solid rgba(0,229,160,.3)',borderRadius:12,padding:'10px 16px',marginBottom:12,display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,animation:'fadeIn .3s ease'}}>
+            <div style={{display:'flex',alignItems:'center',gap:10}}>
+              <span style={{fontSize:16}}>✅</span>
+              <div>
+                <span style={{fontSize:13,fontWeight:600,color:'var(--accent)'}}>Prices refreshed</span>
+                <span style={{fontSize:12,color:'#94a3b8',marginLeft:10}}>
+                  {refreshResult.pricesUpdated} coin{refreshResult.pricesUpdated!==1?'s':''} updated
+                  {refreshResult.snapshots > 0 ? ` · ${refreshResult.snapshots} portfolio snapshot${refreshResult.snapshots!==1?'s':''} saved` : ''}
+                  {refreshResult.at ? ` · ${refreshResult.at.toLocaleTimeString()}` : ''}
+                </span>
+                {refreshResult.errors?.length > 0 && <span style={{fontSize:11,color:'#f59e0b',marginLeft:8}}>⚠ {refreshResult.errors[0]}</span>}
+              </div>
+            </div>
+            <button onClick={()=>setRefreshResult(null)} style={{background:'none',border:'none',color:'var(--muted)',cursor:'pointer',fontSize:16,lineHeight:1}}>✕</button>
           </div>
         )}
         {executedOrders.length > 0 && !dismissedOrderAlerts && (
@@ -850,8 +878,14 @@ export default function Dashboard() {
                   onClick={refreshCooldown ? fetchData : handlePriceRefresh}
                   disabled={refreshing}
                   title={refreshCooldown ? `Next price refresh available in ${refreshCountdown}` : "Refresh prices & save a portfolio snapshot"}
+                  style={{position:'relative',minWidth:140,transition:'all .2s'}}
                 >
-                  {refreshing ? "Refreshing…" : refreshCooldown ? `↻ ${refreshCountdown}` : "↻ Refresh Prices"}
+                  {refreshing ? (
+                    <span style={{display:'flex',alignItems:'center',gap:6,justifyContent:'center'}}>
+                      <span style={{display:'inline-block',width:11,height:11,border:'2px solid currentColor',borderTopColor:'transparent',borderRadius:'50%',animation:'spin .7s linear infinite'}}/>
+                      Refreshing…
+                    </span>
+                  ) : refreshCooldown ? `↻ ${refreshCountdown}` : "↻ Refresh Prices"}
                 </button>
                 <Link href="/leaderboard" className="btn btn-secondary">
                   🏆 Leaderboard
