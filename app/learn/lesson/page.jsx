@@ -21,8 +21,7 @@ function renderTextContent(text) {
         tableLines.push(lines[i]);
         i++;
       }
-      // Skip separator row (---|---|---)
-      const rows = tableLines.filter(r => !r.replace(/[\s|:-]/g, "").length === 0 && !/^[\s|:-]+$/.test(r));
+      const rows = tableLines.filter(r => !/^[\s|:-]+$/.test(r));
       const html = `<table style="border-collapse:collapse;width:100%;margin:12px 0;font-size:12px;overflow-x:auto;display:block">${
         rows.map((row, ri) => {
           const cells = row.split("|").slice(1, -1);
@@ -253,22 +252,23 @@ function LessonPage() {
                   )}
                 </div>
 
-                {questions.length > 0 && (
-                  <div style={{ background: "linear-gradient(135deg,rgba(0,229,160,.12),rgba(59,130,246,.08))", border: "1px solid rgba(0,229,160,.3)", borderRadius: 20, padding: "24px 28px", marginTop: 16, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
-                    <div>
-                      <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 16, color: "var(--text)", marginBottom: 4 }}>
-                        Ready to test your knowledge?
-                      </div>
-                      <div style={{ fontSize: 12, color: "#94a3b8" }}>
-                        {questions.length} question{questions.length !== 1 ? "s" : ""} · pass at {lesson?.pass_threshold || 75}%
-                        {lesson?.tokens_reward > 0 && ` · earn +${lesson.tokens_reward} tokens`}
-                      </div>
+                <div style={{ background: questions.length > 0 ? "linear-gradient(135deg,rgba(0,229,160,.12),rgba(59,130,246,.08))" : "var(--surface)", border: `1px solid ${questions.length > 0 ? "rgba(0,229,160,.3)" : "var(--border)"}`, borderRadius: 20, padding: "24px 28px", marginTop: 16, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+                  <div>
+                    <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 16, color: "var(--text)", marginBottom: 4 }}>
+                      {questions.length > 0 ? "Ready to test your knowledge?" : "No quiz for this lesson yet"}
                     </div>
+                    <div style={{ fontSize: 12, color: "#94a3b8" }}>
+                      {questions.length > 0
+                        ? `${questions.length} question${questions.length !== 1 ? "s" : ""} · pass at ${lesson?.pass_threshold || 75}%${lesson?.tokens_reward > 0 ? ` · earn +${lesson.tokens_reward} tokens` : ""}`
+                        : "The teacher hasn't added quiz questions yet"}
+                    </div>
+                  </div>
+                  {questions.length > 0 && (
                     <button className="btn btn-primary" style={{ fontSize: 13, padding: "12px 28px", flexShrink: 0 }} onClick={() => setPhase("quiz")}>
                       Take Quiz →
                     </button>
-                  </div>
-                )}
+                  )}
+                </div>
               </>
             )}
 
