@@ -319,9 +319,6 @@ export default function TeacherLearn() {
           <button className="btn btn-ghost" onClick={seedSample} disabled={seeding || dbReady === false}>
             {seeding ? "Seeding..." : "Seed Sample Module"}
           </button>
-          <button className="btn btn-ghost" onClick={patchSeed} disabled={saving || dbReady === false} style={{ fontSize: 10 }}>
-            Patch: 10 Q / show 5
-          </button>
         </div>
 
         {/* JSON import panel */}
@@ -434,7 +431,33 @@ export default function TeacherLearn() {
                     {lesson.description && <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>{lesson.description}</div>}
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-                    <span style={{ fontSize: 10, color: "#475569" }}>{lesson.question_count} Q</span>
+                    {/* Questions to show control */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 4, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, padding: "3px 8px" }}>
+                      <span style={{ fontSize: 10, color: "#475569" }}>show</span>
+                      <input
+                        type="number" min={1} max={lesson.question_count || 20}
+                        value={lesson.questions_to_show ?? lesson.question_count}
+                        style={{ width: 36, padding: "1px 4px", fontSize: 11, borderRadius: 6, textAlign: "center", border: "1px solid var(--border)", background: "var(--surface2)" }}
+                        onClick={e => e.stopPropagation()}
+                        onChange={e => {
+                          const val = Math.max(1, parseInt(e.target.value) || 1);
+                          setModules(ms => ms.map(m => ({
+                            ...m,
+                            lessons: (m.lessons || []).map(l => l.id === lesson.id ? { ...l, questions_to_show: val } : l)
+                          })));
+                        }}
+                        onBlur={async e => {
+                          const val = Math.max(1, parseInt(e.target.value) || 1);
+                          await fetch("/api/teacher/learn", {
+                            method: "PUT",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ type: "lesson", id: lesson.id, questionsToShow: val }),
+                          });
+                          flash(`Lesson updated — showing ${val} of ${lesson.question_count} questions`);
+                        }}
+                      />
+                      <span style={{ fontSize: 10, color: "#475569" }}>of {lesson.question_count}</span>
+                    </div>
                     <span style={{ fontSize: 10, color: "var(--accent)" }}>+{lesson.tokens_reward}t</span>
                     <span className={`tag ${lesson.is_published ? "tag-pub" : "tag-draft"}`} style={{ fontSize: 9 }}>
                       {lesson.is_published ? "pub" : "draft"}
@@ -465,9 +488,29 @@ export default function TeacherLearn() {
                       </div>
                     ))}
 
-                    <button className="btn btn-ghost" style={{ fontSize: 10, marginTop: 10 }} onClick={() => setShowNewQuestion(lesson.id)}>
-                      + Add Question
-                    </button>
+                    <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+                      <button className="btn btn-ghost" style={{ fontSize: 10 }} onClick={() => setShowNewQuestion(lesson.id)}>
+                        + Add Question
+                      </button>
+                      {lesson.question_count < 10 && lesson.title?.includes('Proof of Work') && (
+                        <button className="btn btn-ghost" style={{ fontSize: 10, color: 'var(--accent)', borderColor: 'rgba(0,229,160,.3)' }} onClick={async () => {
+                          setSaving(true);
+                          const res = await fetch('/api/admin/migrate-learn', { method: 'PATCH' });
+                          const d = await res.json();
+                          if (d.success) {
+                            flash(`Added ${d.questionsAdded} questions → ${d.totalNow} total`);
+                            setLessonQuestions(q => ({ ...q, [lesson.id]: undefined }));
+                            await loadQuestions(lesson.id);
+                            fetchModules();
+                          } else {
+                            flash(d.error || 'Failed', false);
+                          }
+                          setSaving(false);
+                        }}>
+                          ↑ Add 4 missing questions
+                        </button>
+                      )}
+                    </div>
 
                     {/* New question form */}
                     {showNewQuestion === lesson.id && (

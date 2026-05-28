@@ -70,31 +70,42 @@ CREATE TABLE IF NOT EXISTS learn_attempts (
 `;
 
 // PATCH — update existing seed lesson (questions_to_show, add missing questions)
-export async function PATCH(request) {
-  const session = await getServerSession(authOptions);
-  if (!session) return Response.json({ error: 'Not authenticated' }, { status: 401 });
+export async function PATCH() {
+  // Find the lesson — search by module title first, then match lesson
+  const { data: modules } = await db.from('learn_modules').select('id').eq('title', 'Blockchain Basics');
+  const moduleIds = (modules || []).map(m => m.id);
 
-  // Find the existing lesson
-  const { data: lesson } = await db.from('learn_lessons')
-    .select('id, questions_to_show')
-    .eq('title', 'Proof of Work vs Proof of Stake')
-    .single();
-  if (!lesson) return Response.json({ error: 'Lesson not found — run seed first' }, { status: 404 });
+  let lesson = null;
+  if (moduleIds.length) {
+    const { data: lessons } = await db.from('learn_lessons')
+      .select('id, questions_to_show')
+      .in('module_id', moduleIds)
+      .ilike('title', '%Proof of Work%');
+    lesson = lessons?.[0] || null;
+  }
 
-  // Update questions_to_show to 5
-  await db.from('learn_lessons').update({ questions_to_show: 5 }).eq('id', lesson.id);
+  // Fallback: search all lessons by title
+  if (!lesson) {
+    const { data: lessons } = await db.from('learn_lessons')
+      .select('id, questions_to_show')
+      .ilike('title', '%Proof of Work%');
+    lesson = lessons?.[0] || null;
+  }
 
-  // Find existing questions
-  const { data: existing } = await db.from('learn_questions')
-    .select('order_index').eq('lesson_id', lesson.id);
-  const existingIndexes = new Set((existing || []).map(q => q.order_index));
+  if (!lesson) return Response.json({ error: 'Lesson not found — run Seed Sample Module first' }, { status: 404 });
 
-  // The 4 new questions (order_index 7-10)
-  const newQuestions = [
+  // Get current question count
+  const { data: existing, error: fetchErr } = await db.from('learn_questions')
+    .select('id, question_text').eq('lesson_id', lesson.id);
+  if (fetchErr) return Response.json({ error: fetchErr.message }, { status: 500 });
+
+  const existingTexts = new Set((existing || []).map(q => q.question_text.trim()));
+  const currentCount = existing?.length || 0;
+
+  const allNewQuestions = [
     {
       question_text: 'How often does Bitcoin\'s Proof of Work target finding a new block?',
       explanation: 'Bitcoin\'s difficulty automatically adjusts so that a new block is found approximately every 10 minutes, regardless of total mining power.',
-      order_index: 7,
       options: [
         { option_text: 'Every 1 minute', is_correct: false },
         { option_text: 'Every 10 minutes', is_correct: true },
@@ -103,9 +114,8 @@ export async function PATCH(request) {
       ],
     },
     {
-      question_text: 'What percentage of the total mining power would an attacker need to rewrite Bitcoin\'s blockchain?',
-      explanation: 'A "51% attack" requires controlling more than half of all mining power, making it astronomically expensive to execute on Bitcoin.',
-      order_index: 8,
+      question_text: 'What percentage of mining power would an attacker need to rewrite Bitcoin\'s blockchain?',
+      explanation: 'A "51% attack" requires controlling more than half of all mining power, making it astronomically expensive on Bitcoin.',
       options: [
         { option_text: '10%', is_correct: false },
         { option_text: '25%', is_correct: false },
@@ -116,7 +126,6 @@ export async function PATCH(request) {
     {
       question_text: 'Which of the following blockchains uses Proof of Stake?',
       explanation: 'Ethereum, Cardano, and Solana all use Proof of Stake. Bitcoin is the major holdout still using Proof of Work.',
-      order_index: 9,
       options: [
         { option_text: 'Bitcoin', is_correct: false },
         { option_text: 'Litecoin', is_correct: false },
@@ -125,9 +134,8 @@ export async function PATCH(request) {
       ],
     },
     {
-      question_text: 'In Proof of Work, what is the term for participants who compete to add new blocks?',
+      question_text: 'In Proof of Work, what are participants who compete to add new blocks called?',
       explanation: 'Participants in PoW are called miners — they use computing hardware to solve mathematical puzzles and earn block rewards.',
-      order_index: 10,
       options: [
         { option_text: 'Validators', is_correct: false },
         { option_text: 'Delegates', is_correct: false },
@@ -138,21 +146,41 @@ export async function PATCH(request) {
   ];
 
   let added = 0;
-  for (const q of newQuestions) {
-    if (existingIndexes.has(q.order_index)) continue;
-    const { data: question } = await db.from('learn_questions').insert({
+  const errors = [];
+  let nextIndex = currentCount + 1;
+
+  for (const q of allNewQuestions) {
+    if (existingTexts.has(q.question_text.trim())) continue;
+
+    const { data: question, error: qErr } = await db.from('learn_questions').insert({
       lesson_id: lesson.id,
       question_text: q.question_text,
       explanation: q.explanation,
-      order_index: q.order_index,
-    }).select().single();
-    await db.from('learn_options').insert(
+      order_index: nextIndex,
+    }).select('id').single();
+
+    if (qErr || !question) { errors.push(q.question_text + ': ' + (qErr?.message || 'insert failed')); continue; }
+
+    const { error: oErr } = await db.from('learn_options').insert(
       q.options.map((o, i) => ({ question_id: question.id, option_text: o.option_text, is_correct: o.is_correct, order_index: i }))
     );
+    if (oErr) { errors.push('options for ' + q.question_text + ': ' + oErr.message); continue; }
+
     added++;
+    nextIndex++;
   }
 
-  return Response.json({ success: true, questionsAdded: added, questions_to_show: 5 });
+  // Update questions_to_show to 5
+  await db.from('learn_lessons').update({ questions_to_show: 5 }).eq('id', lesson.id);
+
+  return Response.json({
+    success: true,
+    lessonId: lesson.id,
+    questionsAdded: added,
+    totalNow: currentCount + added,
+    questions_to_show: 5,
+    errors: errors.length ? errors : undefined,
+  });
 }
 
 // Check if tables exist
