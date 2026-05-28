@@ -198,9 +198,23 @@ export async function POST(request) {
   const { error: checkErr } = await db.from('learn_modules').select('id').limit(1);
   if (checkErr) return Response.json({ error: 'Tables not created yet. Run the SQL first.', sql: SETUP_SQL }, { status: 503 });
 
-  // Avoid re-seeding
+  // Check if already seeded — but also check questions exist
   const { data: existing } = await db.from('learn_modules').select('id').eq('title', 'Blockchain Basics').single();
-  if (existing) return Response.json({ success: true, note: 'Already seeded' });
+  if (existing) {
+    // Find lesson and check question count
+    const { data: existingLesson } = await db.from('learn_lessons')
+      .select('id').eq('module_id', existing.id).single();
+    if (existingLesson) {
+      const { data: existingQ } = await db.from('learn_questions')
+        .select('id').eq('lesson_id', existingLesson.id).limit(1);
+      if (existingQ?.length > 0) return Response.json({ success: true, note: 'Already seeded' });
+      // Module + lesson exist but no questions — fall through to PATCH to add them
+      const patchRes = await fetch(new URL('/api/admin/migrate-learn', process.env.NEXTAUTH_URL || 'http://localhost:3000'), { method: 'PATCH' });
+      const patchData = await patchRes.json();
+      return Response.json({ success: true, note: `Module existed but had no questions. Added ${patchData.questionsAdded ?? 0}.` });
+    }
+    return Response.json({ success: true, note: 'Already seeded' });
+  }
 
   // ── Create module ──────────────────────────────────────────
   const { data: mod } = await db.from('learn_modules').insert({
@@ -353,18 +367,22 @@ export async function POST(request) {
     },
   ];
 
+  const insertErrors = [];
   for (const q of questions) {
-    const { data: question } = await db.from('learn_questions').insert({
+    const { data: question, error: qErr } = await db.from('learn_questions').insert({
       lesson_id: lesson.id,
       question_text: q.question_text,
       explanation: q.explanation,
       order_index: q.order_index,
-    }).select().single();
+    }).select('id').single();
 
-    await db.from('learn_options').insert(
+    if (qErr || !question) { insertErrors.push(q.question_text + ': ' + (qErr?.message || 'failed')); continue; }
+
+    const { error: oErr } = await db.from('learn_options').insert(
       q.options.map((o, i) => ({ question_id: question.id, option_text: o.option_text, is_correct: o.is_correct, order_index: i }))
     );
+    if (oErr) insertErrors.push('options: ' + oErr.message);
   }
 
-  return Response.json({ success: true, moduleId: mod.id, lessonId: lesson.id });
+  return Response.json({ success: true, moduleId: mod.id, lessonId: lesson.id, insertErrors: insertErrors.length ? insertErrors : undefined });
 }
