@@ -228,6 +228,10 @@ export default function Dashboard() {
   const [refreshResult, setRefreshResult] = useState(null);
   const [executedOrders, setExecutedOrders] = useState([]);
   const [dismissedOrderAlerts, setDismissedOrderAlerts] = useState(false);
+  const [showRewardDetail, setShowRewardDetail] = useState(false);
+  const [rewardLedger, setRewardLedger] = useState(null);
+  const [rewardLessons, setRewardLessons] = useState([]);
+  const [rewardModules, setRewardModules] = useState([]);
 
   useEffect(() => {
     applyTheme(getTheme());
@@ -280,6 +284,18 @@ export default function Dashboard() {
       if (recent.length) setExecutedOrders(recent);
     }
   }, []);
+
+  const fetchRewardLedger = useCallback(async (cid) => {
+    const id = cid || classId;
+    if (!id) return;
+    const res = await fetch(`/api/learn/rewards?classId=${id}`);
+    if (res.ok) {
+      const data = await res.json();
+      setRewardLedger(data.ledger || []);
+      setRewardLessons(data.lessons || []);
+      setRewardModules(data.modules || []);
+    }
+  }, [classId]);
 
   const fetchRefreshStatus = useCallback(async () => {
     const res = await fetch("/api/refresh");
@@ -1047,12 +1063,19 @@ export default function Dashboard() {
                     </div>
                     {portfolio?.classRewardEnabled &&
                       (portfolio?.classRewardTokens || 0) > 0 && (
+                        <>
                         <div
                           className="cash-row"
+                          onClick={() => {
+                            const next = !showRewardDetail;
+                            setShowRewardDetail(next);
+                            if (next && rewardLedger === null) fetchRewardLedger();
+                          }}
                           style={{
                             marginTop: 8,
                             background: "rgba(0,229,160,.05)",
                             borderColor: "rgba(0,229,160,.2)",
+                            cursor: "pointer",
                           }}
                         >
                           <div
@@ -1085,7 +1108,7 @@ export default function Dashboard() {
                                   color: "var(--accent)",
                                 }}
                               >
-                                ClassReward
+                                ClassReward <span style={{fontSize:10,opacity:.6}}>{showRewardDetail ? "▲" : "▼"}</span>
                               </div>
                               <div
                                 style={{
@@ -1117,7 +1140,7 @@ export default function Dashboard() {
                               {fmtUSD(portfolio.classRewardTokens)}
                             </div>
                             <button
-                              onClick={redeemTokens}
+                              onClick={(e) => { e.stopPropagation(); redeemTokens(); }}
                               disabled={redeemingTokens}
                               style={{
                                 padding: "6px 12px",
@@ -1135,6 +1158,75 @@ export default function Dashboard() {
                             </button>
                           </div>
                         </div>
+                        {showRewardDetail && (
+                          <div style={{
+                            marginTop: 6,
+                            border: "1px solid rgba(0,229,160,.15)",
+                            borderRadius: 12,
+                            background: "rgba(0,229,160,.03)",
+                            padding: "12px 14px",
+                          }}>
+                            <div style={{fontSize:11,color:"var(--muted)",fontFamily:"'Syne',sans-serif",fontWeight:700,marginBottom:10,letterSpacing:"0.06em"}}>REWARD HISTORY</div>
+                            {rewardLedger === null ? (
+                              <div style={{fontSize:11,color:"var(--muted)"}}>Loading...</div>
+                            ) : rewardLessons.length === 0 ? (
+                              <div style={{fontSize:11,color:"var(--muted)"}}>No lessons available yet.</div>
+                            ) : (
+                              rewardModules.map(mod => {
+                                const modLessons = rewardLessons.filter(l => l.module_id === mod.id);
+                                if (!modLessons.length) return null;
+                                return (
+                                  <div key={mod.id} style={{marginBottom:10}}>
+                                    <div style={{fontSize:10,color:"var(--muted)",marginBottom:5,fontFamily:"'DM Mono',monospace"}}>{mod.emoji || "📚"} {mod.title}</div>
+                                    {modLessons.map(lesson => {
+                                      const earned = (rewardLedger || []).some(e => e.reason === `lesson:${lesson.id}`);
+                                      return (
+                                        <div key={lesson.id} style={{
+                                          display:"flex",
+                                          alignItems:"center",
+                                          justifyContent:"space-between",
+                                          padding:"6px 8px",
+                                          borderRadius:8,
+                                          marginBottom:4,
+                                          background: earned ? "rgba(0,229,160,.08)" : "rgba(255,255,255,.03)",
+                                          border: `1px solid ${earned ? "rgba(0,229,160,.2)" : "var(--border)"}`,
+                                          opacity: earned ? 1 : 0.5,
+                                        }}>
+                                          <div style={{display:"flex",alignItems:"center",gap:7}}>
+                                            <span style={{fontSize:13}}>{earned ? "✅" : "⬜"}</span>
+                                            <span style={{fontSize:11,color: earned ? "var(--text)" : "var(--muted)",fontFamily:"'DM Mono',monospace"}}>{lesson.title}</span>
+                                          </div>
+                                          <span style={{fontSize:11,fontWeight:700,color: earned ? "var(--accent)" : "var(--muted)",fontFamily:"'Syne',sans-serif"}}>
+                                            {earned ? "+" : ""}{lesson.tokens_reward} tkn
+                                          </span>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                );
+                              })
+                            )}
+                            {rewardLedger && rewardLedger.some(e => e.reason?.startsWith('badge:')) && (
+                              <div style={{marginTop:6}}>
+                                <div style={{fontSize:10,color:"var(--muted)",marginBottom:5,fontFamily:"'DM Mono',monospace"}}>🏅 Badges</div>
+                                {rewardLedger.filter(e => e.reason?.startsWith('badge:')).map((e, i) => (
+                                  <div key={i} style={{
+                                    display:"flex",alignItems:"center",justifyContent:"space-between",
+                                    padding:"6px 8px",borderRadius:8,marginBottom:4,
+                                    background:"rgba(0,229,160,.08)",border:"1px solid rgba(0,229,160,.2)",
+                                  }}>
+                                    <div style={{display:"flex",alignItems:"center",gap:7}}>
+                                      <span style={{fontSize:13}}>✅</span>
+                                      <span style={{fontSize:11,color:"var(--text)",fontFamily:"'DM Mono',monospace"}}>{e.reason.replace('badge:','Badge #')}</span>
+                                    </div>
+                                    <span style={{fontSize:11,fontWeight:700,color:"var(--accent)",fontFamily:"'Syne',sans-serif"}}>+{e.tokens} tkn</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        </>
                       )}
                   </>
                 )}
@@ -1859,14 +1951,24 @@ export default function Dashboard() {
               </div>
             )}
 
-            {activeTab === "history" && (
+            {activeTab === "history" && (() => {
+              if (rewardLedger === null && classId) fetchRewardLedger();
+              const rewardEntries = (rewardLedger || []).map(e => ({
+                _isReward: true,
+                action: 'REWARD',
+                reason: e.reason,
+                tokens: e.tokens,
+                createdAt: e.created_at,
+              }));
+              const combined = [...(tradeHistory || []), ...rewardEntries];
+              return (
               <div className="panel">
-                {!tradeHistory || tradeHistory.length === 0 ? (
+                {combined.length === 0 ? (
                   <div className="empty">No trades yet.</div>
                 ) : (
                   <>
                     {(() => {
-                      const filtered = [...tradeHistory]
+                      const filtered = [...combined]
                         .filter(
                           (t) =>
                             historyFilter === "ALL" ||
@@ -1875,11 +1977,11 @@ export default function Dashboard() {
                         .filter(
                           (t) =>
                             !historySearch ||
-                            t.coin
+                            (t.coin || t.reason || '')
                               ?.toLowerCase()
                               .includes(historySearch.toLowerCase())
                         )
-                        .reverse();
+                        .sort((a, b) => new Date(b.createdAt || b.created_at) - new Date(a.createdAt || a.created_at));
                       const limited =
                         historyLimit === "ALL"
                           ? filtered
@@ -1933,7 +2035,7 @@ export default function Dashboard() {
                             >
                               Filter:
                             </span>
-                            {["ALL", "BUY", "SELL"].map((f) => (
+                            {["ALL", "BUY", "SELL", "REWARD"].map((f) => (
                               <button
                                 key={f}
                                 onClick={() => setHistoryFilter(f)}
@@ -1980,10 +2082,28 @@ export default function Dashboard() {
                                 marginLeft: "auto",
                               }}
                             >
-                              Showing {limited.length} of {tradeHistory.length}
+                              Showing {limited.length} of {combined.length}
                             </span>
                           </div>
                           {limited.map((t, i) => {
+                            if (t._isReward) {
+                              const isLesson = t.reason?.startsWith('lesson:');
+                              const label = isLesson
+                                ? (rewardLessons.find(l => `lesson:${l.id}` === t.reason)?.title || t.reason)
+                                : t.reason;
+                              return (
+                                <div className="history-row" key={i} style={{border:'1px solid rgba(0,229,160,.25)',background:'rgba(0,229,160,.04)'}}>
+                                  <div style={{marginTop:2,width:34,height:34,borderRadius:8,background:'rgba(0,229,160,.15)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16}}>🎁</div>
+                                  <div>
+                                    <div style={{fontFamily:"'Syne',sans-serif",fontWeight:600,fontSize:13,color:'var(--accent)'}}>ClassReward</div>
+                                    <div style={{fontSize:10,color:'var(--muted)',marginTop:2}}>
+                                      {new Date(t.createdAt).toLocaleString()} · {isLesson ? 'Lesson' : 'Badge'}: {label}
+                                    </div>
+                                  </div>
+                                  <div style={{fontSize:13,fontWeight:700,color:'var(--accent)',textAlign:'right',fontFamily:"'Syne',sans-serif"}}>+{t.tokens} tkn</div>
+                                </div>
+                              );
+                            }
                             const isBuy = t.action === "BUY";
                             const isShortTx = t.action === "SHORT";
                             const isCover = t.action === "COVER";
@@ -2081,7 +2201,8 @@ export default function Dashboard() {
                   </>
                 )}
               </div>
-            )}
+              );
+            })()}
 
             {activeTab === "watchlist" && (
               <div className="panel">
