@@ -35,7 +35,7 @@ export default function Teacher() {
   const [pickerCoins, setPickerCoins] = useState([]);
   const [pickerLoading, setPickerLoading] = useState(false);
   const [pickerSelected, setPickerSelected] = useState([]);
-  const [rewardConfig, setRewardConfig] = useState({ enabled: false, badge_reward_tokens: 50, lesson_reward_tokens: 25 });
+  const [rewardConfig, setRewardConfig] = useState({ enabled: false, badge_reward_tokens: 50, lesson_reward_tokens: 25, crush_points_per_token: 100, crush_max_tokens_per_day: 50 });
   const [rewardSaving, setRewardSaving] = useState(false);
   const [tradeSettings, setTradeSettings] = useState({ marginEnabled: false, marginMult: 2, shortEnabled: false });
   const [tradeSettingsSaving, setTradeSettingsSaving] = useState(false);
@@ -205,7 +205,7 @@ export default function Teacher() {
 
   const saveRewardConfig = async () => {
     setRewardSaving(true);
-    const res = await fetch('/api/teacher/rewards',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({classId:activeClass.id,enabled:rewardConfig.enabled,badgeRewardTokens:rewardConfig.badge_reward_tokens,lessonRewardTokens:rewardConfig.lesson_reward_tokens})});
+    const res = await fetch('/api/teacher/rewards',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({classId:activeClass.id,enabled:rewardConfig.enabled,badgeRewardTokens:rewardConfig.badge_reward_tokens,lessonRewardTokens:rewardConfig.lesson_reward_tokens,crushPointsPerToken:rewardConfig.crush_points_per_token,crushMaxTokensPerDay:rewardConfig.crush_max_tokens_per_day})});
     if(res.ok) setActionMsg({type:'success',msg:'✅ ClassReward settings saved'});
     else setActionMsg({type:'error',msg:'Failed to save'});
     setRewardSaving(false);
@@ -546,6 +546,35 @@ export default function Teacher() {
                             <span style={{fontSize:11,color:'var(--muted)'}}>tokens per lesson = {fmtUSD(rewardConfig.lesson_reward_tokens)}</span>
                           </div>
                           <div style={{fontSize:10,color:'var(--muted)',marginTop:4}}>Default tokens awarded when a student passes a lesson quiz</div>
+                        </div>
+
+                        {/* Crypto Crush settings */}
+                        <div style={{marginTop:16,paddingTop:16,borderTop:'1px solid var(--border)'}}>
+                          <div style={{fontSize:11,color:'var(--accent)',fontWeight:700,marginBottom:12,display:'flex',alignItems:'center',gap:6}}>🎮 Crypto Crush Game</div>
+                          <div style={{display:'grid',gap:10}}>
+                            <div>
+                              <div style={{fontSize:11,color:'var(--muted)',marginBottom:6}}>Points per Class Reward Token</div>
+                              <div style={{display:'flex',alignItems:'center',gap:10}}>
+                                <input type="number" min={10} className="text-input" style={{width:90,marginBottom:0}}
+                                  value={rewardConfig.crush_points_per_token}
+                                  onChange={e=>setRewardConfig(c=>({...c,crush_points_per_token:Math.max(10,parseInt(e.target.value)||100)}))}
+                                  disabled={!rewardConfig.enabled} />
+                                <span style={{fontSize:11,color:'var(--muted)'}}>pts = 1 token</span>
+                              </div>
+                              <div style={{fontSize:10,color:'var(--muted)',marginTop:4}}>How many Crypto Crush points converts to 1 Class Reward Token</div>
+                            </div>
+                            <div>
+                              <div style={{fontSize:11,color:'var(--muted)',marginBottom:6}}>Max Tokens per Day (per student)</div>
+                              <div style={{display:'flex',alignItems:'center',gap:10}}>
+                                <input type="number" min={1} className="text-input" style={{width:90,marginBottom:0}}
+                                  value={rewardConfig.crush_max_tokens_per_day}
+                                  onChange={e=>setRewardConfig(c=>({...c,crush_max_tokens_per_day:Math.max(1,parseInt(e.target.value)||50)}))}
+                                  disabled={!rewardConfig.enabled} />
+                                <span style={{fontSize:11,color:'var(--muted)'}}>tokens/day</span>
+                              </div>
+                              <div style={{fontSize:10,color:'var(--muted)',marginTop:4}}>Maximum tokens a student can earn from Crypto Crush per day</div>
+                            </div>
+                          </div>
                         </div>
                       </div>
                       <div className="btn-row">

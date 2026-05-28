@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git checkout *)",
+      "Bash(git merge draft/trusting-ben --no-ff -m ' *)",
+      "Bash(git push *)",
+      "Bash(git *)",
+      "Bash(npm uninstall *2)"
+    ]
+  }
+}

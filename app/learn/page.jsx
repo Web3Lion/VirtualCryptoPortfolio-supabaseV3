@@ -69,6 +69,7 @@ export default function Learn() {
             <Link href="/news" className="nav-link">News</Link>
             <Link href="/badges" className="nav-link">Badges</Link>
             <a href="/learn" className="nav-link active">Learn</a>
+            <Link href="/games/crypto-crush" className="nav-link">Crush</Link>
           </div>
           <ThemeToggle />
         </nav>

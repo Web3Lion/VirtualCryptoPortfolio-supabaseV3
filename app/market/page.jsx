@@ -223,6 +223,7 @@ export default function Market() {
             <Link href="/news" className="nav-link">News</Link>
             <Link href="/badges" className="nav-link">Badges</Link>
             <Link href="/learn" className="nav-link">Learn</Link>
+            <Link href="/games/crypto-crush" className="nav-link">Crush</Link>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <ThemeToggle/>

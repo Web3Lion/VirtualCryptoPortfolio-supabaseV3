@@ -130,6 +130,7 @@ export default function Badges() {
             <Link href="/news" className="nav-link">News</Link>
             <a href="/badges" className="nav-link active">Badges</a>
             <Link href="/learn" className="nav-link">Learn</Link>
+            <Link href="/games/crypto-crush" className="nav-link">Crush</Link>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:12}}>
             <ThemeToggle/>

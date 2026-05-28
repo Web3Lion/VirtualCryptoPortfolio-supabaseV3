@@ -716,6 +716,7 @@ export default function Dashboard() {
             <Link href="/badges" className="nav-link">
               Badges
             </Link>
+            <Link href="/games/crypto-crush" className="nav-link">Crush</Link>
             <Link href="/learn" className="nav-link">
               Learn
             </Link>
