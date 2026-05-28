@@ -77,9 +77,18 @@ export default function TeacherLearn() {
     setSeeding(true);
     const res = await fetch("/api/admin/migrate-learn", { method: "POST" });
     const d = await res.json();
-    if (d.success) { flash("Sample module seeded!"); fetchModules(); }
+    if (d.success) { flash(d.note || "Sample module seeded!"); fetchModules(); }
     else flash(d.error || "Seed failed", false);
     setSeeding(false);
+  };
+
+  const patchSeed = async () => {
+    setSaving(true);
+    const res = await fetch("/api/admin/migrate-learn", { method: "PATCH" });
+    const d = await res.json();
+    if (d.success) { flash(`Updated! Added ${d.questionsAdded} questions, show 5 per quiz.`); fetchModules(); }
+    else flash(d.error || "Patch failed", false);
+    setSaving(false);
   };
 
   const togglePublish = async (type, id, current) => {
@@ -263,6 +272,9 @@ export default function TeacherLearn() {
           </button>
           <button className="btn btn-ghost" onClick={seedSample} disabled={seeding || dbReady === false}>
             {seeding ? "Seeding..." : "Seed Sample Module"}
+          </button>
+          <button className="btn btn-ghost" onClick={patchSeed} disabled={saving || dbReady === false} style={{ fontSize: 10 }}>
+            Patch: 10 Q / show 5
           </button>
         </div>
 

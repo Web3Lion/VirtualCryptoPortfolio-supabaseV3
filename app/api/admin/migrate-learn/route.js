@@ -69,6 +69,92 @@ CREATE TABLE IF NOT EXISTS learn_attempts (
 );
 `;
 
+// PATCH — update existing seed lesson (questions_to_show, add missing questions)
+export async function PATCH(request) {
+  const session = await getServerSession(authOptions);
+  if (!session) return Response.json({ error: 'Not authenticated' }, { status: 401 });
+
+  // Find the existing lesson
+  const { data: lesson } = await db.from('learn_lessons')
+    .select('id, questions_to_show')
+    .eq('title', 'Proof of Work vs Proof of Stake')
+    .single();
+  if (!lesson) return Response.json({ error: 'Lesson not found — run seed first' }, { status: 404 });
+
+  // Update questions_to_show to 5
+  await db.from('learn_lessons').update({ questions_to_show: 5 }).eq('id', lesson.id);
+
+  // Find existing questions
+  const { data: existing } = await db.from('learn_questions')
+    .select('order_index').eq('lesson_id', lesson.id);
+  const existingIndexes = new Set((existing || []).map(q => q.order_index));
+
+  // The 4 new questions (order_index 7-10)
+  const newQuestions = [
+    {
+      question_text: 'How often does Bitcoin\'s Proof of Work target finding a new block?',
+      explanation: 'Bitcoin\'s difficulty automatically adjusts so that a new block is found approximately every 10 minutes, regardless of total mining power.',
+      order_index: 7,
+      options: [
+        { option_text: 'Every 1 minute', is_correct: false },
+        { option_text: 'Every 10 minutes', is_correct: true },
+        { option_text: 'Every 30 minutes', is_correct: false },
+        { option_text: 'Every hour', is_correct: false },
+      ],
+    },
+    {
+      question_text: 'What percentage of the total mining power would an attacker need to rewrite Bitcoin\'s blockchain?',
+      explanation: 'A "51% attack" requires controlling more than half of all mining power, making it astronomically expensive to execute on Bitcoin.',
+      order_index: 8,
+      options: [
+        { option_text: '10%', is_correct: false },
+        { option_text: '25%', is_correct: false },
+        { option_text: 'More than 51%', is_correct: true },
+        { option_text: '100%', is_correct: false },
+      ],
+    },
+    {
+      question_text: 'Which of the following blockchains uses Proof of Stake?',
+      explanation: 'Ethereum, Cardano, and Solana all use Proof of Stake. Bitcoin is the major holdout still using Proof of Work.',
+      order_index: 9,
+      options: [
+        { option_text: 'Bitcoin', is_correct: false },
+        { option_text: 'Litecoin', is_correct: false },
+        { option_text: 'Cardano', is_correct: true },
+        { option_text: 'Monero', is_correct: false },
+      ],
+    },
+    {
+      question_text: 'In Proof of Work, what is the term for participants who compete to add new blocks?',
+      explanation: 'Participants in PoW are called miners — they use computing hardware to solve mathematical puzzles and earn block rewards.',
+      order_index: 10,
+      options: [
+        { option_text: 'Validators', is_correct: false },
+        { option_text: 'Delegates', is_correct: false },
+        { option_text: 'Stakers', is_correct: false },
+        { option_text: 'Miners', is_correct: true },
+      ],
+    },
+  ];
+
+  let added = 0;
+  for (const q of newQuestions) {
+    if (existingIndexes.has(q.order_index)) continue;
+    const { data: question } = await db.from('learn_questions').insert({
+      lesson_id: lesson.id,
+      question_text: q.question_text,
+      explanation: q.explanation,
+      order_index: q.order_index,
+    }).select().single();
+    await db.from('learn_options').insert(
+      q.options.map((o, i) => ({ question_id: question.id, option_text: o.option_text, is_correct: o.is_correct, order_index: i }))
+    );
+    added++;
+  }
+
+  return Response.json({ success: true, questionsAdded: added, questions_to_show: 5 });
+}
+
 // Check if tables exist
 export async function GET() {
   const { data, error } = await db.from('learn_modules').select('id').limit(1);
@@ -105,7 +191,7 @@ export async function POST(request) {
     order_index: 1,
     tokens_reward: 50,
     pass_threshold: 75,
-    questions_to_show: 4,
+    questions_to_show: 5,
     is_published: true,
   }).select().single();
 
@@ -125,7 +211,7 @@ export async function POST(request) {
 
   await db.from('learn_blocks').insert(blocks.map(b => ({ ...b, lesson_id: lesson.id })));
 
-  // ── Create quiz questions (6 — system shows 4 randomly) ───
+  // ── Create quiz questions (10 — system shows 5 randomly) ───
   const questions = [
     {
       question_text: 'Which consensus mechanism does Bitcoin use?',
@@ -191,6 +277,50 @@ export async function POST(request) {
         { option_text: 'More powerful computer hardware', is_correct: false },
         { option_text: 'Staking more cryptocurrency', is_correct: true },
         { option_text: 'Being an early adopter of the network', is_correct: false },
+      ],
+    },
+    {
+      question_text: 'How often does Bitcoin\'s Proof of Work target finding a new block?',
+      explanation: 'Bitcoin\'s difficulty automatically adjusts so that a new block is found approximately every 10 minutes, regardless of total mining power.',
+      order_index: 7,
+      options: [
+        { option_text: 'Every 1 minute', is_correct: false },
+        { option_text: 'Every 10 minutes', is_correct: true },
+        { option_text: 'Every 30 minutes', is_correct: false },
+        { option_text: 'Every hour', is_correct: false },
+      ],
+    },
+    {
+      question_text: 'What percentage of the total mining power would an attacker need to rewrite Bitcoin\'s blockchain?',
+      explanation: 'A "51% attack" requires controlling more than half of all mining power, making it astronomically expensive to execute on Bitcoin.',
+      order_index: 8,
+      options: [
+        { option_text: '10%', is_correct: false },
+        { option_text: '25%', is_correct: false },
+        { option_text: 'More than 51%', is_correct: true },
+        { option_text: '100%', is_correct: false },
+      ],
+    },
+    {
+      question_text: 'Which of the following blockchains uses Proof of Stake?',
+      explanation: 'Ethereum, Cardano, and Solana all use Proof of Stake. Bitcoin is the major holdout still using Proof of Work.',
+      order_index: 9,
+      options: [
+        { option_text: 'Bitcoin', is_correct: false },
+        { option_text: 'Litecoin', is_correct: false },
+        { option_text: 'Cardano', is_correct: true },
+        { option_text: 'Monero', is_correct: false },
+      ],
+    },
+    {
+      question_text: 'In Proof of Work, what is the term for participants who compete to add new blocks?',
+      explanation: 'Participants in PoW are called miners — they use computing hardware to solve mathematical puzzles and earn block rewards.',
+      order_index: 10,
+      options: [
+        { option_text: 'Validators', is_correct: false },
+        { option_text: 'Delegates', is_correct: false },
+        { option_text: 'Stakers', is_correct: false },
+        { option_text: 'Miners', is_correct: true },
       ],
     },
   ];
