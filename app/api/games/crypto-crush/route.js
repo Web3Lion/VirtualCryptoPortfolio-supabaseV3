@@ -1,6 +1,7 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { checkBadgesAfterCrush } from '@/app/api/games/crush-badge-check';
 
 // GET — today's tokens earned from crush for this student/class
 export async function GET(request) {
@@ -78,5 +79,8 @@ export async function POST(request) {
     reason: `crush:${score}pts`,
   });
 
-  return Response.json({ tokensAwarded: tokensEarned, tokensToday: tokensToday + tokensEarned, maxTokens });
+  const newTodayTotal = tokensToday + tokensEarned;
+  const badgeResult = await checkBadgesAfterCrush({ studentId: student.id, classId, score, tokensToday: newTodayTotal, maxTokens });
+
+  return Response.json({ tokensAwarded: tokensEarned, tokensToday: newTodayTotal, maxTokens, newBadges: badgeResult.newBadges });
 }

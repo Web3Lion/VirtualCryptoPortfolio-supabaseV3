@@ -1,6 +1,7 @@
 import { db, getMarketStatus } from '@/lib/db';
 import { fetchBulkPrices, GECKO_ID_MAP } from '@/lib/prices';
 import { executeTrade } from '@/lib/trade';
+import { checkBadgesAfterOrderExecution } from '@/app/api/orders/badge-check';
 
 export async function GET(request) {
   const authHeader = request.headers.get('authorization');
@@ -168,8 +169,13 @@ export async function GET(request) {
           });
 
           if (result.success) {
-            await db.from('pending_orders').update({ status: 'executed', executed_at: new Date().toISOString(), executed_price: result.price }).eq('id', order.id);
+            const executedAt = new Date().toISOString();
+            await db.from('pending_orders').update({ status: 'executed', executed_at: executedAt, executed_price: result.price }).eq('id', order.id);
             report.ordersExecuted++;
+            checkBadgesAfterOrderExecution({
+              studentId: order.student_id, classId: order.class_id,
+              order: { ...order, executed_at: executedAt },
+            }).catch(() => {});
           } else {
             await db.from('pending_orders').update({ status: 'failed', fail_reason: result.error }).eq('id', order.id);
             report.ordersFailed++;

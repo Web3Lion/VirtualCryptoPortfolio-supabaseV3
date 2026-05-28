@@ -1,6 +1,7 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { checkBadgesAfterLesson } from '@/app/api/learn/badge-check';
 
 // POST — mark a game-type lesson as complete and award tokens (first completion only)
 export async function POST(request) {
@@ -52,5 +53,8 @@ export async function POST(request) {
     }
   }
 
-  return Response.json({ success: true, tokensAwarded });
+  const badgeResult = await checkBadgesAfterLesson({ studentId: student.id, classId });
+  tokensAwarded += badgeResult.tokensAwarded;
+
+  return Response.json({ success: true, tokensAwarded, newBadges: badgeResult.newBadges });
 }

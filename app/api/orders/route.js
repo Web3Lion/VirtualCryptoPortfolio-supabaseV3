@@ -1,6 +1,7 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { checkBadgesAfterOrderAction } from './badge-check';
 
 export async function GET(request) {
   const session = await getServerSession(authOptions);
@@ -56,7 +57,16 @@ export async function POST(request) {
   if (error?.code === '42P01') return Response.json({ error: 'Orders table not set up yet. Ask your teacher to run the migration.' }, { status: 503 });
   if (error) return Response.json({ error: error.message }, { status: 500 });
 
-  return Response.json({ success: true, order });
+  // Count pending orders after this insert (for stacked badge)
+  const { count: pendingCount } = await db.from('pending_orders')
+    .select('id', { count: 'exact', head: true })
+    .eq('student_id', student.id).eq('class_id', classId).eq('status', 'pending');
+
+  const badgeResult = await checkBadgesAfterOrderAction({
+    studentId: student.id, classId, action, pendingCount: pendingCount || 0, isCancellation: false,
+  }).catch(() => ({ newBadges: [] }));
+
+  return Response.json({ success: true, order, newBadges: badgeResult.newBadges });
 }
 
 export async function DELETE(request) {
@@ -69,11 +79,19 @@ export async function DELETE(request) {
   const { data: student } = await db.from('students').select('id').eq('email', session.user.email.toLowerCase()).single();
   if (!student) return Response.json({ error: 'Student not found' }, { status: 404 });
 
+  const { data: orderToCancel } = await db.from('pending_orders').select('class_id').eq('id', id).eq('student_id', student.id).single();
+
   await db.from('pending_orders')
     .update({ status: 'cancelled' })
     .eq('id', id)
     .eq('student_id', student.id)
     .eq('status', 'pending');
+
+  if (orderToCancel?.class_id) {
+    await checkBadgesAfterOrderAction({
+      studentId: student.id, classId: orderToCancel.class_id, isCancellation: true, pendingCount: 0,
+    }).catch(() => {});
+  }
 
   return Response.json({ success: true });
 }

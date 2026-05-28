@@ -1,6 +1,7 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { checkBadgesAfterLesson } from '@/app/api/learn/badge-check';
 
 export async function POST(request) {
   const session = await getServerSession(authOptions);
@@ -88,5 +89,8 @@ export async function POST(request) {
     }
   }
 
-  return Response.json({ score, passed, correct, total, tokensAwarded, questions: graded });
+  const badgeResult = await checkBadgesAfterLesson({ studentId: student.id, classId });
+  tokensAwarded += badgeResult.tokensAwarded;
+
+  return Response.json({ score, passed, correct, total, tokensAwarded, questions: graded, newBadges: badgeResult.newBadges });
 }

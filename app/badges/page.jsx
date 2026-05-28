@@ -57,18 +57,47 @@ const ALL_BADGES = [
   {id:'market_pulse',   cat:'data',       emoji:'💓',name:'Market Pulse',      hint:'Refresh prices 25 times — you feel the heartbeat'},
   {id:'price_oracle',   cat:'data',       emoji:'🔮',name:'Price Oracle',      hint:'Refresh prices 50 times — the market whispers to you'},
   {id:'omniscient',     cat:'data',       emoji:'🌐',name:'Omniscient',        hint:'Refresh prices 100 times — you ARE the market'},
+  // Curriculum (Learning modules)
+  {id:'first_lesson',   cat:'curriculum', emoji:'📚',name:'First Lesson',      hint:'Complete your first lesson'},
+  {id:'lesson_five',    cat:'curriculum', emoji:'📖',name:'Quick Study',        hint:'Complete 5 lessons'},
+  {id:'lesson_fifteen', cat:'curriculum', emoji:'🎓',name:'Dedicated Learner', hint:'Complete 15 lessons'},
+  {id:'perfect_score',  cat:'curriculum', emoji:'💯',name:'Perfect Score',     hint:'Score 100% on any quiz or game lesson'},
+  {id:'quiz_ace',       cat:'curriculum', emoji:'🌟',name:'Quiz Ace',          hint:'Score 100% five times'},
+  {id:'speed_learner',  cat:'curriculum', emoji:'💨',name:'Speed Learner',     hint:'Complete 3 lessons in a single day'},
+  {id:'study_streak',   cat:'curriculum', emoji:'🧠',name:'Study Streak',      hint:'Complete lessons 5 days in a row'},
+  {id:'module_master',  cat:'curriculum', emoji:'🗺️',name:'Module Master',     hint:'Finish every lesson in a module'},
+  {id:'module_trio',    cat:'curriculum', emoji:'🎖️',name:'Triple Scholar',    hint:'Complete 3 full modules'},
+  {id:'crypto_professor',cat:'curriculum',emoji:'🎩',name:'Crypto Professor',  hint:'Complete 5 full modules'},
+  // Orders (Limit Orders)
+  {id:'order_placed',   cat:'orders',     emoji:'📋',name:'Order Placed',      hint:'Place your first limit order'},
+  {id:'order_sniper',   cat:'orders',     emoji:'🎯',name:'Order Sniper',      hint:'Place 5 limit orders'},
+  {id:'limit_master',   cat:'orders',     emoji:'📊',name:'Limit Master',      hint:'Place 20 limit orders'},
+  {id:'order_hit',      cat:'orders',     emoji:'✅',name:'Order Hit',         hint:'Have your first limit order execute'},
+  {id:'triple_trigger', cat:'orders',     emoji:'🔱',name:'Triple Trigger',    hint:'Have 3 limit orders execute successfully'},
+  {id:'short_seller',   cat:'orders',     emoji:'📉',name:'Short Seller',      hint:'Place your first SHORT order'},
+  {id:'patient_limit',  cat:'orders',     emoji:'⏳',name:'Patient Limit',     hint:'An order stays pending 24+ hours, then fires'},
+  {id:'stacked_orders', cat:'orders',     emoji:'🃏',name:'Stacked',           hint:'Have 3+ active limit orders at once'},
+  {id:'cut_bait',       cat:'orders',     emoji:'✂️',name:'Cut Bait',          hint:'Cancel a limit order — knowing when to quit counts'},
+  // Games (Crypto Crush)
+  {id:'crush_rookie',   cat:'games',      emoji:'🎮',name:'Crush Rookie',      hint:'Play your first Crypto Crush game'},
+  {id:'crush_500',      cat:'games',      emoji:'💫',name:'Match Maestro',     hint:'Score 500+ in a single Crush game'},
+  {id:'crush_1000',     cat:'games',      emoji:'🌊',name:'Chain Crusher',     hint:'Score 1000+ in a single Crush game'},
+  {id:'crush_3000',     cat:'games',      emoji:'👑',name:'Crush Legend',      hint:'Score 3000+ in a single Crush game'},
+  {id:'crush_veteran',  cat:'games',      emoji:'🕹️',name:'Crush Veteran',     hint:'Play 10 Crypto Crush games'},
+  {id:'crush_daily_max',cat:'games',      emoji:'⭐',name:'Daily Maxer',       hint:'Earn the full daily token cap in Crypto Crush'},
+  {id:'crush_grinder',  cat:'games',      emoji:'🎰',name:'Crush Grinder',     hint:'Play Crypto Crush on 3 different days'},
 ];
 
 const CAT_COLORS = {
   milestone:'#f59e0b', performance:'#00e5a0', strategy:'#3b82f6',
   learning:'#8b5cf6',  situational:'#f43f5e', simulation:'#06b6d4',
-  data:'#22d3ee',
+  data:'#22d3ee',      curriculum:'#a78bfa',  orders:'#34d399',  games:'#fb923c',
 };
 
 const CAT_LABELS = {
   milestone:'Milestone', performance:'Performance', strategy:'Strategy',
   learning:'Learning',   situational:'Situational', simulation:'Simulation',
-  data:'Data Contributor',
+  data:'Data Contributor', curriculum:'Curriculum', orders:'Limit Orders', games:'Games',
 };
 
 export default function Badges() {
@@ -140,7 +169,7 @@ export default function Badges() {
         <div style={{fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:32,letterSpacing:-1,marginBottom:4,color:"var(--text)"}}>
           🏅 <span style={{color:"var(--accent)"}}>Badges</span>
         </div>
-        <div style={{fontSize:11,color:"#94a3b8",marginBottom:24}}>Earn badges by hitting trading milestones</div>
+        <div style={{fontSize:11,color:"#94a3b8",marginBottom:24}}>Earn badges by trading, learning, and playing games</div>
 
         {loading ? <div className="skeleton" style={{height:100,marginBottom:24}}/> : (
           <div className="progress-card">
