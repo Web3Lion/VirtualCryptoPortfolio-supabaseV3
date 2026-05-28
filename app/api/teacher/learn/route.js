@@ -161,6 +161,29 @@ export async function PUT(request) {
     return Response.json(data);
   }
 
+  if (type === 'question') {
+    const { questionText, explanation, options } = body;
+    const updates = {};
+    if (questionText !== undefined) updates.question_text = questionText;
+    if (explanation !== undefined) updates.explanation = explanation;
+    const { error } = await db.from('learn_questions').update(updates).eq('id', id);
+    if (error) return Response.json({ error: error.message }, { status: 500 });
+
+    // Replace options if provided
+    if (Array.isArray(options)) {
+      await db.from('learn_options').delete().eq('question_id', id);
+      await db.from('learn_options').insert(
+        options.map((o, i) => ({
+          question_id: id,
+          option_text: o.option_text,
+          is_correct: o.is_correct,
+          order_index: i,
+        }))
+      );
+    }
+    return Response.json({ success: true });
+  }
+
   return Response.json({ error: 'Unknown type' }, { status: 400 });
 }
 

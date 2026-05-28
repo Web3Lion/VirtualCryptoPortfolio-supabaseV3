@@ -45,6 +45,10 @@ export default function TeacherLearn() {
   const [showNewQuestion, setShowNewQuestion] = useState(null); // lessonId
   const [newQuestion, setNewQuestion] = useState({ questionText: "", explanation: "", options: ["", "", "", ""], correctIndex: 0 });
 
+  // Edit question form
+  const [editingQuestion, setEditingQuestion] = useState(null); // { id, lessonId, questionText, explanation, options: [{option_text, is_correct}] }
+
+
   useEffect(() => { applyTheme(getTheme()); }, []);
   useEffect(() => { if (status === "unauthenticated") router.replace("/"); }, [status, router]);
 
@@ -262,6 +266,44 @@ export default function TeacherLearn() {
     await fetch(`/api/teacher/learn?type=question&id=${questionId}`, { method: "DELETE" });
     setLessonQuestions(q => ({ ...q, [lessonId]: (q[lessonId] || []).filter(x => x.id !== questionId) }));
     flash("Question deleted");
+  };
+
+  const startEditQuestion = (lessonId, q) => {
+    setEditingQuestion({
+      id: q.id,
+      lessonId,
+      questionText: q.question_text,
+      explanation: q.explanation || "",
+      options: (q.options || []).map(o => ({ option_text: o.option_text, is_correct: o.is_correct })),
+    });
+    setShowNewQuestion(null);
+  };
+
+  const saveEditQuestion = async () => {
+    const { id, lessonId, questionText, explanation, options } = editingQuestion;
+    if (!questionText.trim() || options.some(o => !o.option_text.trim())) {
+      flash("Fill in the question and all options", false); return;
+    }
+    if (!options.some(o => o.is_correct)) {
+      flash("Mark at least one option as correct", false); return;
+    }
+    setSaving(true);
+    const res = await fetch("/api/teacher/learn", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "question", id, questionText, explanation, options }),
+    });
+    const d = await res.json();
+    if (d.success || d.id) {
+      // Refresh questions for this lesson
+      setLessonQuestions(q => ({ ...q, [lessonId]: undefined }));
+      await loadQuestions(lessonId);
+      flash("Question saved");
+      setEditingQuestion(null);
+    } else {
+      flash(d.error || "Save failed", false);
+    }
+    setSaving(false);
   };
 
   if (status === "loading" || status === "unauthenticated") {
@@ -530,18 +572,55 @@ export default function TeacherLearn() {
                 {expandedLesson === lesson.id && (
                   <div style={{ marginLeft: 16, marginTop: 4, paddingLeft: 12, borderLeft: "2px solid var(--border)" }}>
                     {(lessonQuestions[lesson.id] || []).map(q => (
-                      <div key={q.id} style={{ background: "rgba(0,0,0,.2)", borderRadius: 10, padding: "10px 12px", marginTop: 8 }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
-                          <div style={{ fontSize: 12, color: "var(--text)", fontWeight: 600 }}>{q.question_text}</div>
-                          <button className="btn btn-danger" style={{ fontSize: 9, padding: "3px 8px", flexShrink: 0 }} onClick={() => deleteQuestion(lesson.id, q.id)}>✕</button>
-                        </div>
-                        {(q.options || []).map(opt => (
-                          <div key={opt.id} style={{ fontSize: 11, color: opt.is_correct ? "#00e5a0" : "#475569", marginTop: 4, display: "flex", gap: 6 }}>
-                            <span>{opt.is_correct ? "✓" : "○"}</span>
-                            <span>{opt.option_text}</span>
+                      <div key={q.id} style={{ background: "rgba(0,0,0,.2)", borderRadius: 10, padding: "10px 12px", marginTop: 8, border: editingQuestion?.id === q.id ? "1px solid rgba(0,229,160,.3)" : "1px solid transparent" }}>
+                        {editingQuestion?.id === q.id ? (
+                          /* ── Inline edit form ── */
+                          <div style={{ display: "grid", gap: 8 }}>
+                            <div style={{ fontSize: 11, color: "var(--accent)", fontWeight: 600, marginBottom: 2 }}>Editing question</div>
+                            <textarea rows={2} value={editingQuestion.questionText}
+                              onChange={e => setEditingQuestion(q => ({ ...q, questionText: e.target.value }))}
+                              placeholder="Question text" />
+                            <input value={editingQuestion.explanation}
+                              onChange={e => setEditingQuestion(q => ({ ...q, explanation: e.target.value }))}
+                              placeholder="Explanation (shown after answering)" />
+                            <div style={{ fontSize: 11, color: "#94a3b8" }}>Options — click radio to mark correct:</div>
+                            {editingQuestion.options.map((opt, i) => (
+                              <div key={i} style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                                <input type="radio" name={`editOpt_${q.id}`}
+                                  checked={opt.is_correct}
+                                  onChange={() => setEditingQuestion(eq => ({ ...eq, options: eq.options.map((o, j) => ({ ...o, is_correct: j === i })) }))}
+                                  style={{ width: 16, flex: "none", accentColor: "var(--accent)" }} />
+                                <input value={opt.option_text}
+                                  onChange={e => setEditingQuestion(eq => { const opts = [...eq.options]; opts[i] = { ...opts[i], option_text: e.target.value }; return { ...eq, options: opts }; })}
+                                  placeholder={`Option ${i + 1}`} />
+                              </div>
+                            ))}
+                            <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+                              <button className="btn btn-primary" style={{ fontSize: 11 }} onClick={saveEditQuestion} disabled={saving}>
+                                {saving ? "Saving..." : "Save"}
+                              </button>
+                              <button className="btn btn-ghost" style={{ fontSize: 11 }} onClick={() => setEditingQuestion(null)}>Cancel</button>
+                            </div>
                           </div>
-                        ))}
-                        {q.explanation && <div style={{ fontSize: 10, color: "#475569", marginTop: 6, fontStyle: "italic" }}>{q.explanation}</div>}
+                        ) : (
+                          /* ── Read view ── */
+                          <>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+                              <div style={{ fontSize: 12, color: "var(--text)", fontWeight: 600 }}>{q.question_text}</div>
+                              <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                                <button className="btn btn-ghost" style={{ fontSize: 9, padding: "3px 8px" }} onClick={() => startEditQuestion(lesson.id, q)}>Edit</button>
+                                <button className="btn btn-danger" style={{ fontSize: 9, padding: "3px 8px" }} onClick={() => deleteQuestion(lesson.id, q.id)}>Delete</button>
+                              </div>
+                            </div>
+                            {(q.options || []).map(opt => (
+                              <div key={opt.id} style={{ fontSize: 11, color: opt.is_correct ? "#00e5a0" : "#475569", marginTop: 4, display: "flex", gap: 6 }}>
+                                <span>{opt.is_correct ? "✓" : "○"}</span>
+                                <span>{opt.option_text}</span>
+                              </div>
+                            ))}
+                            {q.explanation && <div style={{ fontSize: 10, color: "#475569", marginTop: 6, fontStyle: "italic" }}>{q.explanation}</div>}
+                          </>
+                        )}
                       </div>
                     ))}
 
