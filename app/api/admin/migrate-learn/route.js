@@ -1,6 +1,8 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
+import fs from 'fs';
+import path from 'path';
 
 export const SETUP_SQL = `
 -- Learning modules (class_id null = available to all classes)
@@ -189,7 +191,7 @@ export async function GET() {
   return Response.json({ ready: !error, sql: error ? SETUP_SQL : null });
 }
 
-// Seed the 4 module shells (lessons imported separately via /api/teacher/learn/import)
+// Seed all modules + lessons from /content/learn/*.json in one shot
 export async function POST(request) {
   const session = await getServerSession(authOptions);
   if (!session) return Response.json({ error: 'Not authenticated' }, { status: 401 });
@@ -197,31 +199,89 @@ export async function POST(request) {
   const { error: checkErr } = await db.from('learn_modules').select('id').limit(1);
   if (checkErr) return Response.json({ error: 'Tables not created yet. Run the SQL first.', sql: SETUP_SQL }, { status: 503 });
 
-  const MODULES = [
-    { title: 'Blockchain Basics',        description: 'Learn the foundational concepts that power every cryptocurrency network.',         emoji: '⛓️', order_index: 1 },
-    { title: 'Crypto Markets',           description: 'Understand how crypto markets work — prices, liquidity, exchanges, and cycles.',    emoji: '📈', order_index: 2 },
-    { title: 'Trading Strategies',       description: 'From buying the dip to technical analysis — build a real trading toolkit.',         emoji: '🎯', order_index: 3 },
-    { title: 'Risk & Portfolio Mgmt',    description: 'Protect your capital with position sizing, stop losses, and diversification.',       emoji: '🛡️', order_index: 4 },
-    { title: 'Web 3.0 Basics',           description: 'Explore the decentralized internet — dApps, DAOs, digital identity, and the future.', emoji: '🌐', order_index: 5 },
-    { title: 'Blockchain Applications',  description: 'Discover how blockchain transforms supply chains, healthcare, finance, and more.',   emoji: '⚙️', order_index: 6 },
-    { title: 'Wallet & Key Security',    description: 'Master private key management, hardware wallets, seed phrases, and multisig.',      emoji: '🔐', order_index: 7 },
-  ];
+  // Load all JSON files from content/learn/
+  const contentDir = path.join(process.cwd(), 'content', 'learn');
+  let jsonFiles = [];
+  try {
+    jsonFiles = fs.readdirSync(contentDir)
+      .filter(f => f.endsWith('.json'))
+      .sort()
+      .map(f => JSON.parse(fs.readFileSync(path.join(contentDir, f), 'utf8')));
+  } catch (e) {
+    return Response.json({ error: `Could not read content/learn: ${e.message}` }, { status: 500 });
+  }
 
   const results = [];
-  for (const m of MODULES) {
-    const { data: existing } = await db.from('learn_modules').select('id, is_published').eq('title', m.title).maybeSingle();
+
+  for (const fileData of jsonFiles) {
+    const { moduleTitle, lessons = [] } = fileData;
+    if (!moduleTitle) continue;
+
+    // Upsert module
+    let modId;
+    const { data: existing } = await db.from('learn_modules').select('id, is_published').eq('title', moduleTitle).maybeSingle();
     if (existing) {
-      // Publish if it was seeded as draft
-      if (!existing.is_published) {
-        await db.from('learn_modules').update({ is_published: true }).eq('id', existing.id);
-        results.push({ module: m.title, status: 'published' });
-      } else {
-        results.push({ module: m.title, status: 'already exists' });
-      }
-      continue;
+      modId = existing.id;
+      if (!existing.is_published) await db.from('learn_modules').update({ is_published: true }).eq('id', modId);
+    } else {
+      // Derive emoji/description from the first file with this title, or use defaults
+      const { data: created } = await db.from('learn_modules').insert({
+        title: moduleTitle,
+        description: fileData.description || '',
+        emoji: fileData.emoji || '📚',
+        order_index: fileData.order_index || 0,
+        is_published: true,
+      }).select('id').single();
+      modId = created?.id;
     }
-    const { data: created, error } = await db.from('learn_modules').insert({ ...m, is_published: true }).select().single();
-    results.push({ module: m.title, status: error ? `error: ${error.message}` : 'created', id: created?.id });
+    if (!modId) { results.push({ module: moduleTitle, error: 'Could not create module' }); continue; }
+
+    // Import each lesson (skip if already exists by title)
+    let lessonsAdded = 0, lessonsSkipped = 0;
+    for (const lesson of lessons) {
+      const { data: dupLesson } = await db.from('learn_lessons').select('id').eq('module_id', modId).eq('title', lesson.title).maybeSingle();
+      if (dupLesson) { lessonsSkipped++; continue; }
+
+      // Get next order_index
+      const { data: last } = await db.from('learn_lessons').select('order_index').eq('module_id', modId).order('order_index', { ascending: false }).limit(1);
+      const nextOrder = last?.length ? (last[0].order_index + 1) : 1;
+
+      const { data: newLesson, error: lErr } = await db.from('learn_lessons').insert({
+        module_id: modId,
+        title: lesson.title,
+        description: lesson.description || '',
+        order_index: nextOrder,
+        tokens_reward: lesson.tokens_reward ?? 25,
+        pass_threshold: lesson.pass_threshold ?? 70,
+        questions_to_show: lesson.questions_to_show ?? 5,
+        is_published: lesson.is_published ?? true,
+      }).select().single();
+      if (lErr || !newLesson) { continue; }
+
+      // Insert blocks
+      if (lesson.blocks?.length) {
+        await db.from('learn_blocks').insert(
+          lesson.blocks.map(b => ({ lesson_id: newLesson.id, block_type: b.block_type, content: b.content, order_index: b.order_index }))
+        );
+      }
+
+      // Insert questions + options
+      for (let qi = 0; qi < (lesson.questions || []).length; qi++) {
+        const q = lesson.questions[qi];
+        const { data: newQ } = await db.from('learn_questions').insert({
+          lesson_id: newLesson.id,
+          question_text: q.question_text,
+          explanation: q.explanation || '',
+          order_index: qi + 1,
+        }).select('id').single();
+        if (!newQ) continue;
+        await db.from('learn_options').insert(
+          (q.options || []).map((o, i) => ({ question_id: newQ.id, option_text: o.option_text, is_correct: o.is_correct, order_index: i }))
+        );
+      }
+      lessonsAdded++;
+    }
+    results.push({ module: moduleTitle, lessonsAdded, lessonsSkipped });
   }
 
   return Response.json({ success: true, results });

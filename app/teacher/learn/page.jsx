@@ -127,7 +127,12 @@ export default function TeacherLearn() {
     setSeeding(true);
     const res = await fetch("/api/admin/migrate-learn", { method: "POST" });
     const d = await res.json();
-    if (d.success) { flash(d.results ? `Seeded: ${d.results.filter(r => r.status === 'created').map(r => r.module).join(', ') || 'all already exist'}` : (d.note || "Modules seeded!")); fetchModules(); }
+    if (d.success) {
+      const added = (d.results || []).reduce((s, r) => s + (r.lessonsAdded || 0), 0);
+      const skipped = (d.results || []).reduce((s, r) => s + (r.lessonsSkipped || 0), 0);
+      flash(added > 0 ? `Seeded ${d.results.length} modules, ${added} lessons added${skipped ? `, ${skipped} already existed` : ''}` : 'All modules and lessons already loaded');
+      fetchModules();
+    }
     else flash(d.error || "Seed failed", false);
     setSeeding(false);
   };
@@ -389,7 +394,7 @@ export default function TeacherLearn() {
             + New Module
           </button>
           <button className="btn btn-ghost" onClick={seedSample} disabled={seeding || dbReady === false}>
-            {seeding ? "Seeding..." : "Seed 4 Modules"}
+            {seeding ? "Seeding..." : "Seed All Modules & Lessons"}
           </button>
           <label style={{ cursor: importing || dbReady === false ? "not-allowed" : "pointer", opacity: importing || dbReady === false ? 0.5 : 1 }}>
             <input type="file" accept=".json" onChange={importJSON} style={{ display: "none" }} disabled={importing || dbReady === false} />
