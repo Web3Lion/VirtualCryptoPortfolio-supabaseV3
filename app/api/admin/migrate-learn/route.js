@@ -202,6 +202,9 @@ export async function POST(request) {
     { title: 'Crypto Markets',           description: 'Understand how crypto markets work — prices, liquidity, exchanges, and cycles.',    emoji: '📈', order_index: 2 },
     { title: 'Trading Strategies',       description: 'From buying the dip to technical analysis — build a real trading toolkit.',         emoji: '🎯', order_index: 3 },
     { title: 'Risk & Portfolio Mgmt',    description: 'Protect your capital with position sizing, stop losses, and diversification.',       emoji: '🛡️', order_index: 4 },
+    { title: 'Web 3.0 Basics',           description: 'Explore the decentralized internet — dApps, DAOs, digital identity, and the future.', emoji: '🌐', order_index: 5 },
+    { title: 'Blockchain Applications',  description: 'Discover how blockchain transforms supply chains, healthcare, finance, and more.',   emoji: '⚙️', order_index: 6 },
+    { title: 'Wallet & Key Security',    description: 'Master private key management, hardware wallets, seed phrases, and multisig.',      emoji: '🔐', order_index: 7 },
   ];
 
   const results = [];
