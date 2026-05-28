@@ -10,19 +10,20 @@ export async function GET(request) {
   const classId = searchParams.get('classId');
   if (!classId) return Response.json({ error: 'classId required' }, { status: 400 });
   const { data } = await db.from('class_reward_config').select('*').eq('class_id', classId).single();
-  return Response.json(data || { enabled: false, badge_reward_tokens: 50 });
+  return Response.json(data || { enabled: false, badge_reward_tokens: 50, lesson_reward_tokens: 25 });
 }
 
 export async function POST(request) {
   const session = await getServerSession(authOptions);
   if (session?.user?.email?.toLowerCase() !== TEACHER_EMAIL?.toLowerCase())
     return Response.json({ error: 'Teacher only' }, { status: 403 });
-  const { classId, enabled, badgeRewardTokens } = await request.json();
+  const { classId, enabled, badgeRewardTokens, lessonRewardTokens } = await request.json();
   if (!classId) return Response.json({ error: 'classId required' }, { status: 400 });
   await db.from('class_reward_config').upsert({
     class_id: classId,
     enabled: !!enabled,
     badge_reward_tokens: Math.max(1, parseInt(badgeRewardTokens) || 50),
+    lesson_reward_tokens: Math.max(1, parseInt(lessonRewardTokens) || 25),
     updated_at: new Date().toISOString(),
   }, { onConflict: 'class_id' });
   return Response.json({ success: true });

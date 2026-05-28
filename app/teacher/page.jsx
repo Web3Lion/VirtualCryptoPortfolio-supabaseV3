@@ -35,7 +35,7 @@ export default function Teacher() {
   const [pickerCoins, setPickerCoins] = useState([]);
   const [pickerLoading, setPickerLoading] = useState(false);
   const [pickerSelected, setPickerSelected] = useState([]);
-  const [rewardConfig, setRewardConfig] = useState({ enabled: false, badge_reward_tokens: 50 });
+  const [rewardConfig, setRewardConfig] = useState({ enabled: false, badge_reward_tokens: 50, lesson_reward_tokens: 25 });
   const [rewardSaving, setRewardSaving] = useState(false);
   const [tradeSettings, setTradeSettings] = useState({ marginEnabled: false, marginMult: 2, shortEnabled: false });
   const [tradeSettingsSaving, setTradeSettingsSaving] = useState(false);
@@ -205,7 +205,7 @@ export default function Teacher() {
 
   const saveRewardConfig = async () => {
     setRewardSaving(true);
-    const res = await fetch('/api/teacher/rewards',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({classId:activeClass.id,enabled:rewardConfig.enabled,badgeRewardTokens:rewardConfig.badge_reward_tokens})});
+    const res = await fetch('/api/teacher/rewards',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({classId:activeClass.id,enabled:rewardConfig.enabled,badgeRewardTokens:rewardConfig.badge_reward_tokens,lessonRewardTokens:rewardConfig.lesson_reward_tokens})});
     if(res.ok) setActionMsg({type:'success',msg:'✅ ClassReward settings saved'});
     else setActionMsg({type:'error',msg:'Failed to save'});
     setRewardSaving(false);
@@ -532,9 +532,20 @@ export default function Teacher() {
                           </div>
                           <div style={{fontSize:10,color:'var(--muted)',marginTop:4}}>Awarded automatically when a badge is earned</div>
                         </div>
-                        <div style={{display:'flex',flexDirection:'column',justifyContent:'flex-end'}}>
-                          <div className="tools-label" style={{marginBottom:6}}>More Rewards</div>
-                          <div style={{fontSize:10,color:'var(--muted)',fontStyle:'italic'}}>Additional triggers (trading streaks, quiz answers…) coming soon</div>
+                        <div>
+                          <div className="tools-label" style={{marginBottom:6}}>Lesson Reward</div>
+                          <div style={{display:'flex',alignItems:'center',gap:8}}>
+                            <input
+                              type="number" min={1} max={1000}
+                              className="text-input"
+                              style={{width:90,marginBottom:0}}
+                              value={rewardConfig.lesson_reward_tokens}
+                              onChange={e=>setRewardConfig(c=>({...c,lesson_reward_tokens:Math.max(1,parseInt(e.target.value)||25)}))}
+                              disabled={!rewardConfig.enabled}
+                            />
+                            <span style={{fontSize:11,color:'var(--muted)'}}>tokens per lesson = {fmtUSD(rewardConfig.lesson_reward_tokens)}</span>
+                          </div>
+                          <div style={{fontSize:10,color:'var(--muted)',marginTop:4}}>Default tokens awarded when a student passes a lesson quiz</div>
                         </div>
                       </div>
                       <div className="btn-row">

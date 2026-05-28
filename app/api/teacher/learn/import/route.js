@@ -3,13 +3,16 @@ import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
 
 const TEACHER_EMAIL = process.env.TEACHER_EMAIL;
+
 function isTeacher(session) {
   if (!TEACHER_EMAIL) return !!session;
   return session?.user?.email?.toLowerCase() === TEACHER_EMAIL.toLowerCase();
 }
 
-// POST — import a lesson JSON file into a module
+// POST — import a single lesson into an existing module
 // Body: { moduleTitle: string, lesson: LessonJSON }
+// LessonJSON.blocks use { block_type, content, order_index }
+// LessonJSON.questions use { question_text, explanation, options: [{ option_text, is_correct }] }
 export async function POST(request) {
   const session = await getServerSession(authOptions);
   if (!isTeacher(session)) return Response.json({ error: 'Teacher only' }, { status: 403 });
@@ -21,7 +24,7 @@ export async function POST(request) {
     return Response.json({ error: 'moduleTitle and lesson are required' }, { status: 400 });
   }
 
-  // Find the module
+  // Find the module by title
   const { data: mod, error: modErr } = await db
     .from('learn_modules')
     .select('id')
@@ -29,10 +32,10 @@ export async function POST(request) {
     .maybeSingle();
 
   if (modErr || !mod) {
-    return Response.json({ error: `Module "${moduleTitle}" not found. Create it first.` }, { status: 404 });
+    return Response.json({ error: `Module "${moduleTitle}" not found. Seed modules first.` }, { status: 404 });
   }
 
-  // Check for duplicate lesson title in this module
+  // Reject duplicate lesson title in this module
   const { data: dupLesson } = await db
     .from('learn_lessons')
     .select('id')
@@ -44,7 +47,7 @@ export async function POST(request) {
     return Response.json({ error: `Lesson "${lesson.title}" already exists in this module.` }, { status: 409 });
   }
 
-  // Get next order_index
+  // Auto-increment order_index
   const { data: existing } = await db
     .from('learn_lessons')
     .select('order_index')
@@ -70,7 +73,12 @@ export async function POST(request) {
   // Insert blocks
   if (lesson.blocks?.length) {
     await db.from('learn_blocks').insert(
-      lesson.blocks.map(b => ({ lesson_id: newLesson.id, block_type: b.block_type, content: b.content, order_index: b.order_index }))
+      lesson.blocks.map(b => ({
+        lesson_id: newLesson.id,
+        block_type: b.block_type,
+        content: b.content,
+        order_index: b.order_index,
+      }))
     );
   }
 

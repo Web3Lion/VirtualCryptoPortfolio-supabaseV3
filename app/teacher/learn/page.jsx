@@ -27,6 +27,12 @@ export default function TeacherLearn() {
   const [expandedLesson, setExpandedLesson] = useState(null);
   const [lessonQuestions, setLessonQuestions] = useState({});
 
+  // JSON import
+  const [importFile, setImportFile] = useState(null);   // parsed JSON
+  const [importName, setImportName] = useState('');
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState(null);
+
   // Create module form
   const [showNewModule, setShowNewModule] = useState(false);
   const [newModule, setNewModule] = useState({ title: "", description: "", emoji: "📚" });
@@ -71,15 +77,53 @@ export default function TeacherLearn() {
 
   useEffect(() => { fetchModules(); }, [fetchModules]);
 
-  const [importing, setImporting] = useState(false);
-
   const flash = (text, ok = true) => { setMsg({ text, ok }); setTimeout(() => setMsg(null), 3500); };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImportResult(null);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const parsed = JSON.parse(ev.target.result);
+        setImportFile(parsed);
+        setImportName(file.name);
+      } catch {
+        flash('Invalid JSON file — could not parse', false);
+        setImportFile(null);
+        setImportName('');
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const runImport = async () => {
+    if (!importFile) return;
+    setImporting(true);
+    setImportResult(null);
+    const res = await fetch('/api/teacher/learn/import', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ classId, data: importFile }),
+    });
+    const d = await res.json();
+    if (d.success) {
+      setImportResult(d);
+      setImportFile(null);
+      setImportName('');
+      fetchModules();
+    } else {
+      flash(d.error || 'Import failed', false);
+    }
+    setImporting(false);
+  };
 
   const seedSample = async () => {
     setSeeding(true);
     const res = await fetch("/api/admin/migrate-learn", { method: "POST" });
     const d = await res.json();
-    if (d.success) { flash(d.results ? `Modules seeded: ${d.results.map(r => r.module).join(", ")}` : "Modules seeded!"); fetchModules(); }
+    if (d.success) { flash(d.results ? `Seeded: ${d.results.filter(r => r.status === 'created').map(r => r.module).join(', ') || 'all already exist'}` : (d.note || "Modules seeded!")); fetchModules(); }
     else flash(d.error || "Seed failed", false);
     setSeeding(false);
   };
@@ -112,6 +156,15 @@ export default function TeacherLearn() {
       flash("Invalid JSON file", false);
     }
     setImporting(false);
+  };
+
+  const patchSeed = async () => {
+    setSaving(true);
+    const res = await fetch("/api/admin/migrate-learn", { method: "PATCH" });
+    const d = await res.json();
+    if (d.success) { flash(`Updated! Added ${d.questionsAdded} questions, show 5 per quiz.`); fetchModules(); }
+    else flash(d.error || "Patch failed", false);
+    setSaving(false);
   };
 
   const togglePublish = async (type, id, current) => {
@@ -305,6 +358,60 @@ export default function TeacherLearn() {
           <span style={{ fontSize: 10, color: "var(--muted)" }}>Upload a module JSON from /content/learn/</span>
         </div>
 
+        {/* JSON import panel */}
+        <div className="card" style={{ marginBottom: 16, borderColor: importFile ? 'rgba(0,229,160,.25)' : 'var(--border)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: importFile || importResult ? 14 : 0 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 14 }}>📂 Import from JSON</div>
+              <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>
+                Upload a lesson file — see <code style={{ color: 'var(--accent)' }}>content/lessons/blockchain-basics.json</code> for the format
+              </div>
+            </div>
+            <label style={{ cursor: 'pointer' }}>
+              <input type="file" accept=".json" style={{ display: 'none' }} onChange={handleFileChange} />
+              <span className="btn btn-ghost" style={{ fontSize: 11, pointerEvents: 'none' }}>
+                {importName || 'Choose file'}
+              </span>
+            </label>
+          </div>
+
+          {importFile && (
+            <div style={{ background: 'var(--surface2)', borderRadius: 12, padding: 14, fontSize: 12 }}>
+              <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, marginBottom: 8, color: 'var(--accent)' }}>
+                {importFile.module?.emoji || '📚'} {importFile.module?.title}
+              </div>
+              {(importFile.lessons || []).map((l, i) => (
+                <div key={i} style={{ color: '#94a3b8', marginBottom: 4, display: 'flex', gap: 10 }}>
+                  <span style={{ color: 'var(--text)' }}>{l.title}</span>
+                  <span>{(l.blocks || []).length} blocks</span>
+                  <span>{(l.questions || []).length} questions</span>
+                  <span style={{ color: 'var(--accent)' }}>+{l.tokens_reward ?? 25} tokens</span>
+                </div>
+              ))}
+              <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
+                <button className="btn btn-primary" onClick={runImport} disabled={importing || dbReady === false}>
+                  {importing ? 'Importing...' : `Import ${(importFile.lessons || []).length} lesson${(importFile.lessons || []).length !== 1 ? 's' : ''} →`}
+                </button>
+                <button className="btn btn-ghost" onClick={() => { setImportFile(null); setImportName(''); }}>Cancel</button>
+              </div>
+            </div>
+          )}
+
+          {importResult && (
+            <div style={{ background: 'rgba(0,229,160,.08)', border: '1px solid rgba(0,229,160,.2)', borderRadius: 12, padding: 14, fontSize: 12 }}>
+              <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, color: 'var(--accent)', marginBottom: 8 }}>
+                ✓ Imported "{importResult.module}"
+              </div>
+              {(importResult.lessons || []).map((l, i) => (
+                <div key={i} style={{ color: '#94a3b8', marginBottom: 3 }}>
+                  ✓ {l.lesson} — {l.blocks} blocks, {l.questions} questions
+                </div>
+              ))}
+              <div style={{ fontSize: 11, color: '#475569', marginTop: 8 }}>Module created as draft. Publish it when ready.</div>
+            </div>
+          )}
+        </div>
+
         {/* New module form */}
         {showNewModule && (
           <div className="card" style={{ marginBottom: 16, borderColor: "rgba(0,229,160,.2)" }}>
@@ -361,7 +468,53 @@ export default function TeacherLearn() {
                     {lesson.description && <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>{lesson.description}</div>}
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-                    <span style={{ fontSize: 10, color: "#475569" }}>{lesson.question_count} Q</span>
+                    {/* Add missing questions — show when count < 10 */}
+                    {lesson.question_count < 10 && (
+                      <button className="btn btn-ghost" style={{ fontSize: 9, padding: "4px 8px", color: 'var(--accent)', borderColor: 'rgba(0,229,160,.3)' }}
+                        onClick={async e => {
+                          e.stopPropagation();
+                          setSaving(true);
+                          const res = await fetch('/api/admin/migrate-learn', { method: 'PATCH' });
+                          const d = await res.json();
+                          if (d.success) {
+                            flash(`Added ${d.questionsAdded} Q → ${d.totalNow} total`);
+                            setLessonQuestions(q => ({ ...q, [lesson.id]: undefined }));
+                            fetchModules();
+                          } else {
+                            flash(d.error || 'Failed', false);
+                          }
+                          setSaving(false);
+                        }}>
+                        + {10 - lesson.question_count} Q
+                      </button>
+                    )}
+                    {/* Questions to show control */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 4, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, padding: "3px 8px" }}>
+                      <span style={{ fontSize: 10, color: "#475569" }}>show</span>
+                      <input
+                        type="number" min={1} max={lesson.question_count || 20}
+                        value={lesson.questions_to_show ?? lesson.question_count}
+                        style={{ width: 36, padding: "1px 4px", fontSize: 11, borderRadius: 6, textAlign: "center", border: "1px solid var(--border)", background: "var(--surface2)" }}
+                        onClick={e => e.stopPropagation()}
+                        onChange={e => {
+                          const val = Math.max(1, parseInt(e.target.value) || 1);
+                          setModules(ms => ms.map(m => ({
+                            ...m,
+                            lessons: (m.lessons || []).map(l => l.id === lesson.id ? { ...l, questions_to_show: val } : l)
+                          })));
+                        }}
+                        onBlur={async e => {
+                          const val = Math.max(1, parseInt(e.target.value) || 1);
+                          await fetch("/api/teacher/learn", {
+                            method: "PUT",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ type: "lesson", id: lesson.id, questionsToShow: val }),
+                          });
+                          flash(`Lesson updated — showing ${val} of ${lesson.question_count} questions`);
+                        }}
+                      />
+                      <span style={{ fontSize: 10, color: "#475569" }}>of {lesson.question_count}</span>
+                    </div>
                     <span style={{ fontSize: 10, color: "var(--accent)" }}>+{lesson.tokens_reward}t</span>
                     <span className={`tag ${lesson.is_published ? "tag-pub" : "tag-draft"}`} style={{ fontSize: 9 }}>
                       {lesson.is_published ? "pub" : "draft"}
