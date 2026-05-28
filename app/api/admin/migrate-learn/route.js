@@ -206,9 +206,18 @@ export async function POST(request) {
 
   const results = [];
   for (const m of MODULES) {
-    const { data: existing } = await db.from('learn_modules').select('id').eq('title', m.title).maybeSingle();
-    if (existing) { results.push({ module: m.title, status: 'already exists' }); continue; }
-    const { data: created, error } = await db.from('learn_modules').insert({ ...m, is_published: false }).select().single();
+    const { data: existing } = await db.from('learn_modules').select('id, is_published').eq('title', m.title).maybeSingle();
+    if (existing) {
+      // Publish if it was seeded as draft
+      if (!existing.is_published) {
+        await db.from('learn_modules').update({ is_published: true }).eq('id', existing.id);
+        results.push({ module: m.title, status: 'published' });
+      } else {
+        results.push({ module: m.title, status: 'already exists' });
+      }
+      continue;
+    }
+    const { data: created, error } = await db.from('learn_modules').insert({ ...m, is_published: true }).select().single();
     results.push({ module: m.title, status: error ? `error: ${error.message}` : 'created', id: created?.id });
   }
 

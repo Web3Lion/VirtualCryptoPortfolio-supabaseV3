@@ -65,7 +65,7 @@ export async function POST(request) {
     tokens_reward: lesson.tokens_reward ?? 25,
     pass_threshold: lesson.pass_threshold ?? 70,
     questions_to_show: lesson.questions_to_show ?? 5,
-    is_published: lesson.is_published ?? false,
+    is_published: lesson.is_published ?? true,
   }).select().single();
 
   if (lessonErr) return Response.json({ error: lessonErr.message }, { status: 500 });
