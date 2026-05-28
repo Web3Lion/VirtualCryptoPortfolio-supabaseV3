@@ -700,6 +700,9 @@ export default function Dashboard() {
             <Link href="/badges" className="nav-link">
               Badges
             </Link>
+            <Link href="/learn" className="nav-link">
+              Learn
+            </Link>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <ThemeToggle />

@@ -222,6 +222,7 @@ export default function Market() {
             <a href="/market" className="nav-link active">Market</a>
             <Link href="/news" className="nav-link">News</Link>
             <Link href="/badges" className="nav-link">Badges</Link>
+            <Link href="/learn" className="nav-link">Learn</Link>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <ThemeToggle/>
