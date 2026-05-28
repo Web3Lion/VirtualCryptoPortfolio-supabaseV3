@@ -23,30 +23,25 @@ export async function GET(request) {
     .order('order_index');
 
   const moduleIds = (modules || []).map(m => m.id);
-  const [lessonsRes, questionsRes] = await Promise.all([
-    moduleIds.length
-      ? db.from('learn_lessons').select('*').in('module_id', moduleIds).order('order_index')
-      : Promise.resolve({ data: [] }),
-    moduleIds.length
-      ? db.from('learn_questions').select('id, lesson_id').in(
-          'lesson_id',
-          // will be filtered below; fetch broadly
-          (await (moduleIds.length
-            ? db.from('learn_lessons').select('id').in('module_id', moduleIds)
-            : Promise.resolve({ data: [] })
-          )).data?.map(l => l.id) || []
-        )
-      : Promise.resolve({ data: [] }),
-  ]);
+  if (!moduleIds.length) return Response.json([]);
+
+  const { data: lessons } = await db.from('learn_lessons')
+    .select('*').in('module_id', moduleIds).order('order_index');
+
+  const lessonIds = (lessons || []).map(l => l.id);
+
+  const { data: questions } = lessonIds.length
+    ? await db.from('learn_questions').select('id, lesson_id').in('lesson_id', lessonIds)
+    : { data: [] };
 
   const questionCountByLesson = {};
-  (questionsRes.data || []).forEach(q => {
+  (questions || []).forEach(q => {
     questionCountByLesson[q.lesson_id] = (questionCountByLesson[q.lesson_id] || 0) + 1;
   });
 
   const result = (modules || []).map(m => ({
     ...m,
-    lessons: (lessonsRes.data || [])
+    lessons: (lessons || [])
       .filter(l => l.module_id === m.id)
       .map(l => ({ ...l, question_count: questionCountByLesson[l.id] || 0 })),
   }));

@@ -431,6 +431,26 @@ export default function TeacherLearn() {
                     {lesson.description && <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>{lesson.description}</div>}
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                    {/* Add missing questions — show when count < 10 */}
+                    {lesson.question_count < 10 && (
+                      <button className="btn btn-ghost" style={{ fontSize: 9, padding: "4px 8px", color: 'var(--accent)', borderColor: 'rgba(0,229,160,.3)' }}
+                        onClick={async e => {
+                          e.stopPropagation();
+                          setSaving(true);
+                          const res = await fetch('/api/admin/migrate-learn', { method: 'PATCH' });
+                          const d = await res.json();
+                          if (d.success) {
+                            flash(`Added ${d.questionsAdded} Q → ${d.totalNow} total`);
+                            setLessonQuestions(q => ({ ...q, [lesson.id]: undefined }));
+                            fetchModules();
+                          } else {
+                            flash(d.error || 'Failed', false);
+                          }
+                          setSaving(false);
+                        }}>
+                        + {10 - lesson.question_count} Q
+                      </button>
+                    )}
                     {/* Questions to show control */}
                     <div style={{ display: "flex", alignItems: "center", gap: 4, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, padding: "3px 8px" }}>
                       <span style={{ fontSize: 10, color: "#475569" }}>show</span>
@@ -488,29 +508,9 @@ export default function TeacherLearn() {
                       </div>
                     ))}
 
-                    <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
-                      <button className="btn btn-ghost" style={{ fontSize: 10 }} onClick={() => setShowNewQuestion(lesson.id)}>
-                        + Add Question
-                      </button>
-                      {lesson.question_count < 10 && lesson.title?.includes('Proof of Work') && (
-                        <button className="btn btn-ghost" style={{ fontSize: 10, color: 'var(--accent)', borderColor: 'rgba(0,229,160,.3)' }} onClick={async () => {
-                          setSaving(true);
-                          const res = await fetch('/api/admin/migrate-learn', { method: 'PATCH' });
-                          const d = await res.json();
-                          if (d.success) {
-                            flash(`Added ${d.questionsAdded} questions → ${d.totalNow} total`);
-                            setLessonQuestions(q => ({ ...q, [lesson.id]: undefined }));
-                            await loadQuestions(lesson.id);
-                            fetchModules();
-                          } else {
-                            flash(d.error || 'Failed', false);
-                          }
-                          setSaving(false);
-                        }}>
-                          ↑ Add 4 missing questions
-                        </button>
-                      )}
-                    </div>
+                    <button className="btn btn-ghost" style={{ fontSize: 10, marginTop: 10 }} onClick={() => setShowNewQuestion(lesson.id)}>
+                      + Add Question
+                    </button>
 
                     {/* New question form */}
                     {showNewQuestion === lesson.id && (
