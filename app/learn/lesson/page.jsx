@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -75,7 +75,15 @@ function ContentBlock({ block }) {
   return null;
 }
 
-export default function LessonPage() {
+export default function LessonPageWrapper() {
+  return (
+    <Suspense fallback={<div style={{ background: "var(--bg,#080c14)", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)" }}>Loading...</div>}>
+      <LessonPage />
+    </Suspense>
+  );
+}
+
+function LessonPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
