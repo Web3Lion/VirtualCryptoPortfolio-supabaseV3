@@ -113,6 +113,7 @@ export default function NewsPage() {
             <Link href="/market" className="nav-link">Market</Link>
             <a href="/news" className="nav-link active">News</a>
             <Link href="/badges" className="nav-link">Badges</Link>
+            <Link href="/learn" className="nav-link">Learn</Link>
           </div>
           {lastUpdated && <span style={{fontSize:10,color:'var(--muted)'}}>Updated {lastUpdated.toLocaleTimeString()}</span>}
         </nav>
