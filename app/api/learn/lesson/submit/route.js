@@ -17,17 +17,22 @@ export async function POST(request) {
   const { data: lesson } = await db.from('learn_lessons').select('tokens_reward, pass_threshold').eq('id', lessonId).single();
   if (!lesson) return Response.json({ error: 'Lesson not found' }, { status: 404 });
 
-  // Fetch questions + correct options
+  // Fetch questions then options separately (no FK constraint required)
   const { data: questions } = await db.from('learn_questions')
-    .select('id, question_text, explanation, learn_options(id, option_text, is_correct, order_index)')
-    .eq('lesson_id', lessonId);
+    .select('id, question_text, explanation').eq('lesson_id', lessonId);
+
+  const questionIds = (questions || []).map(q => q.id);
+  const { data: allOptions } = questionIds.length
+    ? await db.from('learn_options').select('*').in('question_id', questionIds).order('order_index')
+    : { data: [] };
 
   // Grade
   let correct = 0;
   const graded = (questions || []).map(q => {
+    const opts = (allOptions || []).filter(o => o.question_id === q.id).sort((a, b) => a.order_index - b.order_index);
     const chosen = answers[q.id];
-    const correctOpt = (q.learn_options || []).find(o => o.is_correct);
-    const isCorrect = chosen && correctOpt && chosen === correctOpt.id;
+    const correctOpt = opts.find(o => o.is_correct);
+    const isCorrect = !!(chosen && correctOpt && chosen === correctOpt.id);
     if (isCorrect) correct++;
     return {
       id: q.id,
@@ -36,7 +41,7 @@ export async function POST(request) {
       chosen_option_id: chosen || null,
       correct_option_id: correctOpt?.id || null,
       is_correct: isCorrect,
-      options: (q.learn_options || []).sort((a, b) => a.order_index - b.order_index),
+      options: opts,
     };
   });
 
