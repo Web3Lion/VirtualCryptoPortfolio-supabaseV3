@@ -17,13 +17,15 @@ export async function POST(request) {
   const { data: lesson } = await db.from('learn_lessons').select('tokens_reward, pass_threshold').eq('id', lessonId).single();
   if (!lesson) return Response.json({ error: 'Lesson not found' }, { status: 404 });
 
-  // Fetch questions then options separately (no FK constraint required)
-  const { data: questions } = await db.from('learn_questions')
-    .select('id, question_text, explanation').eq('lesson_id', lessonId);
+  // Only grade the questions that were actually shown (keys in answers object)
+  const answeredIds = Object.keys(answers);
+  if (!answeredIds.length) return Response.json({ error: 'No answers submitted' }, { status: 400 });
 
-  const questionIds = (questions || []).map(q => q.id);
-  const { data: allOptions } = questionIds.length
-    ? await db.from('learn_options').select('*').in('question_id', questionIds).order('order_index')
+  const { data: questions } = await db.from('learn_questions')
+    .select('id, question_text, explanation').in('id', answeredIds);
+
+  const { data: allOptions } = answeredIds.length
+    ? await db.from('learn_options').select('*').in('question_id', answeredIds).order('order_index')
     : { data: [] };
 
   // Grade
