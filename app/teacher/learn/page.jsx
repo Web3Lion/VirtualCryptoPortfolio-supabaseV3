@@ -71,15 +71,47 @@ export default function TeacherLearn() {
 
   useEffect(() => { fetchModules(); }, [fetchModules]);
 
+  const [importing, setImporting] = useState(false);
+
   const flash = (text, ok = true) => { setMsg({ text, ok }); setTimeout(() => setMsg(null), 3500); };
 
   const seedSample = async () => {
     setSeeding(true);
     const res = await fetch("/api/admin/migrate-learn", { method: "POST" });
     const d = await res.json();
-    if (d.success) { flash("Sample module seeded!"); fetchModules(); }
+    if (d.success) { flash(d.results ? `Modules seeded: ${d.results.map(r => r.module).join(", ")}` : "Modules seeded!"); fetchModules(); }
     else flash(d.error || "Seed failed", false);
     setSeeding(false);
+  };
+
+  const importJSON = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    e.target.value = "";
+    setImporting(true);
+    try {
+      const json = JSON.parse(await file.text());
+      const lessons = json.lessons || [];
+      const moduleTitle = json.moduleTitle;
+      if (!moduleTitle || !lessons.length) { flash("JSON must have moduleTitle and lessons[]", false); setImporting(false); return; }
+      let ok = 0, skip = 0, fail = 0;
+      for (const lesson of lessons) {
+        const res = await fetch("/api/teacher/learn/import", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ moduleTitle, lesson }),
+        });
+        const d = await res.json();
+        if (res.status === 409) skip++;
+        else if (d.success) ok++;
+        else fail++;
+      }
+      flash(`Imported ${ok} lesson(s)${skip ? `, ${skip} skipped (already exist)` : ""}${fail ? `, ${fail} failed` : ""}`);
+      fetchModules();
+    } catch {
+      flash("Invalid JSON file", false);
+    }
+    setImporting(false);
   };
 
   const togglePublish = async (type, id, current) => {
@@ -257,13 +289,20 @@ export default function TeacherLearn() {
         )}
 
         {/* Controls */}
-        <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap", alignItems: "center" }}>
           <button className="btn btn-primary" onClick={() => setShowNewModule(true)} disabled={dbReady === false}>
             + New Module
           </button>
           <button className="btn btn-ghost" onClick={seedSample} disabled={seeding || dbReady === false}>
-            {seeding ? "Seeding..." : "Seed Sample Module"}
+            {seeding ? "Seeding..." : "Seed 4 Modules"}
           </button>
+          <label style={{ cursor: importing || dbReady === false ? "not-allowed" : "pointer", opacity: importing || dbReady === false ? 0.5 : 1 }}>
+            <input type="file" accept=".json" onChange={importJSON} style={{ display: "none" }} disabled={importing || dbReady === false} />
+            <span className="btn btn-ghost" style={{ pointerEvents: "none" }}>
+              {importing ? "Importing..." : "⬆ Import JSON"}
+            </span>
+          </label>
+          <span style={{ fontSize: 10, color: "var(--muted)" }}>Upload a module JSON from /content/learn/</span>
         </div>
 
         {/* New module form */}

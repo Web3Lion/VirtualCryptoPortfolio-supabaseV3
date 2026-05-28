@@ -75,138 +75,28 @@ export async function GET() {
   return Response.json({ ready: !error, sql: error ? SETUP_SQL : null });
 }
 
-// Seed the sample "Blockchain Basics" module
+// Seed the 4 module shells (lessons imported separately via /api/teacher/learn/import)
 export async function POST(request) {
   const session = await getServerSession(authOptions);
   if (!session) return Response.json({ error: 'Not authenticated' }, { status: 401 });
 
-  // Check tables exist first
   const { error: checkErr } = await db.from('learn_modules').select('id').limit(1);
   if (checkErr) return Response.json({ error: 'Tables not created yet. Run the SQL first.', sql: SETUP_SQL }, { status: 503 });
 
-  // Avoid re-seeding
-  const { data: existing } = await db.from('learn_modules').select('id').eq('title', 'Blockchain Basics').single();
-  if (existing) return Response.json({ success: true, note: 'Already seeded' });
-
-  // ── Create module ──────────────────────────────────────────
-  const { data: mod } = await db.from('learn_modules').insert({
-    title: 'Blockchain Basics',
-    description: 'Learn the foundational concepts that power every cryptocurrency network.',
-    emoji: '⛓️',
-    order_index: 1,
-    is_published: true,
-  }).select().single();
-
-  // ── Create lesson ──────────────────────────────────────────
-  const { data: lesson } = await db.from('learn_lessons').insert({
-    module_id: mod.id,
-    title: 'Proof of Work vs Proof of Stake',
-    description: 'Understand the two most important consensus mechanisms in crypto — and why Ethereum switched.',
-    order_index: 1,
-    tokens_reward: 50,
-    pass_threshold: 75,
-    questions_to_show: 4,
-    is_published: true,
-  }).select().single();
-
-  // ── Create content blocks ──────────────────────────────────
-  const blocks = [
-    { block_type: 'heading',    order_index: 1,  content: { text: 'How Do Blockchains Agree?' } },
-    { block_type: 'text',       order_index: 2,  content: { text: 'A blockchain has thousands of computers around the world — none of which trust each other. To add a new block of transactions, they all need to agree on what happened. The rules they use to reach that agreement is called a **consensus mechanism**. The two dominant approaches are Proof of Work (PoW) and Proof of Stake (PoS).' } },
-    { block_type: 'subheading', order_index: 3,  content: { text: '⛏️ Proof of Work (PoW)' } },
-    { block_type: 'text',       order_index: 4,  content: { text: 'In PoW, computers called **miners** race to solve a complex mathematical puzzle. The first to solve it earns the right to add the next block and receives a reward in cryptocurrency. Bitcoin still uses PoW today.\n\n**Key properties:**\n- Requires enormous computing power (and electricity)\n- The difficulty adjusts so a block is found roughly every 10 minutes\n- An attacker would need 51% of all mining power to cheat — making it extremely expensive to attack' } },
-    { block_type: 'subheading', order_index: 5,  content: { text: '🪙 Proof of Stake (PoS)' } },
-    { block_type: 'text',       order_index: 6,  content: { text: 'In PoS, participants called **validators** lock up ("stake") their own cryptocurrency as collateral. The network randomly selects a validator to add the next block — the more you stake, the higher your chance. Ethereum switched from PoW to PoS in September 2022 in an event called **The Merge**.\n\n**Key properties:**\n- Uses ~99.95% less energy than PoW\n- Validators risk losing their staked coins if they cheat (called "slashing")\n- Lower barrier to entry than buying mining hardware' } },
-    { block_type: 'video',      order_index: 7,  content: { url: 'https://www.youtube.com/watch?v=M3EFi_POhps', title: 'Proof of Work vs Proof of Stake — Explained', description: 'A clear visual breakdown of both consensus mechanisms and how they compare.' } },
-    { block_type: 'subheading', order_index: 8,  content: { text: '⚖️ Side-by-Side Comparison' } },
-    { block_type: 'text',       order_index: 9,  content: { text: '| | Proof of Work | Proof of Stake |\n|---|---|---|\n| **Used by** | Bitcoin | Ethereum, Cardano, Solana |\n| **Energy use** | Very high | Very low |\n| **Security** | Computational power | Economic stake |\n| **Barrier to entry** | Expensive hardware | Own cryptocurrency |\n| **Block reward** | Mining reward | Staking reward |' } },
-    { block_type: 'article',    order_index: 10, content: { url: 'https://ethereum.org/en/developers/docs/consensus-mechanisms/', title: 'Consensus Mechanisms — Ethereum.org', description: 'The official Ethereum documentation explaining PoW, PoS, and why the network transitioned. Thorough and beginner-friendly.' } },
+  const MODULES = [
+    { title: 'Blockchain Basics',        description: 'Learn the foundational concepts that power every cryptocurrency network.',         emoji: '⛓️', order_index: 1 },
+    { title: 'Crypto Markets',           description: 'Understand how crypto markets work — prices, liquidity, exchanges, and cycles.',    emoji: '📈', order_index: 2 },
+    { title: 'Trading Strategies',       description: 'From buying the dip to technical analysis — build a real trading toolkit.',         emoji: '🎯', order_index: 3 },
+    { title: 'Risk & Portfolio Mgmt',    description: 'Protect your capital with position sizing, stop losses, and diversification.',       emoji: '🛡️', order_index: 4 },
   ];
 
-  await db.from('learn_blocks').insert(blocks.map(b => ({ ...b, lesson_id: lesson.id })));
-
-  // ── Create quiz questions (6 — system shows 4 randomly) ───
-  const questions = [
-    {
-      question_text: 'Which consensus mechanism does Bitcoin use?',
-      explanation: 'Bitcoin uses Proof of Work. Miners compete to solve puzzles to add new blocks.',
-      order_index: 1,
-      options: [
-        { option_text: 'Proof of Stake', is_correct: false },
-        { option_text: 'Proof of Work', is_correct: true },
-        { option_text: 'Proof of Authority', is_correct: false },
-        { option_text: 'Delegated Proof of Stake', is_correct: false },
-      ],
-    },
-    {
-      question_text: 'What do miners compete to do in Proof of Work?',
-      explanation: 'Miners race to solve a cryptographic puzzle. The winner adds the next block and earns a reward.',
-      order_index: 2,
-      options: [
-        { option_text: 'Stake the most cryptocurrency', is_correct: false },
-        { option_text: 'Solve a complex mathematical puzzle first', is_correct: true },
-        { option_text: 'Hold coins for the longest time', is_correct: false },
-        { option_text: 'Vote on which transactions are valid', is_correct: false },
-      ],
-    },
-    {
-      question_text: 'What event marked Ethereum\'s switch from PoW to PoS?',
-      explanation: 'Ethereum\'s transition to Proof of Stake in September 2022 was called "The Merge."',
-      order_index: 3,
-      options: [
-        { option_text: 'The Ethereum Fork', is_correct: false },
-        { option_text: 'The Genesis Block', is_correct: false },
-        { option_text: 'The Merge', is_correct: true },
-        { option_text: 'The Upgrade', is_correct: false },
-      ],
-    },
-    {
-      question_text: 'What happens to a validator\'s stake if they try to cheat in PoS?',
-      explanation: 'Validators who act dishonestly can have their staked coins destroyed — this is called "slashing."',
-      order_index: 4,
-      options: [
-        { option_text: 'They are banned permanently', is_correct: false },
-        { option_text: 'Nothing — the network just ignores them', is_correct: false },
-        { option_text: 'Their staked coins are destroyed (slashed)', is_correct: true },
-        { option_text: 'They lose their validator license', is_correct: false },
-      ],
-    },
-    {
-      question_text: 'Approximately how much less energy does Proof of Stake use compared to Proof of Work?',
-      explanation: 'Ethereum\'s switch to PoS reduced its energy consumption by approximately 99.95%.',
-      order_index: 5,
-      options: [
-        { option_text: '~50% less', is_correct: false },
-        { option_text: '~75% less', is_correct: false },
-        { option_text: '~90% less', is_correct: false },
-        { option_text: '~99.95% less', is_correct: true },
-      ],
-    },
-    {
-      question_text: 'In Proof of Stake, what increases a validator\'s chance of being chosen to add the next block?',
-      explanation: 'Validators are selected randomly, but a larger stake gives a higher probability of selection.',
-      order_index: 6,
-      options: [
-        { option_text: 'Faster internet connection', is_correct: false },
-        { option_text: 'More powerful computer hardware', is_correct: false },
-        { option_text: 'Staking more cryptocurrency', is_correct: true },
-        { option_text: 'Being an early adopter of the network', is_correct: false },
-      ],
-    },
-  ];
-
-  for (const q of questions) {
-    const { data: question } = await db.from('learn_questions').insert({
-      lesson_id: lesson.id,
-      question_text: q.question_text,
-      explanation: q.explanation,
-      order_index: q.order_index,
-    }).select().single();
-
-    await db.from('learn_options').insert(
-      q.options.map((o, i) => ({ question_id: question.id, option_text: o.option_text, is_correct: o.is_correct, order_index: i }))
-    );
+  const results = [];
+  for (const m of MODULES) {
+    const { data: existing } = await db.from('learn_modules').select('id').eq('title', m.title).maybeSingle();
+    if (existing) { results.push({ module: m.title, status: 'already exists' }); continue; }
+    const { data: created, error } = await db.from('learn_modules').insert({ ...m, is_published: false }).select().single();
+    results.push({ module: m.title, status: error ? `error: ${error.message}` : 'created', id: created?.id });
   }
 
-  return Response.json({ success: true, moduleId: mod.id, lessonId: lesson.id });
+  return Response.json({ success: true, results });
 }
