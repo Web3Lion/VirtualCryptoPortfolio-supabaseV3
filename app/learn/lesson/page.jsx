@@ -5,6 +5,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import ThemeToggle from "@/components/ThemeToggle";
 import { applyTheme, getTheme } from "@/lib/theme";
+import dynamic from "next/dynamic";
+
+const CryptoCrossword = dynamic(() => import("./games/CryptoCrossword"), { ssr: false });
+const WordSearch      = dynamic(() => import("./games/WordSearch"),       { ssr: false });
+const MatchingGame    = dynamic(() => import("./games/MatchingGame"),     { ssr: false });
+const Flashcards      = dynamic(() => import("./games/Flashcards"),       { ssr: false });
+const EmojiDecode     = dynamic(() => import("./games/EmojiDecode"),      { ssr: false });
 
 function bold(text) {
   return text.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
@@ -129,6 +136,8 @@ function LessonPage() {
   const [answers, setAnswers] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [results, setResults] = useState(null);
+  const [gameCompleted, setGameCompleted] = useState(false);
+  const [gameTokens, setGameTokens] = useState(0);
 
   useEffect(() => { applyTheme(getTheme()); }, []);
   useEffect(() => { if (status === "unauthenticated") router.replace("/"); }, [status, router]);
@@ -148,6 +157,18 @@ function LessonPage() {
       setLoading(false);
     }).catch(() => setLoading(false));
   }, [status, lessonId]);
+
+  const completeGame = useCallback(async () => {
+    if (!classId || gameCompleted) return;
+    const res = await fetch("/api/learn/lesson/complete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ lessonId, classId }),
+    });
+    const data = await res.json();
+    setGameCompleted(true);
+    setGameTokens(data.tokensAwarded || 0);
+  }, [lessonId, classId, gameCompleted]);
 
   const submitQuiz = useCallback(async () => {
     if (!classId) return;
@@ -243,14 +264,47 @@ function LessonPage() {
             </div>
 
             {/* Phase: content */}
-            {phase === "content" && (
+            {phase === "content" && (() => {
+              const gameBlock = blocks.find(b => b.block_type === "game_config");
+              const gameType  = gameBlock?.content?.game;
+              const contentBlocks = blocks.filter(b => b.block_type !== "game_config");
+
+              const GAMES = { crossword: CryptoCrossword, wordsearch: WordSearch, matching: MatchingGame, flashcard: Flashcards, emoji_decode: EmojiDecode };
+              const GameComponent = gameType ? GAMES[gameType] : null;
+
+              return (
               <>
-                <div className="card">
-                  {blocks.map(b => <ContentBlock key={b.id} block={b} />)}
-                  {blocks.length === 0 && (
+                {/* Intro content blocks (if any) */}
+                {contentBlocks.length > 0 && (
+                  <div className="card" style={{ marginBottom: 16 }}>
+                    {contentBlocks.map(b => <ContentBlock key={b.id} block={b} />)}
+                  </div>
+                )}
+
+                {/* Game */}
+                {GameComponent && (
+                  <div className="card">
+                    <GameComponent config={gameBlock.content} completed={gameCompleted} onComplete={completeGame} />
+                    {gameCompleted && (
+                      <div style={{ marginTop: 20, background: "rgba(0,229,160,.1)", border: "1px solid rgba(0,229,160,.3)", borderRadius: 14, padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+                        <div>
+                          <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 15, color: "var(--accent)" }}>🎉 Lesson complete!</div>
+                          {gameTokens > 0 && <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 2 }}>+{gameTokens} tokens earned</div>}
+                        </div>
+                        <Link href="/learn" className="btn" style={{ background: "var(--accent)", color: "#000", textDecoration: "none", padding: "10px 20px", borderRadius: 10, fontSize: 12, fontWeight: 700 }}>
+                          ← Back to modules
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Regular quiz CTA (only if no game block) */}
+                {!GameComponent && (
+                  <div className="card" style={{ marginBottom: 0 }}>
+                  {!gameBlock && blocks.length === 0 && (
                     <div style={{ color: "#475569", fontSize: 13, padding: "20px 0" }}>No content yet.</div>
                   )}
-                </div>
 
                 <div style={{ background: questions.length > 0 ? "linear-gradient(135deg,rgba(0,229,160,.12),rgba(59,130,246,.08))" : "var(--surface)", border: `1px solid ${questions.length > 0 ? "rgba(0,229,160,.3)" : "var(--border)"}`, borderRadius: 20, padding: "24px 28px", marginTop: 16, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
                   <div>
@@ -269,8 +323,11 @@ function LessonPage() {
                     </button>
                   )}
                 </div>
+                  </div>
+                )}
               </>
-            )}
+              );
+            })()}
 
             {/* Phase: quiz */}
             {phase === "quiz" && (

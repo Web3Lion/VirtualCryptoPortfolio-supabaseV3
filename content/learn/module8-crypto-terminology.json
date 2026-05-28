@@ -1,0 +1,154 @@
+{
+  "moduleTitle": "Crypto Terminology",
+  "emoji": "🗣️",
+  "order_index": 8,
+  "description": "Master crypto slang, abbreviations, and street terms every crypto student needs to know — through crosswords, word hunts, and more.",
+  "lessons": [
+    {
+      "title": "Crossword: Crypto Street Slang",
+      "description": "Solve the crossword using the clues below. Every answer is a real term used in crypto communities.",
+      "order_index": 1,
+      "tokens_reward": 30,
+      "pass_threshold": 70,
+      "questions_to_show": 0,
+      "is_published": true,
+      "blocks": [
+        {
+          "block_type": "game_config",
+          "order_index": 1,
+          "content": {
+            "game": "crossword",
+            "grid_size": 13,
+            "placed": [
+              { "word": "FOMO",  "clue": "The anxiety of missing out on a big price move (abbr.)",      "row": 1, "col": 1, "dir": "across", "number": 1 },
+              { "word": "MOON",  "clue": "When a coin's price shoots dramatically upward",               "row": 1, "col": 3, "dir": "down",   "number": 2 },
+              { "word": "SHILL", "clue": "To aggressively hype a coin, often because you own it",       "row": 1, "col": 8, "dir": "down",   "number": 3 },
+              { "word": "WHALE", "clue": "An investor who holds a massive amount of cryptocurrency",    "row": 4, "col": 5, "dir": "across", "number": 4 },
+              { "word": "HODL",  "clue": "A legendary typo that became a strategy: never sell",         "row": 5, "col": 1, "dir": "across", "number": 5 },
+              { "word": "REKT",  "clue": "When you've lost most of your investment (from 'wrecked')",   "row": 7, "col": 2, "dir": "across", "number": 6 },
+              { "word": "PUMP",  "clue": "A rapid, often artificial price spike",                       "row": 9, "col": 2, "dir": "across", "number": 7 },
+              { "word": "DUMP",  "clue": "A rapid price crash, usually after a pump",                   "row": 11, "col": 2, "dir": "across", "number": 8 }
+            ]
+          }
+        }
+      ],
+      "questions": []
+    },
+    {
+      "title": "Word Hunt: Market Mood Words",
+      "description": "Find all 8 crypto terms hidden in the grid. Each word has its definition shown — find the word that matches!",
+      "order_index": 2,
+      "tokens_reward": 30,
+      "pass_threshold": 70,
+      "questions_to_show": 0,
+      "is_published": true,
+      "blocks": [
+        {
+          "block_type": "game_config",
+          "order_index": 1,
+          "content": {
+            "game": "wordsearch",
+            "words": [
+              { "word": "FUD",      "definition": "Fear, Uncertainty, Doubt — negative info spread to crash prices" },
+              { "word": "BULLISH",  "definition": "Expecting prices to rise; optimistic about the market" },
+              { "word": "BEARISH",  "definition": "Expecting prices to fall; pessimistic about the market" },
+              { "word": "ATH",      "definition": "All-Time High — the highest price a coin has ever reached" },
+              { "word": "ATL",      "definition": "All-Time Low — the lowest price a coin has ever hit" },
+              { "word": "LAMBO",    "definition": "Symbol of crypto success ('when Lambo?' = 'when are we rich?')" },
+              { "word": "NGMI",     "definition": "Not Gonna Make It — said about bad decisions or lost causes" },
+              { "word": "WAGMI",    "definition": "We're All Gonna Make It — community optimism and solidarity" }
+            ]
+          }
+        }
+      ],
+      "questions": []
+    },
+    {
+      "title": "Match It: Crypto Essentials",
+      "description": "Connect each term on the left to its correct definition on the right. All 8 terms are fundamental to understanding crypto.",
+      "order_index": 3,
+      "tokens_reward": 30,
+      "pass_threshold": 70,
+      "questions_to_show": 0,
+      "is_published": true,
+      "blocks": [
+        {
+          "block_type": "game_config",
+          "order_index": 1,
+          "content": {
+            "game": "matching",
+            "pairs": [
+              { "term": "DYOR",       "definition": "Do Your Own Research — always verify before investing" },
+              { "term": "ALTCOIN",    "definition": "Any cryptocurrency that isn't Bitcoin" },
+              { "term": "SATOSHI",    "definition": "The smallest unit of Bitcoin (0.00000001 BTC)" },
+              { "term": "BLOCKCHAIN", "definition": "A distributed ledger that records transactions in linked blocks" },
+              { "term": "STAKING",    "definition": "Locking up crypto to help secure a network and earn rewards" },
+              { "term": "AIRDROP",    "definition": "Free tokens sent to wallet holders, usually as a promotion" },
+              { "term": "GAS FEE",    "definition": "The cost to process a transaction on the Ethereum network" },
+              { "term": "WALLET",     "definition": "Software or hardware that stores your private keys" }
+            ]
+          }
+        }
+      ],
+      "questions": []
+    },
+    {
+      "title": "Flashcards: DeFi & NFT Terms",
+      "description": "Flip each card to reveal the definition. Mark what you know and what to review — go through the full deck to complete the lesson.",
+      "order_index": 4,
+      "tokens_reward": 30,
+      "pass_threshold": 70,
+      "questions_to_show": 0,
+      "is_published": true,
+      "blocks": [
+        {
+          "block_type": "game_config",
+          "order_index": 1,
+          "content": {
+            "game": "flashcard",
+            "cards": [
+              { "term": "NFT",          "definition": "Non-Fungible Token — a unique digital asset on the blockchain. Unlike Bitcoin, no two NFTs are identical." },
+              { "term": "MINT",         "definition": "To create a new NFT or token on the blockchain for the first time — like printing a digital collectible." },
+              { "term": "BURN",         "definition": "Permanently removing tokens from circulation by sending them to an unspendable address — reduces supply." },
+              { "term": "DeFi",         "definition": "Decentralized Finance — financial services (lending, trading, earning) built on blockchains with no banks." },
+              { "term": "DEX",          "definition": "Decentralized Exchange — trade crypto directly from your wallet with no company holding your funds." },
+              { "term": "RUG PULL",     "definition": "A scam where developers launch a project, raise money, then disappear with all investor funds." },
+              { "term": "CEX",          "definition": "Centralized Exchange — a company-run crypto platform (like Coinbase) that holds your keys for you." },
+              { "term": "LIQUIDATION",  "definition": "When a leveraged position is automatically closed because your losses hit the maximum allowed limit." }
+            ]
+          }
+        }
+      ],
+      "questions": []
+    },
+    {
+      "title": "Emoji Decode: Advanced Crypto Terms",
+      "description": "Each emoji combo represents a crypto term. Decode all 8 to complete the lesson!",
+      "order_index": 5,
+      "tokens_reward": 30,
+      "pass_threshold": 70,
+      "questions_to_show": 0,
+      "is_published": true,
+      "blocks": [
+        {
+          "block_type": "game_config",
+          "order_index": 1,
+          "content": {
+            "game": "emoji_decode",
+            "items": [
+              { "emoji": "💎🙌",     "term": "DIAMOND HANDS", "hint": "Holding through the worst dips without selling",          "definition": "Holding your crypto no matter how much the price drops — refusing to sell during panic." },
+              { "emoji": "📄🙌",     "term": "PAPER HANDS",   "hint": "Selling too early when things get scary",                  "definition": "Selling your crypto at the first sign of a price drop — the opposite of diamond hands." },
+              { "emoji": "🏦💰",     "term": "MARKET CAP",    "hint": "Price × total supply of a coin",                          "definition": "The total value of a cryptocurrency — calculated as current price multiplied by circulating supply." },
+              { "emoji": "📈📉🎢",   "term": "VOLATILITY",    "hint": "How wildly a price swings up and down",                   "definition": "How dramatically and unpredictably a cryptocurrency's price changes over time." },
+              { "emoji": "⛏️💻🔗",  "term": "PROOF OF WORK", "hint": "Bitcoin uses this — miners solve puzzles",                 "definition": "A consensus mechanism where miners compete using computing power to validate transactions." },
+              { "emoji": "🪙🔒✅",   "term": "PROOF OF STAKE","hint": "Ethereum uses this — validators lock up coins",           "definition": "A consensus mechanism where validators stake their own crypto as collateral to validate transactions." },
+              { "emoji": "🐻📉",     "term": "BEAR MARKET",   "hint": "Prolonged price decline of 20%+ — opposite of bull run", "definition": "A sustained period of falling crypto prices, typically a decline of 20% or more from recent highs." },
+              { "emoji": "🤝⛓️✅",  "term": "CONSENSUS",     "hint": "How all the nodes in a network agree on what happened",   "definition": "The process by which all nodes in a blockchain network agree on the valid state of the ledger." }
+            ]
+          }
+        }
+      ],
+      "questions": []
+    }
+  ]
+}
