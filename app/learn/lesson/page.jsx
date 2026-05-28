@@ -6,6 +6,44 @@ import Link from "next/link";
 import ThemeToggle from "@/components/ThemeToggle";
 import { applyTheme, getTheme } from "@/lib/theme";
 
+function bold(text) {
+  return text.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+}
+
+function renderTextContent(text) {
+  const lines = text.split("\n");
+  const segments = [];
+  let i = 0;
+  while (i < lines.length) {
+    if (lines[i].trim().startsWith("|")) {
+      const tableLines = [];
+      while (i < lines.length && lines[i].trim().startsWith("|")) {
+        tableLines.push(lines[i]);
+        i++;
+      }
+      // Skip separator row (---|---|---)
+      const rows = tableLines.filter(r => !r.replace(/[\s|:-]/g, "").length === 0 && !/^[\s|:-]+$/.test(r));
+      const html = `<table style="border-collapse:collapse;width:100%;margin:12px 0;font-size:12px;overflow-x:auto;display:block">${
+        rows.map((row, ri) => {
+          const cells = row.split("|").slice(1, -1);
+          const tag = ri === 0 ? "th" : "td";
+          const bg = ri === 0 ? "background:#1a2235;" : ri % 2 === 0 ? "background:rgba(255,255,255,.02);" : "";
+          return `<tr>${cells.map(c => `<${tag} style="padding:10px 14px;border:1px solid #1e293b;text-align:left;${bg}white-space:nowrap">${bold(c.trim())}</${tag}>`).join("")}</tr>`;
+        }).join("")
+      }</table>`;
+      segments.push({ type: "table", html });
+    } else {
+      const textLines = [];
+      while (i < lines.length && !lines[i].trim().startsWith("|")) {
+        textLines.push(lines[i]);
+        i++;
+      }
+      segments.push({ type: "text", content: textLines.join("\n") });
+    }
+  }
+  return segments;
+}
+
 function ContentBlock({ block }) {
   const { block_type, content } = block;
 
@@ -16,23 +54,16 @@ function ContentBlock({ block }) {
     return <h3 style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 16, color: "var(--text)", margin: "20px 0 8px" }}>{content.text}</h3>;
   }
   if (block_type === "text") {
+    const segments = renderTextContent(content.text);
     return (
-      <div style={{ fontSize: 13, lineHeight: 1.8, color: "#cbd5e1", marginBottom: 12, whiteSpace: "pre-wrap" }}
-        dangerouslySetInnerHTML={{ __html: content.text
-          .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-          .replace(/\|(.+)\|/g, (match) => {
-            const rows = match.trim().split("\n").filter(r => r.includes("|"));
-            const trs = rows.map((row, i) => {
-              const cells = row.split("|").filter((_, j) => j > 0 && j < row.split("|").length - 1);
-              const tag = i === 0 ? "th" : "td";
-              const style = i === 0 ? "background:#1a2235;font-weight:700;" : "";
-              if (i === 1 && cells.every(c => /^[-\s]+$/.test(c))) return "";
-              return `<tr>${cells.map(c => `<${tag} style="padding:8px 12px;border:1px solid #1e293b;${style}">${c.trim()}</${tag}>`).join("")}</tr>`;
-            }).join("");
-            return `<table style="border-collapse:collapse;width:100%;margin:12px 0;font-size:12px">${trs}</table>`;
-          })
-        }}
-      />
+      <div style={{ marginBottom: 12 }}>
+        {segments.map((seg, i) =>
+          seg.type === "table"
+            ? <div key={i} style={{ overflowX: "auto", margin: "12px 0" }} dangerouslySetInnerHTML={{ __html: seg.html }} />
+            : <div key={i} style={{ fontSize: 13, lineHeight: 1.9, color: "#cbd5e1", whiteSpace: "pre-wrap" }}
+                dangerouslySetInnerHTML={{ __html: bold(seg.content) }} />
+        )}
+      </div>
     );
   }
   if (block_type === "divider") {
@@ -214,21 +245,31 @@ function LessonPage() {
 
             {/* Phase: content */}
             {phase === "content" && (
-              <div className="card">
-                {blocks.map(b => <ContentBlock key={b.id} block={b} />)}
-
-                {blocks.length === 0 && (
-                  <div style={{ color: "#475569", fontSize: 13, padding: "20px 0" }}>No content yet.</div>
-                )}
+              <>
+                <div className="card">
+                  {blocks.map(b => <ContentBlock key={b.id} block={b} />)}
+                  {blocks.length === 0 && (
+                    <div style={{ color: "#475569", fontSize: 13, padding: "20px 0" }}>No content yet.</div>
+                  )}
+                </div>
 
                 {questions.length > 0 && (
-                  <div style={{ marginTop: 28, paddingTop: 24, borderTop: "1px solid var(--border)", display: "flex", justifyContent: "flex-end" }}>
-                    <button className="btn btn-primary" onClick={() => setPhase("quiz")}>
+                  <div style={{ background: "linear-gradient(135deg,rgba(0,229,160,.12),rgba(59,130,246,.08))", border: "1px solid rgba(0,229,160,.3)", borderRadius: 20, padding: "24px 28px", marginTop: 16, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+                    <div>
+                      <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 16, color: "var(--text)", marginBottom: 4 }}>
+                        Ready to test your knowledge?
+                      </div>
+                      <div style={{ fontSize: 12, color: "#94a3b8" }}>
+                        {questions.length} question{questions.length !== 1 ? "s" : ""} · pass at {lesson?.pass_threshold || 75}%
+                        {lesson?.tokens_reward > 0 && ` · earn +${lesson.tokens_reward} tokens`}
+                      </div>
+                    </div>
+                    <button className="btn btn-primary" style={{ fontSize: 13, padding: "12px 28px", flexShrink: 0 }} onClick={() => setPhase("quiz")}>
                       Take Quiz →
                     </button>
                   </div>
                 )}
-              </div>
+              </>
             )}
 
             {/* Phase: quiz */}
