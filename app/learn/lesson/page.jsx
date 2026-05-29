@@ -13,6 +13,8 @@ const WordSearch      = dynamic(() => import("./games/WordSearch"),       { ssr:
 const MatchingGame    = dynamic(() => import("./games/MatchingGame"),     { ssr: false });
 const Flashcards      = dynamic(() => import("./games/Flashcards"),       { ssr: false });
 const EmojiDecode     = dynamic(() => import("./games/EmojiDecode"),      { ssr: false });
+const TrueFalse       = dynamic(() => import("./games/TrueFalse"),        { ssr: false });
+const SpeedRound      = dynamic(() => import("./games/SpeedRound"),       { ssr: false });
 
 function bold(text) {
   return text.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
@@ -140,6 +142,7 @@ function LessonPage() {
   const [gameCompleted, setGameCompleted] = useState(false);
   const [gameTokens, setGameTokens] = useState(0);
   const [earnedBadges, setEarnedBadges] = useState([]);
+  const [moduleComplete, setModuleComplete] = useState(null); // {title, emoji, tokensTotal}
 
   useEffect(() => { applyTheme(getTheme()); }, []);
   useEffect(() => { if (status === "unauthenticated") router.replace("/"); }, [status, router]);
@@ -171,6 +174,7 @@ function LessonPage() {
     setGameCompleted(true);
     setGameTokens(data.tokensAwarded || 0);
     if (data.newBadges?.length) setEarnedBadges(data.newBadges);
+    if (data.moduleComplete) setModuleComplete(data.moduleComplete);
   }, [lessonId, classId, gameCompleted]);
 
   const submitQuiz = useCallback(async () => {
@@ -186,6 +190,7 @@ function LessonPage() {
       setResults(data);
       setPhase("results");
       if (data.newBadges?.length) setEarnedBadges(data.newBadges);
+      if (data.passed && data.moduleComplete) setModuleComplete(data.moduleComplete);
     } finally {
       setSubmitting(false);
     }
@@ -260,7 +265,7 @@ function LessonPage() {
               const gameType  = gameBlock?.content?.game;
               const contentBlocks = blocks.filter(b => b.block_type !== "game_config");
 
-              const GAMES = { crossword: CryptoCrossword, wordsearch: WordSearch, matching: MatchingGame, flashcard: Flashcards, emoji_decode: EmojiDecode };
+              const GAMES = { crossword: CryptoCrossword, wordsearch: WordSearch, matching: MatchingGame, flashcard: Flashcards, emoji_decode: EmojiDecode, true_false: TrueFalse, speed_round: SpeedRound };
               const GameComponent = gameType ? GAMES[gameType] : null;
 
               return (
@@ -432,6 +437,68 @@ function LessonPage() {
         )}
       </div>
       <BadgeToast badgeIds={earnedBadges} />
+
+      {/* Module Complete Overlay */}
+      {moduleComplete && (
+        <ModuleCompleteOverlay
+          module={moduleComplete}
+          tokensTotal={(results?.tokensAwarded || 0) + gameTokens}
+          onDismiss={() => setModuleComplete(null)}
+        />
+      )}
     </>
   );
 }
+
+function ModuleCompleteOverlay({ module, tokensTotal, onDismiss }) {
+  const CONFETTI_COLORS = ['#f59e0b','#00e5a0','#3b82f6','#f43f5e','#8b5cf6','#fb923c','#06b6d4','#4ade80'];
+  const pieces = Array.from({ length: 32 }, (_, i) => ({
+    left:  ((i * 37 + 11) % 97) + '%',
+    delay: ((i * 73) % 20) * 0.1 + 's',
+    dur:   1.4 + ((i * 29) % 12) * 0.1 + 's',
+    color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
+    size:  6 + (i % 4) * 3,
+    shape: i % 3,
+  }));
+
+  return (
+    <>
+      <style>{`
+        @keyframes mc-fall{0%{opacity:1;transform:translateY(-10px) rotate(0deg)}100%{opacity:0;transform:translateY(110vh) rotate(600deg)}}
+        @keyframes mc-in{0%{opacity:0;transform:scale(.85) translateY(20px)}100%{opacity:1;transform:none}}
+      `}</style>
+      <div style={{ position:'fixed', inset:0, zIndex:9500, background:'rgba(0,0,0,.75)', display:'flex', alignItems:'center', justifyContent:'center', padding:20 }} onClick={onDismiss}>
+        {/* Confetti */}
+        {pieces.map((p, i) => (
+          <div key={i} style={{
+            position:'fixed', left:p.left, top:0, width:p.size, height:p.size,
+            borderRadius: p.shape===0 ? '50%' : p.shape===1 ? 2 : 0,
+            background: p.color, pointerEvents:'none',
+            animation: `mc-fall ${p.dur} ${p.delay} ease-in forwards`,
+          }}/>
+        ))}
+        {/* Card */}
+        <div style={{ background:'var(--surface)', border:'2px solid var(--accent)', borderRadius:24, padding:'40px 36px', maxWidth:400, width:'100%', textAlign:'center', animation:'mc-in .4s ease', position:'relative', zIndex:1 }} onClick={e => e.stopPropagation()}>
+          <div style={{ fontSize:56, marginBottom:12 }}>{module.emoji || '🏅'}</div>
+          <div style={{ fontSize:11, color:'var(--accent)', letterSpacing:3, textTransform:'uppercase', marginBottom:8 }}>Module Complete!</div>
+          <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:24, color:'var(--text)', marginBottom:8 }}>{module.title}</div>
+          {module.description && <div style={{ fontSize:13, color:'#94a3b8', marginBottom:16 }}>{module.description}</div>}
+          {tokensTotal > 0 && (
+            <div style={{ display:'inline-flex', alignItems:'center', gap:8, background:'rgba(0,229,160,.12)', border:'1px solid rgba(0,229,160,.3)', borderRadius:12, padding:'8px 18px', fontSize:14, fontWeight:700, color:'var(--accent)', marginBottom:20 }}>
+              +{tokensTotal} ClassReward Tokens earned
+            </div>
+          )}
+          <div style={{ display:'flex', gap:10, justifyContent:'center' }}>
+            <a href="/learn" style={{ flex:1, padding:'12px 0', borderRadius:12, background:'var(--accent)', color:'#000', fontWeight:700, fontSize:13, textDecoration:'none', display:'block' }}>
+              ← Back to Modules
+            </a>
+            <button onClick={onDismiss} style={{ flex:1, padding:'12px 0', borderRadius:12, background:'transparent', border:'1px solid var(--border)', color:'var(--muted)', fontWeight:600, fontSize:13, cursor:'pointer' }}>
+              Stay Here
+            </button>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+

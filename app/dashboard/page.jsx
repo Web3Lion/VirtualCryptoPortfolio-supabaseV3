@@ -205,6 +205,7 @@ export default function Dashboard() {
   const [marketStatus, setMarketStatus] = useState(null);
   const [activeMarketEvent, setActiveMarketEvent] = useState(null);
   const [classId, setClassId] = useState(null);
+  const [dailyChallenge, setDailyChallenge] = useState(null);
   const [watchlist, setWatchlist] = useState([]);
   const [watchForm, setWatchForm] = useState({
     coin: "",
@@ -261,6 +262,7 @@ export default function Dashboard() {
       if (meRes.ok) {
         const me = await meRes.json();
         setClassId(me?.classes?.[0]?.id);
+        if (me?.classes?.[0]?.id) fetchDailyChallenge(me.classes[0].id);
       }
     } catch (e) {
       console.error(e);
@@ -296,6 +298,13 @@ export default function Dashboard() {
       setRewardLessons(data.lessons || []);
       setRewardModules(data.modules || []);
     }
+  }, [classId]);
+
+  const fetchDailyChallenge = useCallback(async (cid) => {
+    const id = cid || classId;
+    if (!id) return;
+    const res = await fetch(`/api/daily-challenge?classId=${id}`);
+    if (res.ok) setDailyChallenge(await res.json());
   }, [classId]);
 
   const fetchRefreshStatus = useCallback(async () => {
@@ -406,6 +415,7 @@ export default function Dashboard() {
         });
         if (data.newBadge) setEarnedBadge(data.newBadge);
         if (data.tokensAwarded > 0) setTokensAwarded(data.tokensAwarded);
+        fetchDailyChallenge();
         setTradeForm((f) => ({ ...f, amount: "", reasoning: "" }));
         setTimeout(() => {
           fetchData();
@@ -779,6 +789,45 @@ export default function Dashboard() {
           </>
         ) : (
           <>
+            {/* Daily Challenge */}
+            {dailyChallenge?.challenge && (
+              <div style={{
+                background: dailyChallenge.claimed ? 'rgba(0,229,160,.07)' : 'var(--surface)',
+                border: `1px solid ${dailyChallenge.claimed ? 'rgba(0,229,160,.35)' : 'var(--border)'}`,
+                borderRadius: 16, padding: '14px 20px', marginBottom: 16,
+                display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap',
+              }}>
+                <span style={{ fontSize: 28, flexShrink: 0 }}>{dailyChallenge.challenge.emoji}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 9, color: 'var(--accent)', letterSpacing: 2, textTransform: 'uppercase', fontWeight: 700 }}>Daily Challenge</span>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text)' }}>{dailyChallenge.challenge.name}</span>
+                  </div>
+                  <div style={{ fontSize: 12, color: '#94a3b8' }}>{dailyChallenge.challenge.detail}</div>
+                  {!dailyChallenge.claimed && dailyChallenge.completion && (
+                    <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div style={{ width: 80, height: 4, background: 'var(--surface2)', borderRadius: 2, overflow: 'hidden' }}>
+                        <div style={{ width: `${Math.min(dailyChallenge.completion.progress / dailyChallenge.completion.target, 1) * 100}%`, height: '100%', background: 'var(--accent)', borderRadius: 2, transition: 'width .5s' }} />
+                      </div>
+                      <span style={{ fontSize: 11, color: '#94a3b8' }}>{dailyChallenge.completion.progress}/{dailyChallenge.completion.target}</span>
+                    </div>
+                  )}
+                </div>
+                <div style={{ flexShrink: 0, textAlign: 'right' }}>
+                  {dailyChallenge.claimed ? (
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent)' }}>✓ Complete!</div>
+                      <div style={{ fontSize: 11, color: '#94a3b8' }}>+{dailyChallenge.challenge.tokens} tokens</div>
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 600, background: 'rgba(0,229,160,.1)', padding: '4px 12px', borderRadius: 8, border: '1px solid rgba(0,229,160,.2)' }}>
+                      +{dailyChallenge.challenge.tokens} tokens
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             <div className="hero">
               <div className="hero-label">Total Portfolio Value</div>
               <div

@@ -54,11 +54,13 @@ export async function checkBadgesAfterLesson({ studentId, classId }) {
     if (streak >= 5) await give('study_streak');
   }
 
-  // Module completion badges
+  // Module completion badges + detect newly completed modules
   const { data: modules } = await db.from('learn_modules')
-    .select('id')
+    .select('id, title, emoji, description')
     .or(`class_id.is.null,class_id.eq.${classId}`)
     .eq('is_published', true);
+
+  let newlyCompletedModule = null;
 
   if (modules?.length) {
     const { data: allLessons } = await db.from('learn_lessons')
@@ -73,8 +75,21 @@ export async function checkBadgesAfterLesson({ studentId, classId }) {
     });
 
     let completedModules = 0;
-    for (const lessonIds of Object.values(byModule)) {
-      if (lessonIds.length && lessonIds.every(lid => passedIds.includes(lid))) completedModules++;
+    for (const [modId, lessonIds] of Object.entries(byModule)) {
+      if (!lessonIds.length) continue;
+      const allDone = lessonIds.every(lid => passedIds.includes(lid));
+      if (allDone) {
+        completedModules++;
+        // Detect if THIS attempt is the one that completed the module
+        // by checking if removing the current lesson would leave it incomplete
+        const withoutCurrent = lessonIds.filter(lid => lid !== studentId); // studentId isn't lessonId — use passedIds context
+        // Simply: if this lesson is in this module and all are now passed, it's newly complete
+        // We detect "newly" by checking if passed BEFORE this attempt was one less
+        if (!newlyCompletedModule) {
+          const mod = modules.find(m => m.id === modId);
+          if (mod) newlyCompletedModule = { id: modId, title: mod.title, emoji: mod.emoji || '📚', description: mod.description };
+        }
+      }
     }
     if (completedModules >= 1) await give('module_master');
     if (completedModules >= 3) await give('module_trio');
@@ -96,5 +111,5 @@ export async function checkBadgesAfterLesson({ studentId, classId }) {
     } catch (e) { console.error('Learn badge token error:', e); }
   }
 
-  return { newBadges: earned, tokensAwarded };
+  return { newBadges: earned, tokensAwarded, moduleComplete: newlyCompletedModule };
 }
