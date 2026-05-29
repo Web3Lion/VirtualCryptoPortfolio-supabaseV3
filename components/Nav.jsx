@@ -1,7 +1,8 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import ThemeToggle from './ThemeToggle';
+import { getCosmetic, applyCosmetic } from '@/lib/cosmetics';
 
 const LINKS = [
   { href: '/dashboard',          label: 'Wallet',      key: 'wallet' },
@@ -16,6 +17,7 @@ const LINKS = [
 
 export default function Nav({ active, right }) {
   const [open, setOpen] = useState(false);
+  useEffect(() => { applyCosmetic(getCosmetic()); }, []);
   return (
     <>
       <style>{`

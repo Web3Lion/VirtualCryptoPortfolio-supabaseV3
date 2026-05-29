@@ -4,9 +4,34 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Nav from "@/components/Nav";
 import { applyTheme, getTheme } from "@/lib/theme";
+import { COSMETIC_THEMES, setCosmetic, getCosmetic } from "@/lib/cosmetics";
 
-const CAT_LABELS = { cash: '💸 Cash Drops', flair: '✨ Leaderboard Flair', title: '🏷️ Profile Titles' };
-const CAT_ORDER = ['cash', 'flair', 'title'];
+const CAT_LABELS = { flair: '✨ Leaderboard Flair', title: '🏷️ Profile Titles', theme: '🎨 Portfolio Themes' };
+const CAT_ORDER  = ['theme', 'flair', 'title'];
+
+const THEME_SWATCHES = {
+  theme_gold:   ['#0c0800','#f59e0b','#fef3c7','#f59e0b','#ef4444'],
+  theme_arcade: ['#06000f','#ff00ff','#ffffff','#00ffcc','#ff0055'],
+  theme_dino:   ['#030c03','#4ade80','#dcfce7','#4ade80','#f87171'],
+};
+
+function ThemeSwatch({ id }) {
+  const [bg, accent, text, up, down] = THEME_SWATCHES[id] || [];
+  if (!bg) return null;
+  return (
+    <div style={{ display:'flex', gap:4, marginTop:8, alignItems:'center' }}>
+      <div style={{ width:28, height:28, borderRadius:6, background:bg, border:`2px solid ${accent}`, boxShadow:`0 0 8px ${accent}66`, flexShrink:0 }} />
+      <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
+        <div style={{ display:'flex', gap:3 }}>
+          {[accent, text, up, down].map((c, i) => (
+            <div key={i} style={{ width:14, height:14, borderRadius:3, background:c }} />
+          ))}
+        </div>
+        <div style={{ height:4, borderRadius:2, background:`linear-gradient(90deg,${accent},${up})`, width:60 }} />
+      </div>
+    </div>
+  );
+}
 
 export default function RewardsStore() {
   const { data: session, status } = useSession();
@@ -15,8 +40,9 @@ export default function RewardsStore() {
   const [loading, setLoading] = useState(true);
   const [buying, setBuying] = useState(null);
   const [flash, setFlash] = useState(null);
+  const [localTheme, setLocalTheme] = useState(null);
 
-  useEffect(() => { applyTheme(getTheme()); }, []);
+  useEffect(() => { applyTheme(getTheme()); setLocalTheme(getCosmetic()); }, []);
   useEffect(() => { if (status === 'unauthenticated') router.replace('/'); }, [status, router]);
 
   const load = () => {
@@ -37,25 +63,41 @@ export default function RewardsStore() {
       body: JSON.stringify({ classId: data.classId, itemId: item.id }),
     }).then(r => r.json()).catch(() => ({ error: 'Network error' }));
     setBuying(null);
-    if (res.error) { setFlash({ type: 'error', msg: res.error }); }
-    else {
-      setFlash({ type: 'success', msg: item.category === 'cash'
-        ? `+$${item.cashValue} added to your portfolio!`
-        : `${item.emoji} ${item.name} unlocked!` });
+    if (res.error) {
+      setFlash({ type: 'error', msg: res.error });
+    } else {
+      if (item.category === 'theme') {
+        setCosmetic(item.id);
+        setLocalTheme(item.id);
+        setFlash({ type: 'success', msg: `${item.emoji} ${item.name} theme applied!` });
+      } else {
+        setFlash({ type: 'success', msg: `${item.emoji} ${item.name} unlocked!` });
+      }
       load();
     }
     setTimeout(() => setFlash(null), 3500);
   };
 
+  const removeTheme = () => {
+    setCosmetic(null);
+    setLocalTheme(null);
+    applyTheme(getTheme());
+    setFlash({ type: 'success', msg: 'Theme removed — back to default.' });
+    setTimeout(() => setFlash(null), 2500);
+  };
+
   if (status === 'loading' || status === 'unauthenticated') {
-    return <div style={{ background: 'var(--bg,#080c14)', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted)' }}>Loading...</div>;
+    return <div style={{ background:'var(--bg,#080c14)', minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', color:'var(--muted)' }}>Loading...</div>;
   }
 
-  const items = data?.items || [];
-  const owned = data?.owned || [];
-  const balance = data?.balance || 0;
+  const items     = data?.items || [];
+  const owned     = data?.owned || [];
+  const balance   = data?.balance || 0;
+  const activeFlair = data?.activeFlair || null;
+  const serverTheme = data?.activeTheme || null;
+  const activeTheme = localTheme || serverTheme;
+
   const byCategory = CAT_ORDER.map(cat => ({ cat, items: items.filter(i => i.category === cat) })).filter(g => g.items.length);
-  const activeFlair = owned.find(id => id.startsWith('flair_'));
 
   return (
     <>
@@ -65,51 +107,52 @@ export default function RewardsStore() {
         :root{--bg:#080c14;--surface:#0f172a;--surface2:#1a2235;--border:#1e293b;--accent:#00e5a0;--text:#e2e8f0;--muted:#475569}
         body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;min-height:100vh}
         .page{max-width:960px;margin:0 auto;padding:24px 16px}
-        .balance-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:24px 28px;margin-bottom:28px;display:flex;align-items:center;gap:24px}
-        .balance-num{font-family:'Syne',sans-serif;font-weight:800;font-size:52px;color:var(--accent);line-height:1}
+        .balance-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:22px 28px;margin-bottom:28px;display:flex;align-items:center;gap:24px;flex-wrap:wrap}
+        .balance-num{font-family:'Syne',sans-serif;font-weight:800;font-size:48px;color:var(--accent);line-height:1}
         .cat-title{font-family:'Syne',sans-serif;font-weight:700;font-size:15px;margin-bottom:14px;color:var(--text)}
-        .store-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin-bottom:32px}
-        .store-card{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:10px;transition:all .2s;position:relative}
+        .store-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px;margin-bottom:32px}
+        .store-card{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:8px;transition:all .2s;position:relative}
         .store-card:hover{border-color:rgba(0,229,160,.3);box-shadow:0 0 20px rgba(0,229,160,.06)}
-        .store-card.owned{border-color:rgba(0,229,160,.4);background:rgba(0,229,160,.05)}
-        .store-card.active-flair{border-color:#f59e0b;background:rgba(245,158,11,.06)}
-        .store-emoji{font-size:36px;line-height:1}
+        .store-card.active-item{border-color:var(--accent);background:rgba(0,229,160,.06);box-shadow:0 0 18px rgba(0,229,160,.1)}
+        .store-emoji{font-size:34px;line-height:1}
         .store-name{font-family:'Syne',sans-serif;font-weight:700;font-size:14px}
-        .store-desc{font-size:11px;color:#94a3b8;line-height:1.5}
-        .store-price{font-size:13px;color:var(--accent);font-weight:600;margin-top:auto}
+        .store-desc{font-size:11px;color:#94a3b8;line-height:1.55;flex:1}
+        .store-price{font-size:12px;color:var(--accent);font-weight:600;margin-top:4px}
         .buy-btn{padding:9px 0;border-radius:10px;border:none;cursor:pointer;font-family:'DM Mono',monospace;font-size:12px;font-weight:600;letter-spacing:.5px;transition:all .2s;width:100%}
         .buy-btn.primary{background:rgba(0,229,160,.15);color:var(--accent);border:1px solid rgba(0,229,160,.3)}
-        .buy-btn.primary:hover:not(:disabled){background:rgba(0,229,160,.25)}
-        .buy-btn.disabled{background:var(--surface2);color:#475569;cursor:not-allowed;border:1px solid var(--border)}
-        .owned-badge{position:absolute;top:12px;right:12px;font-size:11px;padding:2px 8px;border-radius:20px;background:rgba(0,229,160,.15);color:#00e5a0;font-weight:600}
-        .active-badge{position:absolute;top:12px;right:12px;font-size:11px;padding:2px 8px;border-radius:20px;background:rgba(245,158,11,.2);color:#f59e0b;font-weight:600}
-        .flash{position:fixed;top:24px;right:24px;z-index:9999;padding:14px 20px;border-radius:14px;font-size:13px;font-weight:600;animation:toastIn .3s ease}
+        .buy-btn.primary:hover:not(:disabled){background:rgba(0,229,160,.28)}
+        .buy-btn.muted{background:var(--surface2);color:#94a3b8;border:1px solid var(--border)}
+        .buy-btn.muted:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+        .buy-btn.disabled{background:var(--surface2);color:#334155;cursor:not-allowed;border:1px solid var(--border)}
+        .active-pill{position:absolute;top:12px;right:12px;font-size:10px;padding:2px 8px;border-radius:20px;background:rgba(0,229,160,.2);color:#00e5a0;font-weight:700;letter-spacing:.5px}
+        .flash{position:fixed;top:24px;right:24px;z-index:9999;padding:14px 20px;border-radius:14px;font-size:13px;font-weight:600;animation:slideIn .3s ease;max-width:300px}
         .flash.success{background:rgba(0,229,160,.15);border:1px solid rgba(0,229,160,.4);color:#00e5a0}
         .flash.error{background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:#ef4444}
-        @keyframes toastIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
+        @keyframes slideIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
         .skeleton{background:linear-gradient(90deg,var(--surface) 25%,var(--surface2) 50%,var(--surface) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:12px}
         @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
       `}</style>
       <div className="page">
         <Nav active="store" />
 
-        <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 32, letterSpacing: -1, marginBottom: 4 }}>
-          🏪 <span style={{ color: 'var(--accent)' }}>Store</span>
+        <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:32, letterSpacing:-1, marginBottom:4 }}>
+          🏪 <span style={{ color:'var(--accent)' }}>Store</span>
         </div>
-        <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 24 }}>Spend your tokens on cash drops, flair, and profile titles</div>
+        <div style={{ fontSize:11, color:'#94a3b8', marginBottom:24 }}>Spend tokens on themes, flair, and titles — themes switch instantly across the whole app</div>
 
         {flash && <div className={`flash ${flash.type}`}>{flash.msg}</div>}
 
         {loading ? (
-          <div className="skeleton" style={{ height: 100, marginBottom: 24 }} />
+          <div className="skeleton" style={{ height:90, marginBottom:24 }} />
         ) : (
           <div className="balance-card">
             <div className="balance-num">{balance.toLocaleString()}</div>
-            <div>
-              <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 4 }}>tokens available</div>
-              {activeFlair && (
-                <div style={{ fontSize: 12, color: '#f59e0b', marginTop: 4 }}>
-                  Active flair: {items.find(i => i.id === activeFlair)?.emoji} {items.find(i => i.id === activeFlair)?.name}
+            <div style={{ flex:1 }}>
+              <div style={{ fontSize:11, color:'#94a3b8', marginBottom:6 }}>tokens available</div>
+              {activeTheme && COSMETIC_THEMES[activeTheme] && (
+                <div style={{ display:'flex', alignItems:'center', gap:10, marginTop:4 }}>
+                  <span style={{ fontSize:13 }}>{COSMETIC_THEMES[activeTheme].emoji} {COSMETIC_THEMES[activeTheme].name} theme active</span>
+                  <button onClick={removeTheme} style={{ fontSize:10, color:'#475569', background:'none', border:'1px solid #1e293b', borderRadius:6, padding:'2px 8px', cursor:'pointer' }}>Remove</button>
                 </div>
               )}
             </div>
@@ -117,32 +160,34 @@ export default function RewardsStore() {
         )}
 
         {loading ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 14 }}>
-            {[1,2,3,4,5,6].map(i => <div key={i} className="skeleton" style={{ height: 180 }} />)}
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(210px,1fr))', gap:14 }}>
+            {[1,2,3,4,5,6,7].map(i => <div key={i} className="skeleton" style={{ height:200 }} />)}
           </div>
         ) : byCategory.map(({ cat, items: catItems }) => (
           <div key={cat}>
             <div className="cat-title">{CAT_LABELS[cat] || cat}</div>
             <div className="store-grid">
               {catItems.map(item => {
-                const isOwned = owned.includes(item.id);
-                const isActiveFlair = item.category === 'flair' && activeFlair === item.id;
-                const canAfford = balance >= item.price;
-                const isBuying = buying === item.id;
+                const isActiveTheme  = item.category === 'theme'  && activeTheme  === item.id;
+                const isActiveFlair  = item.category === 'flair'  && activeFlair  === item.id;
+                const isAnyActive    = isActiveTheme || isActiveFlair;
+                const canAfford      = balance >= item.price;
+                const isBuying       = buying === item.id;
+                const btnLabel       = isBuying ? 'Applying...' : isAnyActive ? 'Active' : !canAfford ? 'Need more tokens' : item.category === 'theme' ? 'Apply Theme' : item.category === 'flair' ? (activeFlair ? 'Switch Flair' : 'Equip Flair') : 'Unlock';
                 return (
-                  <div key={item.id} className={`store-card${isActiveFlair ? ' active-flair' : isOwned ? ' owned' : ''}`}>
-                    {isActiveFlair && <span className="active-badge">Active</span>}
-                    {isOwned && !isActiveFlair && <span className="owned-badge">Owned</span>}
-                    <div className="store-emoji">{item.emoji}</div>
+                  <div key={item.id} className={`store-card${isAnyActive ? ' active-item' : ''}`}>
+                    {isAnyActive && <span className="active-pill">ACTIVE</span>}
+                    <span className="store-emoji">{item.emoji}</span>
                     <div className="store-name">{item.name}</div>
                     <div className="store-desc">{item.desc}</div>
-                    <div className="store-price">{item.price.toLocaleString()} tokens</div>
+                    {item.category === 'theme' && <ThemeSwatch id={item.id} />}
+                    <div className="store-price">{item.price.toLocaleString()} tokens{(item.category === 'flair' && activeFlair && !isActiveFlair) || (item.category === 'theme' && activeTheme && !isActiveTheme) ? ' (swap — old refunded)' : ''}</div>
                     <button
-                      className={`buy-btn ${!canAfford || isBuying ? 'disabled' : 'primary'}`}
-                      disabled={!canAfford || isBuying}
+                      className={`buy-btn ${isAnyActive ? 'muted' : !canAfford || isBuying ? 'disabled' : 'primary'}`}
+                      disabled={isAnyActive || !canAfford || isBuying}
                       onClick={() => buy(item)}
                     >
-                      {isBuying ? 'Buying...' : isActiveFlair ? 'Active' : isOwned && item.category !== 'cash' ? 'Buy Again' : !canAfford ? 'Not enough tokens' : 'Buy'}
+                      {btnLabel}
                     </button>
                   </div>
                 );
