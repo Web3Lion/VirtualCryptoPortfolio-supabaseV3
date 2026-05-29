@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import ThemeToggle from "@/components/ThemeToggle";
+import Nav from "@/components/Nav";
 import { applyTheme, getTheme } from "@/lib/theme";
 
 const fmtPrice = p => {
@@ -177,11 +177,6 @@ export default function Market() {
         :root{--bg:#080c14;--surface:#0f172a;--surface2:#1a2235;--border:#1e293b;--accent:#00e5a0;--up:#00e5a0;--down:#f43f5e;--text:#e2e8f0;--muted:#475569;--gold:#f59e0b}
         body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;min-height:100vh}
         .page{max-width:1400px;margin:0 auto;padding:24px 16px}
-        .nav{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;margin-bottom:28px;background:var(--surface);border:1px solid var(--border);border-radius:16px;flex-wrap:wrap;gap:10px}
-        .logo{font-family:'Syne',sans-serif;font-weight:800;font-size:16px}.logo span{color:var(--accent)}
-        .nav-links{display:flex;gap:8px;flex-wrap:wrap}
-        .nav-link{padding:6px 14px;border-radius:8px;font-size:11px;text-decoration:none;color:var(--muted);letter-spacing:1px;transition:all .2s;text-transform:uppercase}
-        .nav-link:hover{color:var(--accent)}.nav-link.active{background:rgba(128,200,128,.12);color:var(--accent);border:1px solid rgba(128,200,128,.2)}
         .card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:22px;margin-bottom:20px}
         .card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px}
         .card-title{font-family:'Syne',sans-serif;font-weight:700;font-size:16px;color:var(--text);margin:0}
@@ -214,22 +209,7 @@ export default function Market() {
       `}</style>
 
       <div className="page">
-        <nav className="nav">
-          <div className="logo">CRYPTO<span>CLASS</span></div>
-          <div className="nav-links">
-            <Link href="/dashboard" className="nav-link">Wallet</Link>
-            <Link href="/leaderboard" className="nav-link">Leaderboard</Link>
-            <a href="/market" className="nav-link active">Market</a>
-            <Link href="/news" className="nav-link">News</Link>
-            <Link href="/badges" className="nav-link">Badges</Link>
-            <Link href="/learn" className="nav-link">Learn</Link>
-            <Link href="/games/crypto-crush" className="nav-link">Crush</Link>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <ThemeToggle/>
-            {lastUpdated && <span className="update-badge">Updated {lastUpdated.toLocaleTimeString()}</span>}
-          </div>
-        </nav>
+        <Nav active="market" right={lastUpdated && <span style={{fontSize:10,color:'var(--muted)',fontSize:10}}>Updated {lastUpdated.toLocaleTimeString()}</span>} />
 
         <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 32, letterSpacing: -1, marginBottom: 4, color: 'var(--text)' }}>
           📈 <span style={{ color: 'var(--accent)' }}>Market</span>

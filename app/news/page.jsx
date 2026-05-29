@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Nav from "@/components/Nav";
 import { applyTheme, getTheme } from "@/lib/theme";
 
 const SOURCE_COLORS = {
@@ -89,11 +90,6 @@ export default function NewsPage() {
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
         body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;min-height:100vh}
         .page{max-width:1200px;margin:0 auto;padding:24px 16px}
-        .nav{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;margin-bottom:28px;background:var(--surface);border:1px solid var(--border);border-radius:16px;flex-wrap:wrap;gap:10px}
-        .logo{font-family:'Syne',sans-serif;font-weight:800;font-size:16px}.logo span{color:var(--accent)}
-        .nav-links{display:flex;gap:8px;flex-wrap:wrap}
-        .nav-link{padding:6px 14px;border-radius:8px;font-size:11px;text-decoration:none;color:var(--muted);letter-spacing:1px;transition:all .2s;text-transform:uppercase}
-        .nav-link:hover{color:var(--accent)}.nav-link.active{background:rgba(128,200,128,.15);color:var(--accent);border:1px solid rgba(128,200,128,.25)}
         .section-title{font-family:'Syne',sans-serif;font-weight:800;font-size:18px;letter-spacing:-0.5px;margin-bottom:16px;display:flex;align-items:center;gap:10px;color:var(--text)}
         .badge{font-size:10px;padding:3px 10px;border-radius:8px;font-family:'DM Mono',monospace;font-weight:500;letter-spacing:1px}
         .grid-featured{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px;margin-bottom:48px}
@@ -105,19 +101,7 @@ export default function NewsPage() {
       `}</style>
 
       <div className="page">
-        <nav className="nav">
-          <div className="logo">CRYPTO<span>CLASS</span></div>
-          <div className="nav-links">
-            <Link href="/dashboard" className="nav-link">Wallet</Link>
-            <Link href="/leaderboard" className="nav-link">Leaderboard</Link>
-            <Link href="/market" className="nav-link">Market</Link>
-            <a href="/news" className="nav-link active">News</a>
-            <Link href="/badges" className="nav-link">Badges</Link>
-            <Link href="/learn" className="nav-link">Learn</Link>
-            <Link href="/games/crypto-crush" className="nav-link">Crush</Link>
-          </div>
-          {lastUpdated && <span style={{fontSize:10,color:'var(--muted)'}}>Updated {lastUpdated.toLocaleTimeString()}</span>}
-        </nav>
+        <Nav active="news" />
 
         <div style={{fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:32,letterSpacing:-1,marginBottom:4,color:'var(--text)'}}>
           📰 Crypto <span style={{color:'var(--accent)'}}>News</span>

@@ -216,6 +216,7 @@ export default function TeacherCockpit() {
   const [lastRefresh, setLastRefresh] = useState(null);
   const [tick, setTick] = useState(0);
   const [selectedClass, setSelectedClass] = useState(null);
+  const [badgeData, setBadgeData] = useState(null);
 
   useEffect(() => { if (status === 'unauthenticated') router.replace('/'); }, [status, router]);
 
@@ -244,6 +245,12 @@ export default function TeacherCockpit() {
       return () => clearInterval(iv);
     }
   }, [status, selectedClass]);
+
+  useEffect(() => {
+    if (!selectedClass) return;
+    fetch(`/api/teacher/badges?classId=${selectedClass}`)
+      .then(r => r.json()).then(d => setBadgeData(d)).catch(() => {});
+  }, [selectedClass]);
 
   // Blinking clock tick
   useEffect(() => {
@@ -548,6 +555,44 @@ export default function TeacherCockpit() {
             }}>↻ REFRESH</button>
           </div>
         </div>
+
+        {/* ── Student Badge Board ── */}
+        {badgeData?.students?.length > 0 && (
+          <div style={{ marginTop: 20 }}>
+            <div className="section-label">STUDENT BADGE BOARD</div>
+            <div style={{ background: '#0a0f1a', border: '1px solid #1a1f2e', borderRadius: 16, padding: 16, overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: "'DM Mono',monospace" }}>
+                <thead>
+                  <tr>
+                    <th style={{ textAlign: 'left', fontSize: 9, color: '#374151', letterSpacing: '0.2em', padding: '6px 12px', borderBottom: '1px solid #1a1f2e' }}>STUDENT</th>
+                    <th style={{ textAlign: 'center', fontSize: 9, color: '#374151', letterSpacing: '0.2em', padding: '6px 12px', borderBottom: '1px solid #1a1f2e' }}>TOTAL</th>
+                    <th style={{ textAlign: 'left', fontSize: 9, color: '#374151', letterSpacing: '0.2em', padding: '6px 12px', borderBottom: '1px solid #1a1f2e' }}>BADGES EARNED</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...badgeData.students].sort((a, b) => b.badges.length - a.badges.length).map(s => (
+                    <tr key={s.id} style={{ borderBottom: '1px solid #111827' }}>
+                      <td style={{ padding: '8px 12px', fontSize: 11, color: '#e2e8f0', whiteSpace: 'nowrap' }}>{s.name}</td>
+                      <td style={{ padding: '8px 12px', textAlign: 'center', fontSize: 13, fontWeight: 700, color: s.badges.length > 0 ? '#00e5a0' : '#374151' }}>{s.badges.length}</td>
+                      <td style={{ padding: '8px 12px' }}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                          {s.badges.length === 0
+                            ? <span style={{ fontSize: 10, color: '#374151' }}>No badges yet</span>
+                            : s.badges.map(b => (
+                              <span key={b.badge_id} title={b.badge_id} style={{ fontSize: 14, lineHeight: 1 }}>
+                                {{'first_trade':'🥇','active_trader':'⚡','power_trader':'🔥','whale':'🐳','doubled_up':'💰','triple_threat':'🎰','first_profit':'🌱','ten_pct':'🚀','diamond_hands':'💎','to_the_moon':'🌕','portfolio_x2':'🔱','crash_survivor':'🌊','diversified':'🌈','sharpshooter':'🎯','sniper':'🏹','hodler':'🧘','stop_loss_pro':'✂️','bought_dip':'📉','sector_pro':'🗂️','sector_specialist':'🏆','analyst':'📝','researcher':'📖','due_diligence':'🔍','first_watch':'👀','serious_watch':'🎯','veteran_watch':'🔭','bull_rider':'🐂','flash_deal':'⚡','news_trader':'📰','bot_copycat':'🤖','patient_investor':'💤','eager_investor':'📅','fomo_investor':'😰','champion':'🏆','beat_the_bot':'🤖','most_improved':'📊','comeback_kid':'🔄','fee_conscious':'💸','signal_found':'📡','data_chef':'🍳','market_pulse':'💓','price_oracle':'🔮','omniscient':'🌐','first_lesson':'📚','lesson_five':'📖','lesson_fifteen':'🎓','perfect_score':'💯','quiz_ace':'🌟','speed_learner':'💨','study_streak':'🧠','module_master':'🗺️','module_trio':'🎖️','crypto_professor':'🎩','order_placed':'📋','order_sniper':'🎯','limit_master':'📊','order_hit':'✅','triple_trigger':'🔱','short_seller':'📉','patient_limit':'⏳','stacked_orders':'🃏','cut_bait':'✂️','crush_rookie':'🎮','crush_500':'💫','crush_1000':'🌊','crush_3000':'👑','crush_veteran':'🕹️','crush_daily_max':'⭐','crush_grinder':'🎰'}[b.badge_id] || '🏅'}
+                              </span>
+                            ))
+                          }
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         {/* Footer */}
         <div style={{ textAlign: 'center', marginTop: 14, fontSize: 9, color: '#1f2937', letterSpacing: '0.2em', fontFamily: "'DM Mono',monospace" }}>

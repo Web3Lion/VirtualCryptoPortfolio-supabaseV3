@@ -3,7 +3,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import ThemeToggle from "@/components/ThemeToggle";
+import Nav from "@/components/Nav";
+import BadgeToast from "@/components/BadgeToast";
 import { applyTheme, getTheme } from "@/lib/theme";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -95,6 +96,7 @@ export default function CryptoCrush() {
   const [pointsPerToken, setPPT]      = useState(100);
   const [claiming, setClaiming]       = useState(false);
   const [claimResult, setClaimResult] = useState(null);
+  const [earnedBadges, setEarnedBadges] = useState([]);
 
   // ── Game render state ──────────────────────────────────────────────────────
   const [cells, setCells]           = useState(() => makeBoard());   // 2-D array for rendering
@@ -279,6 +281,7 @@ export default function CryptoCrush() {
     const d = await res.json();
     setClaimResult(d);
     if (d.tokensAwarded > 0) setTokensToday(d.tokensToday ?? tokensToday);
+    if (d.newBadges?.length) setEarnedBadges(d.newBadges);
     setGameState("claimed");
     setClaiming(false);
     fetchDailyStatus(classId);
@@ -301,11 +304,6 @@ export default function CryptoCrush() {
         :root{--bg:#080c14;--surface:#0f172a;--surface2:#1a2235;--border:#1e293b;--accent:#00e5a0;--text:#e2e8f0;--muted:#475569}
         body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;min-height:100vh}
         .page{max-width:660px;margin:0 auto;padding:24px 16px}
-        .nav{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;margin-bottom:24px;background:var(--surface);border:1px solid var(--border);border-radius:16px;flex-wrap:wrap;gap:10px}
-        .logo{font-family:'Syne',sans-serif;font-weight:800;font-size:16px}.logo span{color:var(--accent)}
-        .nav-links{display:flex;gap:8px;flex-wrap:wrap}
-        .nav-link{padding:6px 14px;border-radius:8px;font-size:11px;text-decoration:none;color:var(--muted);letter-spacing:1px;transition:all .2s;text-transform:uppercase}
-        .nav-link:hover{color:var(--accent)}.nav-link.active{background:rgba(0,229,160,.12);color:var(--accent);border:1px solid rgba(0,229,160,.2)}
 
         /* Board */
         .board-wrap{position:relative}
@@ -353,20 +351,7 @@ export default function CryptoCrush() {
       `}</style>
 
       <div className="page">
-        {/* Nav */}
-        <nav className="nav">
-          <div className="logo">CRYPTO<span>CLASS</span></div>
-          <div className="nav-links">
-            <Link href="/dashboard" className="nav-link">Wallet</Link>
-            <Link href="/leaderboard" className="nav-link">Leaderboard</Link>
-            <Link href="/market" className="nav-link">Market</Link>
-            <Link href="/news" className="nav-link">News</Link>
-            <Link href="/badges" className="nav-link">Badges</Link>
-            <Link href="/learn" className="nav-link">Learn</Link>
-            <a href="/games/crypto-crush" className="nav-link active">Crush</a>
-          </div>
-          <ThemeToggle />
-        </nav>
+        <Nav active="crush" />
 
         {/* Header */}
         <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16, flexWrap:"wrap", gap:10 }}>
@@ -512,6 +497,7 @@ export default function CryptoCrush() {
           </div>
         </div>
       </div>
+      <BadgeToast badgeIds={earnedBadges} />
     </>
   );
 }

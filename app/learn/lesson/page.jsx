@@ -3,7 +3,8 @@ import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import ThemeToggle from "@/components/ThemeToggle";
+import Nav from "@/components/Nav";
+import BadgeToast from "@/components/BadgeToast";
 import { applyTheme, getTheme } from "@/lib/theme";
 import dynamic from "next/dynamic";
 
@@ -138,6 +139,7 @@ function LessonPage() {
   const [results, setResults] = useState(null);
   const [gameCompleted, setGameCompleted] = useState(false);
   const [gameTokens, setGameTokens] = useState(0);
+  const [earnedBadges, setEarnedBadges] = useState([]);
 
   useEffect(() => { applyTheme(getTheme()); }, []);
   useEffect(() => { if (status === "unauthenticated") router.replace("/"); }, [status, router]);
@@ -168,6 +170,7 @@ function LessonPage() {
     const data = await res.json();
     setGameCompleted(true);
     setGameTokens(data.tokensAwarded || 0);
+    if (data.newBadges?.length) setEarnedBadges(data.newBadges);
   }, [lessonId, classId, gameCompleted]);
 
   const submitQuiz = useCallback(async () => {
@@ -182,6 +185,7 @@ function LessonPage() {
       const data = await res.json();
       setResults(data);
       setPhase("results");
+      if (data.newBadges?.length) setEarnedBadges(data.newBadges);
     } finally {
       setSubmitting(false);
     }
@@ -202,11 +206,6 @@ function LessonPage() {
         :root{--bg:#080c14;--surface:#0f172a;--surface2:#1a2235;--border:#1e293b;--accent:#00e5a0;--text:#e2e8f0;--muted:#475569}
         body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;min-height:100vh}
         .page{max-width:760px;margin:0 auto;padding:24px 16px}
-        .nav{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;margin-bottom:28px;background:var(--surface);border:1px solid var(--border);border-radius:16px;flex-wrap:wrap;gap:10px}
-        .logo{font-family:'Syne',sans-serif;font-weight:800;font-size:16px}.logo span{color:var(--accent)}
-        .nav-links{display:flex;gap:8px;flex-wrap:wrap}
-        .nav-link{padding:6px 14px;border-radius:8px;font-size:11px;text-decoration:none;color:var(--muted);letter-spacing:1px;transition:all .2s;text-transform:uppercase}
-        .nav-link:hover{color:var(--accent)}.nav-link.active{background:rgba(0,229,160,.12);color:var(--accent);border:1px solid rgba(0,229,160,.2)}
         .card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:28px}
         .option-btn{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;cursor:pointer;font-family:'DM Mono',monospace;font-size:13px;color:var(--text);transition:all .2s;margin-bottom:8px}
         .option-btn:hover{border-color:var(--accent);background:rgba(0,229,160,.06)}
@@ -220,15 +219,7 @@ function LessonPage() {
         @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
       `}</style>
       <div className="page">
-        <nav className="nav">
-          <div className="logo">CRYPTO<span>CLASS</span></div>
-          <div className="nav-links">
-            <Link href="/dashboard" className="nav-link">Wallet</Link>
-            <Link href="/market" className="nav-link">Market</Link>
-            <Link href="/learn" className="nav-link active">Learn</Link>
-          </div>
-          <ThemeToggle />
-        </nav>
+        <Nav active="learn" />
 
         <div style={{ marginBottom: 20 }}>
           <Link href="/learn" style={{ fontSize: 11, color: "#475569", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}>
@@ -440,6 +431,7 @@ function LessonPage() {
           </>
         )}
       </div>
+      <BadgeToast badgeIds={earnedBadges} />
     </>
   );
 }

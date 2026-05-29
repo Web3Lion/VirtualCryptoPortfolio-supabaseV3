@@ -3,7 +3,8 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import ThemeToggle from "@/components/ThemeToggle";
+import Nav from "@/components/Nav";
+import BadgeToast from "@/components/BadgeToast";
 import { applyTheme, getTheme } from "@/lib/theme";
 
 const fmtUSD = (n) => {
@@ -614,11 +615,6 @@ export default function Dashboard() {
         :root{--bg:#080c14;--surface:#0f172a;--surface2:#1a2235;--border:#1e293b;--accent:#00e5a0;--up:#00e5a0;--down:#f43f5e;--text:#e2e8f0;--muted:#475569;--gold:#f59e0b}
         body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;min-height:100vh}
         .page{max-width:1100px;margin:0 auto;padding:24px 16px}
-        .nav{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;margin-bottom:28px;background:var(--surface);border:1px solid var(--border);border-radius:16px;}
-        .logo{font-family:'Syne',sans-serif;font-weight:800;font-size:16px}.logo span{color:var(--accent)}
-        .nav-links{display:flex;gap:8px}
-        .nav-link{padding:6px 14px;border-radius:8px;font-size:11px;text-decoration:none;color:var(--muted);letter-spacing:1px;transition:all .2s;text-transform:uppercase}
-        .nav-link:hover{color:var(--accent)}.nav-link.active{background:rgba(0,180,100,.12);color:var(--accent);border:1px solid rgba(0,180,100,.25)}
         .hero{background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:32px;margin-bottom:20px}
         .hero-label{font-size:10px;color:var(--muted);letter-spacing:3px;text-transform:uppercase;margin-bottom:8px}
         .hero-value{font-family:'Syne',sans-serif;font-weight:800;font-size:52px;letter-spacing:-2px;line-height:1;margin-bottom:8px}
@@ -696,41 +692,12 @@ export default function Dashboard() {
       `}</style>
 
       <div className="page">
-        <nav className="nav">
-          <div className="logo">
-            CRYPTO<span>CLASS</span>
-          </div>
-          <div className="nav-links">
-            <a href="/dashboard" className="nav-link active">
-              Wallet
-            </a>
-            <Link href="/leaderboard" className="nav-link">
-              Leaderboard
-            </Link>
-            <Link href="/market" className="nav-link">
-              Market
-            </Link>
-            <Link href="/news" className="nav-link">
-              News
-            </Link>
-            <Link href="/badges" className="nav-link">
-              Badges
-            </Link>
-            <Link href="/games/crypto-crush" className="nav-link">Crush</Link>
-            <Link href="/learn" className="nav-link">
-              Learn
-            </Link>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <ThemeToggle />
+        <Nav active="wallet" right={
+          <div style={{display:'flex',alignItems:'center',gap:6}}>
             <div className="nav-dot" />
-            <span
-              style={{ fontSize: 10, color: "var(--muted)", letterSpacing: 1 }}
-            >
-              LIVE
-            </span>
+            <span style={{fontSize:10,color:'var(--muted)',letterSpacing:1}}>LIVE</span>
           </div>
-        </nav>
+        } />
 
         {marketStatus?.frozen && (
           <div className="freeze-banner">🚫 {marketStatus.freezeReason}</div>
@@ -2462,52 +2429,7 @@ export default function Dashboard() {
         )}
       </div>
 
-      {earnedBadge && (
-        <div className="badge-toast">
-          <div style={{ fontSize: 24, marginBottom: 4 }}>🏅</div>
-          <div
-            style={{
-              fontFamily: "'Syne',sans-serif",
-              fontWeight: 700,
-              fontSize: 14,
-              color: "var(--gold)",
-            }}
-          >
-            Badge Earned!
-          </div>
-          <div style={{ fontSize: 12, color: "var(--text)", marginTop: 2 }}>
-            {BADGE_NAMES[earnedBadge] || earnedBadge}
-          </div>
-          {tokensAwarded > 0 && (
-            <div
-              style={{
-                fontSize: 12,
-                color: "var(--accent)",
-                marginTop: 6,
-                fontWeight: 600,
-              }}
-            >
-              🎁 +{tokensAwarded} ClassReward tokens
-            </div>
-          )}
-          <button
-            onClick={() => {
-              setEarnedBadge(null);
-              setTokensAwarded(0);
-            }}
-            style={{
-              marginTop: 8,
-              background: "none",
-              border: "none",
-              color: "var(--muted)",
-              cursor: "pointer",
-              fontSize: 11,
-            }}
-          >
-            dismiss
-          </button>
-        </div>
-      )}
+      <BadgeToast badgeIds={earnedBadge ? [earnedBadge] : []} />
     </>
   );
 }
