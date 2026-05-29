@@ -206,6 +206,7 @@ export default function Dashboard() {
   const [activeMarketEvent, setActiveMarketEvent] = useState(null);
   const [classId, setClassId] = useState(null);
   const [dailyChallenge, setDailyChallenge] = useState(null);
+  const [pieView, setPieView] = useState('coin');
   const [watchlist, setWatchlist] = useState([]);
   const [watchForm, setWatchForm] = useState({
     coin: "",
@@ -576,12 +577,17 @@ export default function Dashboard() {
   const totalPortVal = holdingsWithVal.reduce((s, h) => s + h.curVal, 0) + cash - totalBorrowed;
   const allSlices = [
     ...holdingsWithVal.filter(h => !h.isShort && h.curVal > 0).map((h) => ({
-      label: h.ticker,
-      value: h.curVal,
-      color: getCoinColor(h.ticker),
+      label: h.ticker, value: h.curVal, color: getCoinColor(h.ticker),
     })),
     { label: "Cash", value: cash, color: "#334155" },
   ].filter((s) => s.value > 0);
+
+  const SECTOR_COLORS_MAP = {'Layer 1':'#3b82f6','Layer 2':'#8b5cf6','DeFi':'#06b6d4','AI / Data':'#00e5a0','Gaming/NFT':'#f59e0b','Memecoin':'#f43f5e','Stablecoin':'#94a3b8','Exchange':'#f97316','Other':'#475569','Cash':'#334155'};
+  const getSectorLocal = sym => { const M={'Layer 1':['BTC','ETH','SOL','ADA','AVAX','DOT','ATOM','NEAR','ALGO','XRP','LTC','BCH','TON','APT','SUI','TRX','VET','HBAR','ICP','FIL','XLM'],'Layer 2':['MATIC','ARB','OP','IMX','STX'],'DeFi':['UNI','AAVE','MKR','CRV','LINK','COMP','GRT','INJ'],'AI / Data':['FET','RNDR','WLD','TAO'],'Gaming/NFT':['SAND','MANA','AXS'],'Memecoin':['DOGE','SHIB','PEPE','BONK','FLOKI','WIF'],'Stablecoin':['USDT','USDC','DAI'],'Exchange':['BNB','OKB']}; for(const[s,c] of Object.entries(M)) if(c.includes(sym?.toUpperCase())) return s; return 'Other'; };
+  const sectorSlicesRaw = {};
+  holdingsWithVal.filter(h => !h.isShort && h.curVal > 0).forEach(h => { const s = getSectorLocal(h.ticker); sectorSlicesRaw[s] = (sectorSlicesRaw[s] || 0) + h.curVal; });
+  if (cash > 0) sectorSlicesRaw['Cash'] = cash;
+  const sectorSlices = Object.entries(sectorSlicesRaw).filter(([,v]) => v > 0).sort((a,b) => b[1]-a[1]).map(([label, value]) => ({ label, value, color: SECTOR_COLORS_MAP[label] || '#475569' }));
   const availableCoins =
     Object.keys(prices).length > 0
       ? Object.keys(prices)
@@ -814,6 +820,11 @@ export default function Dashboard() {
                   )}
                 </div>
                 <div style={{ flexShrink: 0, textAlign: 'right' }}>
+                  {dailyChallenge.streak > 0 && (
+                    <div style={{ fontSize: 11, color: '#f97316', fontWeight: 700, marginBottom: 4 }}>
+                      🔥 {dailyChallenge.streak} day streak
+                    </div>
+                  )}
                   {dailyChallenge.claimed ? (
                     <div>
                       <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent)' }}>✓ Complete!</div>
@@ -1289,42 +1300,32 @@ export default function Dashboard() {
                   {allSlices.length === 0 ? (
                     <div className="empty">No allocation data yet.</div>
                   ) : (
-                    <div className="alloc-inner">
-                      <DonutChart slices={allSlices} total={totalPortVal} />
-                      <div className="legend">
-                        {allSlices.map((s, i) => (
-                          <div className="legend-row" key={i}>
-                            <div
-                              className="legend-dot"
-                              style={{ background: s.color }}
-                            />
-                            <div
-                              style={{
-                                flex: 1,
-                                fontSize: 11,
-                                color: "var(--text)",
-                              }}
-                            >
-                              {s.label}
-                            </div>
-                            <div
-                              style={{ fontSize: 11, color: "var(--muted)" }}
-                            >
-                              {((s.value / totalPortVal) * 100).toFixed(1)}%
-                            </div>
-                            <div
-                              style={{
-                                fontSize: 11,
-                                color: "var(--muted)",
-                                marginLeft: 4,
-                              }}
-                            >
-                              {fmtUSD(s.value)}
-                            </div>
-                          </div>
+                    <>
+                      <div style={{display:'flex',gap:4,marginBottom:16}}>
+                        {['coin','sector'].map(v => (
+                          <button key={v} onClick={() => setPieView(v)} style={{padding:'5px 14px',borderRadius:8,border:'1px solid var(--border)',background:pieView===v?'var(--accent)':'transparent',color:pieView===v?'#000':'var(--muted)',fontSize:11,fontFamily:"'DM Mono',monospace",cursor:'pointer',fontWeight:pieView===v?700:400,transition:'all .2s',textTransform:'uppercase',letterSpacing:1}}>
+                            {v === 'coin' ? 'By Coin' : 'By Sector'}
+                          </button>
                         ))}
                       </div>
-                    </div>
+                      <div className="alloc-inner">
+                        <DonutChart slices={pieView === 'sector' ? sectorSlices : allSlices} total={totalPortVal} />
+                        <div className="legend">
+                          {(pieView === 'sector' ? sectorSlices : allSlices).map((s, i) => (
+                            <div className="legend-row" key={i}>
+                              <div className="legend-dot" style={{ background: s.color }} />
+                              <div style={{ flex: 1, fontSize: 11, color: "var(--text)" }}>{s.label}</div>
+                              <div style={{ fontSize: 11, color: "var(--muted)" }}>
+                                {((s.value / totalPortVal) * 100).toFixed(1)}%
+                              </div>
+                              <div style={{ fontSize: 11, color: "var(--muted)", marginLeft: 4 }}>
+                                {fmtUSD(s.value)}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </>
                   )}
                 </div>
               </div>

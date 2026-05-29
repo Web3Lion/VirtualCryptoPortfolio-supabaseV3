@@ -21,6 +21,24 @@ function todayChallenge() {
 
 const today = () => new Date().toISOString().slice(0, 10);
 
+function prevDay(dateStr) {
+  const d = new Date(dateStr + 'T12:00:00Z');
+  d.setDate(d.getDate() - 1);
+  return d.toISOString().slice(0, 10);
+}
+
+function calcStreak(sortedDatesDesc, todayStr, claimedToday) {
+  if (!sortedDatesDesc.length) return 0;
+  let streak = 0;
+  // Start check from today if claimed, else from yesterday
+  let check = claimedToday ? todayStr : prevDay(todayStr);
+  for (const d of sortedDatesDesc) {
+    if (d === check) { streak++; check = prevDay(check); }
+    else if (d < check) break;
+  }
+  return streak;
+}
+
 async function checkCompletion(challenge, studentId, classId) {
   const start = `${today()}T00:00:00Z`;
   const end   = `${today()}T23:59:59Z`;
@@ -91,6 +109,12 @@ export async function GET(request) {
 
   const completion = await checkCompletion(challenge, student.id, classId);
 
+  // Fetch all past completions for streak calculation
+  const { data: allCompletions } = await db.from('class_reward_ledger')
+    .select('reason').eq('student_id', student.id).eq('class_id', classId)
+    .like('reason', 'daily_challenge:%').order('reason', { ascending: false });
+  const completionDates = [...new Set((allCompletions || []).map(c => c.reason.replace('daily_challenge:', '')))].sort().reverse();
+
   // Auto-award if conditions met and not yet claimed
   let justEarned = false;
   let tokensAwarded = 0;
@@ -104,16 +128,29 @@ export async function GET(request) {
         });
         justEarned = true;
         tokensAwarded = challenge.tokens;
+        // Add today to dates for streak calc
+        if (!completionDates.includes(today())) completionDates.unshift(today());
       }
     } catch {}
   }
 
+  const claimed = alreadyClaimed || justEarned;
+  const streak  = calcStreak(completionDates, today(), claimed);
+
+  // Award streak badges at milestones
+  if (justEarned && streak > 0) {
+    const awardBadge = async (id) => {
+      const { data: ex } = await db.from('badges').select('id').eq('student_id', student.id).eq('class_id', classId).eq('badge_id', id).single();
+      if (!ex) await db.from('badges').insert({ student_id: student.id, class_id: classId, badge_id: id, earned_at: new Date().toISOString() }).catch(() => {});
+    };
+    if (streak >= 3)  await awardBadge('streak_3');
+    if (streak >= 7)  await awardBadge('streak_7');
+    if (streak >= 14) await awardBadge('streak_14');
+    if (streak >= 30) await awardBadge('streak_30');
+  }
+
   return Response.json({
-    challenge,
-    completion,
-    claimed: alreadyClaimed || justEarned,
-    justEarned,
-    tokensAwarded,
-    date: today(),
+    challenge, completion, claimed, justEarned, tokensAwarded,
+    streak, date: today(),
   });
 }

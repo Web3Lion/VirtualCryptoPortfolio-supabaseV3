@@ -78,6 +78,11 @@ const ALL_BADGES = [
   {id:'patient_limit',  cat:'orders',     emoji:'⏳',name:'Patient Limit',     hint:'An order stays pending 24+ hours, then fires'},
   {id:'stacked_orders', cat:'orders',     emoji:'🃏',name:'Stacked',           hint:'Have 3+ active limit orders at once'},
   {id:'cut_bait',       cat:'orders',     emoji:'✂️',name:'Cut Bait',          hint:'Cancel a limit order — knowing when to quit counts'},
+  // Daily Challenge Streaks
+  {id:'streak_3',  cat:'streak', emoji:'🔥', name:'Hot Streak',       hint:'Complete the daily challenge 3 days in a row'},
+  {id:'streak_7',  cat:'streak', emoji:'🌟', name:'Week Warrior',      hint:'Complete the daily challenge 7 days in a row'},
+  {id:'streak_14', cat:'streak', emoji:'💪', name:'Fortnight Fighter', hint:'Complete the daily challenge 14 days in a row'},
+  {id:'streak_30', cat:'streak', emoji:'👑', name:'Monthly Master',    hint:'Complete the daily challenge 30 days in a row'},
   // Games (Crypto Crush)
   {id:'crush_rookie',   cat:'games',      emoji:'🎮',name:'Crush Rookie',      hint:'Play your first Crypto Crush game'},
   {id:'crush_500',      cat:'games',      emoji:'💫',name:'Match Maestro',     hint:'Score 500+ in a single Crush game'},
@@ -91,13 +96,13 @@ const ALL_BADGES = [
 const CAT_COLORS = {
   milestone:'#f59e0b', performance:'#00e5a0', strategy:'#3b82f6',
   learning:'#8b5cf6',  situational:'#f43f5e', simulation:'#06b6d4',
-  data:'#22d3ee',      curriculum:'#a78bfa',  orders:'#34d399',  games:'#fb923c',
+  data:'#22d3ee',      curriculum:'#a78bfa',  orders:'#34d399',  streak:'#f97316', games:'#fb923c',
 };
 
 const CAT_LABELS = {
   milestone:'Milestone', performance:'Performance', strategy:'Strategy',
   learning:'Learning',   situational:'Situational', simulation:'Simulation',
-  data:'Data Contributor', curriculum:'Curriculum', orders:'Limit Orders', games:'Games',
+  data:'Data Contributor', curriculum:'Curriculum', orders:'Limit Orders', streak:'Daily Streaks', games:'Games',
 };
 
 export default function Badges() {

@@ -301,7 +301,7 @@ export default function Leaderboard() {
                     return (
                       <div key={i} className={`podium-card ${i===0?'first':i===1?'second':'third'}`}>
                         <div style={{fontSize:32,marginBottom:8}}>{medals[i]}</div>
-                        <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:14,marginBottom:4}}>{s.name}</div>
+                        <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:14,marginBottom:4}}>{s.flair && <span style={{marginRight:4}}>{s.flair}</span>}{s.name}</div>
                         <div style={{fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:22,color:isPos?'var(--up)':'var(--down)',marginBottom:4}}>{fmtUSD(s.total)}</div>
                         <div style={{fontSize:12,fontWeight:500,color:isPos?'var(--up)':'var(--down)'}}>{fmtPct(ret)}</div>
                       </div>
@@ -326,7 +326,7 @@ export default function Leaderboard() {
                           <td>
                             <div style={{display:'flex',alignItems:'center',gap:8}}>
                               <div style={{width:8,height:8,borderRadius:'50%',background:color,flexShrink:0}}/>
-                              <div style={{fontFamily:"'Syne',sans-serif",fontWeight:600,fontSize:13}}>{s.isBot?'🤖 ':''}{s.name}</div>
+                              <div style={{fontFamily:"'Syne',sans-serif",fontWeight:600,fontSize:13}}>{s.isBot?'🤖 ':''}{s.flair && <span style={{marginRight:3}}>{s.flair}</span>}{s.name}</div>
                             </div>
                           </td>
                           <td style={{fontFamily:"'Syne',sans-serif",fontWeight:700}}>{fmtUSD(s.total)}</td>

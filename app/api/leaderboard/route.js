@@ -52,13 +52,22 @@ export async function GET(request) {
   // Get all portfolios, holdings, trades for this class
   const studentIds = students.map(s => s.id);
 
-  const [portfoliosRes, holdingsRes, tradesRes, pricesRes, snapshotsRes] = await Promise.all([
+  const FLAIR_EMOJI = { flair_star:'⭐', flair_fire:'🔥', flair_diamond:'💎', flair_crown:'👑' };
+
+  const [portfoliosRes, holdingsRes, tradesRes, pricesRes, snapshotsRes, flairRes] = await Promise.all([
     db.from('portfolios').select('student_id, cash, fees_paid').in('student_id', studentIds).eq('class_id', classId),
     db.from('holdings').select('student_id, coin, quantity, avg_buy_price').in('student_id', studentIds).eq('class_id', classId).gt('quantity', 0),
     db.from('trades').select('student_id, action, coin, gross_value, fee').in('student_id', studentIds).eq('class_id', classId),
     db.from('price_cache').select('symbol, price'),
     db.from('snapshots').select('student_id, total_value, created_at').in('student_id', studentIds).eq('class_id', classId).order('created_at', { ascending: true }),
+    db.from('class_reward_ledger').select('student_id, reason, created_at').in('student_id', studentIds).eq('class_id', classId).like('reason', 'store:flair_%').order('created_at', { ascending: false }),
   ]);
+
+  // Most recent flair per student (purchases have negative tokens implied by reason pattern + order)
+  const flairMap = {};
+  (flairRes.data || []).forEach(f => {
+    if (!flairMap[f.student_id]) flairMap[f.student_id] = FLAIR_EMOJI[f.reason.replace('store:', '')] || null;
+  });
 
   const portfolioMap = {};
   (portfoliosRes.data || []).forEach(p => { portfolioMap[p.student_id] = p; });
@@ -121,6 +130,7 @@ export async function GET(request) {
       sortinoRatio: calculateSortino(snapshotsByStudent[student.id] || []),
       maxDrawdown:  calculateMaxDrawdown(snapshotsByStudent[student.id] || []),
       winRate:      calculateWinRate(tradesByStudent[student.id] || []),
+      flair:        flairMap[student.id] || null,
     };
   });
 
