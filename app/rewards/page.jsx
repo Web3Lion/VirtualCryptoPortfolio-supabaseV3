@@ -138,7 +138,7 @@ export default function RewardsStore() {
         <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:32, letterSpacing:-1, marginBottom:4 }}>
           🏪 <span style={{ color:'var(--accent)' }}>Store</span>
         </div>
-        <div style={{ fontSize:11, color:'#94a3b8', marginBottom:24 }}>Spend tokens on themes, flair, and titles — themes switch instantly across the whole app</div>
+        <div style={{ fontSize:11, color:'#94a3b8', marginBottom:24 }}>Spend your ClassReward Tokens on themes, flair, and titles — themes switch instantly across the whole app</div>
 
         {flash && <div className={`flash ${flash.type}`}>{flash.msg}</div>}
 
@@ -148,7 +148,7 @@ export default function RewardsStore() {
           <div className="balance-card">
             <div className="balance-num">{balance.toLocaleString()}</div>
             <div style={{ flex:1 }}>
-              <div style={{ fontSize:11, color:'#94a3b8', marginBottom:6 }}>tokens available</div>
+              <div style={{ fontSize:11, color:'#94a3b8', marginBottom:6 }}>ClassReward Tokens available</div>
               {activeTheme && COSMETIC_THEMES[activeTheme] && (
                 <div style={{ display:'flex', alignItems:'center', gap:10, marginTop:4 }}>
                   <span style={{ fontSize:13 }}>{COSMETIC_THEMES[activeTheme].emoji} {COSMETIC_THEMES[activeTheme].name} theme active</span>
@@ -173,7 +173,7 @@ export default function RewardsStore() {
                 const isAnyActive    = isActiveTheme || isActiveFlair;
                 const canAfford      = balance >= item.price;
                 const isBuying       = buying === item.id;
-                const btnLabel       = isBuying ? 'Applying...' : isAnyActive ? 'Active' : !canAfford ? 'Need more tokens' : item.category === 'theme' ? 'Apply Theme' : item.category === 'flair' ? (activeFlair ? 'Switch Flair' : 'Equip Flair') : 'Unlock';
+                const btnLabel       = isBuying ? 'Applying...' : isAnyActive ? 'Active' : !canAfford ? 'Not enough ClassReward Tokens' : item.category === 'theme' ? 'Apply Theme' : item.category === 'flair' ? (activeFlair ? 'Switch Flair' : 'Equip Flair') : 'Unlock';
                 return (
                   <div key={item.id} className={`store-card${isAnyActive ? ' active-item' : ''}`}>
                     {isAnyActive && <span className="active-pill">ACTIVE</span>}
@@ -181,7 +181,7 @@ export default function RewardsStore() {
                     <div className="store-name">{item.name}</div>
                     <div className="store-desc">{item.desc}</div>
                     {item.category === 'theme' && <ThemeSwatch id={item.id} />}
-                    <div className="store-price">{item.price.toLocaleString()} tokens{(item.category === 'flair' && activeFlair && !isActiveFlair) || (item.category === 'theme' && activeTheme && !isActiveTheme) ? ' (swap — old refunded)' : ''}</div>
+                    <div className="store-price">{item.price.toLocaleString()} ClassReward Tokens{(item.category === 'flair' && activeFlair && !isActiveFlair) || (item.category === 'theme' && activeTheme && !isActiveTheme) ? ' (swap — old refunded)' : ''}</div>
                     <button
                       className={`buy-btn ${isAnyActive ? 'muted' : !canAfford || isBuying ? 'disabled' : 'primary'}`}
                       disabled={isAnyActive || !canAfford || isBuying}
