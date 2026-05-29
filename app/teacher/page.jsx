@@ -52,6 +52,9 @@ export default function Teacher() {
   const [moveStudent, setMoveStudent] = useState(null); // student object to move
   const [moveTargetClass, setMoveTargetClass] = useState('');
   const [backfilling, setBackfilling] = useState(false);
+  const [botConfig, setBotConfig] = useState({ enabled:false, strategy:'momentum', risk:'moderate', maxPositions:5, buyThreshold:2, takeProfit:15, stopLoss:10 });
+  const [botStats, setBotStats]   = useState(null);
+  const [botSaving, setBotSaving] = useState(false);
 
   useEffect(() => { applyTheme(getTheme()); }, []);
   useEffect(()=>{ if(status==='unauthenticated') router.replace('/'); },[status,router]);
@@ -96,6 +99,7 @@ export default function Teacher() {
             setClassCoins(Array.isArray(coins) ? coins : []);
           }
           if(rewardRes.ok) setRewardConfig(await rewardRes.json());
+          fetch(`/api/teacher/bot?classId=${active.id}`).then(r=>r.ok?r.json():null).then(d=>{ if(d){ setBotConfig(d.config); setBotStats(d.stats); } }).catch(()=>{});
         }
       }
       if(mktRes.ok) setMarketStatus(await mktRes.json());
@@ -247,6 +251,23 @@ export default function Teacher() {
     if(res.ok) setActionMsg({type:'success',msg:'✅ Trading settings saved'});
     else setActionMsg({type:'error',msg:'Failed to save'});
     setTradeSettingsSaving(false);
+    setTimeout(()=>setActionMsg(null),3000);
+  };
+
+  const saveBotConfig = async () => {
+    setBotSaving(true);
+    const res = await fetch('/api/teacher/bot',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...botConfig,classId:activeClass?.id})});
+    if(res.ok) setActionMsg({type:'success',msg:'✅ Bot settings saved'});
+    else setActionMsg({type:'error',msg:'Failed to save bot'});
+    setBotSaving(false);
+    setTimeout(()=>setActionMsg(null),3000);
+    fetch(`/api/teacher/bot?classId=${activeClass?.id}`).then(r=>r.ok?r.json():null).then(d=>{ if(d){ setBotStats(d.stats); } }).catch(()=>{});
+  };
+  const resetBot = async () => {
+    if(!confirm('Reset Satoshi Botomoto? This wipes all bot trades and restores its starting balance.')) return;
+    await fetch('/api/teacher/bot',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({classId:activeClass?.id,action:'reset'})});
+    fetch(`/api/teacher/bot?classId=${activeClass?.id}`).then(r=>r.ok?r.json():null).then(d=>{ if(d){ setBotStats(d.stats); } }).catch(()=>{});
+    setActionMsg({type:'success',msg:'🤖 Bot reset!'});
     setTimeout(()=>setActionMsg(null),3000);
   };
 
@@ -636,6 +657,85 @@ export default function Teacher() {
                     </div>
 
                     {/* Short Selling */}
+                    {/* ── Satoshi Botomoto ── */}
+                    <div className="ctrl-card" style={{gridColumn:'1/-1',border:'1px solid rgba(139,92,246,.4)',background:'rgba(139,92,246,.05)'}}>
+                      <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:16,flexWrap:'wrap'}}>
+                        <span style={{fontSize:28}}>🤖</span>
+                        <div>
+                          <div style={{fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:17,color:'#a78bfa'}}>Satoshi Botomoto</div>
+                          <div className="ctrl-desc" style={{marginTop:2}}>An AI trading bot that competes in your simulation — students earn the <strong>Beat The Bot</strong> badge by finishing above it.</div>
+                        </div>
+                        <div style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:10}}>
+                          <div className={`status-pill ${botConfig.enabled?'on':'off'}`}>{botConfig.enabled?'🟢 ACTIVE':'⚪ OFF'}</div>
+                          <button className={`btn ${botConfig.enabled?'btn-red':'btn-green'}`} style={{fontSize:11,padding:'5px 14px'}} onClick={()=>setBotConfig(c=>({...c,enabled:!c.enabled}))}>
+                            {botConfig.enabled?'Disable':'Enable Bot'}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))',gap:12,marginBottom:16}}>
+                        <div>
+                          <div className="form-label">Strategy</div>
+                          <select className="text-input" style={{marginBottom:0}} value={botConfig.strategy} onChange={e=>setBotConfig(c=>({...c,strategy:e.target.value}))}>
+                            <option value="momentum">📈 Momentum — top 24h gainers</option>
+                            <option value="contrarian">📉 Dip Hunter — biggest 24h losers</option>
+                            <option value="trend">🌊 Trend Follower — 1h+24h+7d all up</option>
+                            <option value="hodl">🧘 Crypto Turtle — HODL BTC/ETH/SOL</option>
+                            <option value="sector">🗂️ Sector Rotator — best sector's top coin</option>
+                          </select>
+                        </div>
+                        <div>
+                          <div className="form-label">Risk Level</div>
+                          <select className="text-input" style={{marginBottom:0}} value={botConfig.risk} onChange={e=>setBotConfig(c=>({...c,risk:e.target.value}))}>
+                            <option value="conservative">🛡️ Conservative (5% per trade)</option>
+                            <option value="moderate">⚖️ Moderate (15% per trade)</option>
+                            <option value="aggressive">🔥 Aggressive (30% per trade)</option>
+                          </select>
+                        </div>
+                        <div>
+                          <div className="form-label">Max Positions</div>
+                          <select className="text-input" style={{marginBottom:0}} value={botConfig.maxPositions} onChange={e=>setBotConfig(c=>({...c,maxPositions:parseInt(e.target.value)}))}>
+                            {[2,3,5,7,10].map(n=><option key={n} value={n}>{n} coins max</option>)}
+                          </select>
+                        </div>
+                        <div>
+                          <div className="form-label">Buy Signal (min 24h %)</div>
+                          <input className="text-input" style={{marginBottom:0}} type="number" step="0.5" min="0" max="20" value={botConfig.buyThreshold} onChange={e=>setBotConfig(c=>({...c,buyThreshold:parseFloat(e.target.value)||0}))} />
+                        </div>
+                        <div>
+                          <div className="form-label">Take Profit (%)</div>
+                          <input className="text-input" style={{marginBottom:0}} type="number" step="1" min="1" max="100" value={botConfig.takeProfit} onChange={e=>setBotConfig(c=>({...c,takeProfit:parseFloat(e.target.value)||10}))} />
+                        </div>
+                        <div>
+                          <div className="form-label">Stop Loss (%)</div>
+                          <input className="text-input" style={{marginBottom:0}} type="number" step="1" min="1" max="50" value={botConfig.stopLoss} onChange={e=>setBotConfig(c=>({...c,stopLoss:parseFloat(e.target.value)||10}))} />
+                        </div>
+                      </div>
+
+                      {botStats && (
+                        <div style={{background:'rgba(139,92,246,.1)',border:'1px solid rgba(139,92,246,.25)',borderRadius:12,padding:'12px 16px',marginBottom:14,display:'flex',gap:24,flexWrap:'wrap'}}>
+                          <div><div style={{fontSize:9,color:'#7c3aed',letterSpacing:'0.15em',textTransform:'uppercase',marginBottom:3}}>Portfolio</div><div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:16,color:botStats.returnPct>=0?'#00e5a0':'#f43f5e'}}>${Math.round(botStats.totalValue).toLocaleString()} <span style={{fontSize:11}}>{botStats.returnPct>=0?'+':''}{botStats.returnPct?.toFixed(1)}%</span></div></div>
+                          <div><div style={{fontSize:9,color:'#7c3aed',letterSpacing:'0.15em',textTransform:'uppercase',marginBottom:3}}>Cash</div><div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:16}}>${Math.round(botStats.cash).toLocaleString()}</div></div>
+                          <div><div style={{fontSize:9,color:'#7c3aed',letterSpacing:'0.15em',textTransform:'uppercase',marginBottom:3}}>Trades</div><div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:16}}>{botStats.tradeCount}</div></div>
+                          <div style={{flex:1}}>
+                            <div style={{fontSize:9,color:'#7c3aed',letterSpacing:'0.15em',textTransform:'uppercase',marginBottom:3}}>Holdings</div>
+                            <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+                              {botStats.holdings?.length ? botStats.holdings.map(h=>(
+                                <span key={h.coin} style={{fontSize:11,padding:'2px 8px',borderRadius:6,background:'rgba(139,92,246,.15)',color:h.pnlPct>=0?'#a78bfa':'#f87171'}}>
+                                  {h.coin} {h.pnlPct>=0?'+':''}{h.pnlPct?.toFixed(1)}%
+                                </span>
+                              )) : <span style={{fontSize:11,color:'#475569'}}>No holdings</span>}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="btn-row">
+                        <button className="btn btn-gold" onClick={saveBotConfig} disabled={botSaving}>{botSaving?'Saving...':'💾 Save Bot Settings'}</button>
+                        {botStats && <button className="btn btn-muted" style={{fontSize:11}} onClick={resetBot}>🔄 Reset Bot</button>}
+                      </div>
+                    </div>
+
                     <div className="ctrl-card">
                       <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:6}}>
                         <div className="ctrl-title" style={{marginBottom:0}}>📉 Short Selling</div>
