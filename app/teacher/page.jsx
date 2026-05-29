@@ -52,7 +52,7 @@ export default function Teacher() {
   const [moveStudent, setMoveStudent] = useState(null); // student object to move
   const [moveTargetClass, setMoveTargetClass] = useState('');
   const [backfilling, setBackfilling] = useState(false);
-  const [botConfig, setBotConfig] = useState({ enabled:false, strategy:'momentum', risk:'moderate', maxPositions:5, buyThreshold:2, takeProfit:15, stopLoss:10 });
+  const [botConfig, setBotConfig] = useState({ enabled:false, strategy:'momentum', risk:'moderate', maxPositions:5, buyThreshold:2, takeProfit:15, stopLoss:10, seedMoney:10000 });
   const [botStats, setBotStats]   = useState(null);
   const [botSaving, setBotSaving] = useState(false);
 
@@ -99,7 +99,7 @@ export default function Teacher() {
             setClassCoins(Array.isArray(coins) ? coins : []);
           }
           if(rewardRes.ok) setRewardConfig(await rewardRes.json());
-          fetch(`/api/teacher/bot?classId=${active.id}`).then(r=>r.ok?r.json():null).then(d=>{ if(d){ setBotConfig(d.config); setBotStats(d.stats); } }).catch(()=>{});
+          fetch(`/api/teacher/bot?classId=${active.id}`).then(r=>r.ok?r.json():null).then(d=>{ if(d){ setBotConfig({...d.config, seedMoney: d.config.seedMoney || d.stats?.seedMoney || 10000}); setBotStats(d.stats); } }).catch(()=>{});
         }
       }
       if(mktRes.ok) setMarketStatus(await mktRes.json());
@@ -703,12 +703,16 @@ export default function Teacher() {
                           <input className="text-input" style={{marginBottom:0}} type="number" step="0.5" min="0" max="20" value={botConfig.buyThreshold} onChange={e=>setBotConfig(c=>({...c,buyThreshold:parseFloat(e.target.value)||0}))} />
                         </div>
                         <div>
-                          <div className="form-label">Take Profit (%)</div>
+                          <div className="form-label">Take Profit % <span style={{color:'#475569',fontWeight:400}}>— sell when up this much</span></div>
                           <input className="text-input" style={{marginBottom:0}} type="number" step="1" min="1" max="100" value={botConfig.takeProfit} onChange={e=>setBotConfig(c=>({...c,takeProfit:parseFloat(e.target.value)||10}))} />
                         </div>
                         <div>
-                          <div className="form-label">Stop Loss (%)</div>
+                          <div className="form-label">Stop Loss % <span style={{color:'#475569',fontWeight:400}}>— sell when down this much</span></div>
                           <input className="text-input" style={{marginBottom:0}} type="number" step="1" min="1" max="50" value={botConfig.stopLoss} onChange={e=>setBotConfig(c=>({...c,stopLoss:parseFloat(e.target.value)||10}))} />
+                        </div>
+                        <div>
+                          <div className="form-label">Starting Balance ($) <span style={{color:'#475569',fontWeight:400}}>— bot's seed money</span></div>
+                          <input className="text-input" style={{marginBottom:0}} type="number" step="500" min="1000" max="1000000" value={botConfig.seedMoney||10000} onChange={e=>setBotConfig(c=>({...c,seedMoney:parseFloat(e.target.value)||10000}))} />
                         </div>
                       </div>
 

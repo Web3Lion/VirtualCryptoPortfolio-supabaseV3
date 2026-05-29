@@ -30,13 +30,15 @@ export async function GET(request) {
     buyThreshold:  parseFloat(cfg[botKey(classId,'BUY_THR')]) || 2,
     takeProfit:    parseFloat(cfg[botKey(classId,'TAKE_PROFIT')]) || 15,
     stopLoss:      parseFloat(cfg[botKey(classId,'STOP_LOSS')]) || 10,
+    seedMoney:     parseFloat(cfg[botKey(classId,'SEED')]) || null,
   };
 
   // Bot stats
   let stats = { cash: 0, totalValue: 0, returnPct: 0, tradeCount: 0, holdings: [] };
   try {
     const { data: cls } = await db.from('classes').select('seed_money').eq('id', classId).single();
-    const seedMoney = parseFloat(cls?.seed_money || 10000);
+    const classSeed = parseFloat(cls?.seed_money || 10000);
+    const seedMoney = config.seedMoney || classSeed;
     const { data: student } = await db.from('students').select('id').eq('email', BOT_EMAIL).single();
     if (student) {
       const [pRes, hRes, tRes, prRes] = await Promise.all([
@@ -79,8 +81,10 @@ export async function POST(request) {
   if (!classId) return Response.json({ error: 'classId required' }, { status: 400 });
 
   if (action === 'reset') {
+    const cfg2 = await getAllConfig();
     const { data: cls } = await db.from('classes').select('seed_money').eq('id', classId).single();
-    await resetBot(classId, cls?.seed_money || 10000);
+    const seed = parseFloat(cfg2[botKey(classId,'SEED')]) || parseFloat(cls?.seed_money || 10000);
+    await resetBot(classId, seed);
     return Response.json({ success: true, message: 'Bot portfolio reset' });
   }
 
@@ -92,6 +96,7 @@ export async function POST(request) {
   if (body.buyThreshold !== undefined) updates[botKey(classId,'BUY_THR')]     = String(body.buyThreshold);
   if (body.takeProfit   !== undefined) updates[botKey(classId,'TAKE_PROFIT')] = String(body.takeProfit);
   if (body.stopLoss     !== undefined) updates[botKey(classId,'STOP_LOSS')]   = String(body.stopLoss);
+  if (body.seedMoney    !== undefined) updates[botKey(classId,'SEED')]        = String(body.seedMoney);
   await setConfigs(updates);
 
   // If enabling bot, ensure student + portfolio exist
