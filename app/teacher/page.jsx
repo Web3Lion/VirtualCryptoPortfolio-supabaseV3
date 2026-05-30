@@ -429,6 +429,8 @@ export default function Teacher() {
             <Link href="/market" className="nav-link">Market</Link>
             <Link href="/news" className="nav-link">News</Link>
             <a href="/teacher" className="nav-link active">Teacher</a>
+            <Link href="/teacher/learn"   className="nav-link" style={{color:'#60a5fa',border:'1px solid rgba(96,165,250,.2)',background:'rgba(96,165,250,.06)'}}>📚 Lessons</Link>
+            <Link href="/teacher/schema"  className="nav-link" style={{color:'#a78bfa',border:'1px solid rgba(167,139,250,.2)',background:'rgba(167,139,250,.06)'}}>🗄️ Schema</Link>
             <Link href="/teacher/cockpit" className="nav-link" style={{color:'#f59e0b',border:'1px solid rgba(245,158,11,.2)',background:'rgba(245,158,11,.06)'}}>◈ Cockpit</Link>
           </div>
           <div style={{display:'flex',gap:8,alignItems:'center'}}>
