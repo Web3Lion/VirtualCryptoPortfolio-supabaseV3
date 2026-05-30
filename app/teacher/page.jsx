@@ -518,6 +518,7 @@ export default function Teacher() {
                         <div className="tools-label">Tools</div>
                         <div className="btn-row">
                           <button className="btn btn-accent" onClick={()=>router.push('/teacher/setup')}>+ New Class</button>
+                          <button className="btn btn-muted" onClick={()=>router.push('/teacher/schema')}>🗄️ DB Schema</button>
                           <button className="btn btn-muted" onClick={()=>router.push('/teacher/migrate')}>📦 Migrate from Sheets</button>
                           <button className="btn btn-muted" onClick={()=>router.push('/market')}>📈 Market & Heatmap</button>
                           <button className="btn btn-muted" onClick={()=>router.push('/news')}>📰 Student News Page</button>

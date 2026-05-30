@@ -1,0 +1,300 @@
+-- ============================================================
+-- CryptoClass — Full Database Schema
+-- Run this once in your Supabase SQL Editor to create all tables.
+-- All statements use IF NOT EXISTS / IF NOT EXISTS so it's safe
+-- to run multiple times (idempotent).
+-- ============================================================
+
+-- ── Core ─────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS students (
+  id         uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  name       text NOT NULL,
+  email      text UNIQUE NOT NULL,
+  is_bot     boolean DEFAULT false,
+  created_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS classes (
+  id         uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  name       text NOT NULL,
+  semester   text,
+  seed_money numeric(20,2) DEFAULT 10000,
+  trade_fee  numeric(5,4)  DEFAULT 0.005,
+  is_active  boolean DEFAULT true,
+  created_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS class_students (
+  class_id   uuid REFERENCES classes(id)  ON DELETE CASCADE,
+  student_id uuid REFERENCES students(id) ON DELETE CASCADE,
+  joined_at  timestamptz DEFAULT now(),
+  PRIMARY KEY (class_id, student_id)
+);
+
+CREATE TABLE IF NOT EXISTS portfolios (
+  student_id uuid REFERENCES students(id) ON DELETE CASCADE,
+  class_id   uuid REFERENCES classes(id)  ON DELETE CASCADE,
+  cash       numeric(20,8) DEFAULT 10000,
+  fees_paid  numeric(20,8) DEFAULT 0,
+  updated_at timestamptz DEFAULT now(),
+  PRIMARY KEY (student_id, class_id)
+);
+
+CREATE TABLE IF NOT EXISTS holdings (
+  id              uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  student_id      uuid REFERENCES students(id) ON DELETE CASCADE,
+  class_id        uuid REFERENCES classes(id)  ON DELETE CASCADE,
+  coin            text NOT NULL,
+  quantity        numeric(20,8) DEFAULT 0,
+  avg_buy_price   numeric(20,8) DEFAULT 0,
+  margin_borrowed numeric(20,8) DEFAULT 0,
+  updated_at      timestamptz DEFAULT now(),
+  UNIQUE (student_id, class_id, coin)
+);
+
+CREATE TABLE IF NOT EXISTS trades (
+  id          uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  student_id  uuid REFERENCES students(id) ON DELETE CASCADE,
+  class_id    uuid REFERENCES classes(id)  ON DELETE CASCADE,
+  action      text NOT NULL,
+  coin        text NOT NULL,
+  quantity    numeric(20,8),
+  price       numeric(20,8),
+  gross_value numeric(20,8),
+  fee         numeric(20,8),
+  cash_after  numeric(20,8),
+  reasoning   text,
+  created_at  timestamptz DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS trades_student_class_idx ON trades(student_id, class_id);
+
+CREATE TABLE IF NOT EXISTS snapshots (
+  id            uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  student_id    uuid REFERENCES students(id) ON DELETE CASCADE,
+  class_id      uuid REFERENCES classes(id)  ON DELETE CASCADE,
+  total_value   numeric(20,8),
+  cash          numeric(20,8),
+  snapshot_type text DEFAULT 'daily',
+  created_at    timestamptz DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS snapshots_student_class_idx ON snapshots(student_id, class_id, snapshot_type);
+
+-- ── Market data ───────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS price_cache (
+  symbol     text PRIMARY KEY,
+  price      numeric(20,8),
+  updated_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS class_coins (
+  id       uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  class_id uuid REFERENCES classes(id) ON DELETE CASCADE,
+  symbol   text NOT NULL,
+  gecko_id text,
+  name     text,
+  sector   text,
+  active   boolean DEFAULT true,
+  UNIQUE (class_id, symbol)
+);
+
+CREATE TABLE IF NOT EXISTS config (
+  key        text PRIMARY KEY,
+  value      text,
+  updated_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS watchlist (
+  id           uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  student_id   uuid REFERENCES students(id) ON DELETE CASCADE,
+  class_id     uuid REFERENCES classes(id)  ON DELETE CASCADE,
+  coin         text NOT NULL,
+  target_price numeric(20,8),
+  created_at   timestamptz DEFAULT now()
+);
+
+-- ── Invitations ───────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS invitations (
+  id          uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  class_id    uuid REFERENCES classes(id) ON DELETE CASCADE,
+  email       text NOT NULL,
+  name        text,
+  token       text UNIQUE,
+  accepted    boolean DEFAULT false,
+  accepted_at timestamptz,
+  created_at  timestamptz DEFAULT now()
+);
+
+-- ── Badges ────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS badges (
+  id         uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  student_id uuid REFERENCES students(id) ON DELETE CASCADE,
+  class_id   uuid REFERENCES classes(id)  ON DELETE CASCADE,
+  badge_id   text NOT NULL,
+  earned_at  timestamptz DEFAULT now(),
+  UNIQUE (student_id, class_id, badge_id)
+);
+
+-- ── News ─────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS news_articles (
+  id           uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  title        text,
+  url          text UNIQUE NOT NULL,
+  source       text,
+  summary      text,
+  image_url    text,
+  sentiment    text,
+  published_at timestamptz,
+  fetched_at   timestamptz DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS news_published_idx ON news_articles(published_at DESC);
+
+CREATE TABLE IF NOT EXISTS pushed_articles (
+  id          uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  article_id  uuid,
+  title       text,
+  url         text,
+  source      text,
+  image_url   text,
+  summary     text,
+  pushed_by   text,
+  is_manual   boolean DEFAULT false,
+  pushed_at   timestamptz DEFAULT now()
+);
+
+-- ── ClassReward Tokens ────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS class_reward_config (
+  class_id                uuid REFERENCES classes(id) ON DELETE CASCADE PRIMARY KEY,
+  enabled                 boolean DEFAULT false,
+  badge_reward_tokens     integer DEFAULT 50,
+  lesson_reward_tokens    integer DEFAULT 25,
+  crush_points_per_token  integer DEFAULT 100,
+  crush_max_tokens_per_day integer DEFAULT 50,
+  updated_at              timestamptz DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS class_reward_ledger (
+  id         uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  student_id uuid REFERENCES students(id) ON DELETE CASCADE,
+  class_id   uuid REFERENCES classes(id)  ON DELETE CASCADE,
+  tokens     integer NOT NULL,
+  reason     text,
+  created_at timestamptz DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS ledger_student_class_idx ON class_reward_ledger(student_id, class_id);
+
+-- ── Limit Orders ─────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS pending_orders (
+  id                   uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  student_id           uuid REFERENCES students(id) ON DELETE CASCADE,
+  class_id             uuid REFERENCES classes(id)  ON DELETE CASCADE,
+  coin                 text NOT NULL,
+  action               text NOT NULL,
+  amount               numeric(20,8) NOT NULL,
+  amount_type          text NOT NULL DEFAULT 'Dollar Amount',
+  limit_price          numeric(20,8) NOT NULL,
+  leverage_multiplier  numeric(5,2)  NOT NULL DEFAULT 1,
+  status               text NOT NULL DEFAULT 'pending',
+  reasoning            text,
+  created_at           timestamptz DEFAULT now(),
+  executed_at          timestamptz,
+  executed_price       numeric(20,8),
+  fail_reason          text
+);
+CREATE INDEX IF NOT EXISTS pending_orders_student_idx ON pending_orders(student_id, status);
+CREATE INDEX IF NOT EXISTS pending_orders_class_idx   ON pending_orders(class_id,   status);
+
+-- ── Staking ───────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS staking_positions (
+  id                   uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  student_id           uuid REFERENCES students(id) ON DELETE CASCADE,
+  class_id             uuid REFERENCES classes(id)  ON DELETE CASCADE,
+  coin                 text NOT NULL,
+  quantity             numeric(20,8) NOT NULL,
+  apy                  numeric(8,6)  NOT NULL,
+  lock_days            integer NOT NULL DEFAULT 0,
+  staked_at            timestamptz DEFAULT now(),
+  unlocks_at           timestamptz,
+  status               text NOT NULL DEFAULT 'active',
+  total_rewards_earned numeric(20,8) DEFAULT 0,
+  claimable_rewards    numeric(20,8) DEFAULT 0,
+  last_reward_at       timestamptz DEFAULT now(),
+  created_at           timestamptz DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS staking_student_class_idx ON staking_positions(student_id, class_id, status);
+CREATE INDEX IF NOT EXISTS staking_class_active_idx  ON staking_positions(class_id, status);
+
+CREATE TABLE IF NOT EXISTS staking_config (
+  class_id   uuid REFERENCES classes(id) ON DELETE CASCADE PRIMARY KEY,
+  enabled    boolean DEFAULT false,
+  updated_at timestamptz DEFAULT now()
+);
+
+-- ── Learning ─────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS learn_modules (
+  id           uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  class_id     uuid REFERENCES classes(id) ON DELETE CASCADE,
+  title        text NOT NULL,
+  description  text,
+  emoji        text DEFAULT '📚',
+  order_index  integer DEFAULT 0,
+  is_published boolean DEFAULT true,
+  created_at   timestamptz DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS learn_lessons (
+  id                uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  module_id         uuid NOT NULL,
+  title             text NOT NULL,
+  description       text,
+  order_index       integer DEFAULT 0,
+  tokens_reward     integer DEFAULT 25,
+  pass_threshold    integer DEFAULT 75,
+  questions_to_show integer DEFAULT 4,
+  is_published      boolean DEFAULT true,
+  created_at        timestamptz DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS learn_blocks (
+  id          uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  lesson_id   uuid NOT NULL,
+  block_type  text NOT NULL,
+  content     jsonb NOT NULL DEFAULT '{}',
+  order_index integer DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS learn_questions (
+  id            uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  lesson_id     uuid NOT NULL,
+  question_text text NOT NULL,
+  explanation   text,
+  order_index   integer DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS learn_options (
+  id          uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  question_id uuid NOT NULL,
+  option_text text NOT NULL,
+  is_correct  boolean DEFAULT false,
+  order_index integer DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS learn_attempts (
+  id           uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  student_id   uuid NOT NULL,
+  class_id     uuid NOT NULL,
+  lesson_id    uuid NOT NULL,
+  score        integer,
+  passed       boolean,
+  answers      jsonb,
+  completed_at timestamptz DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS learn_attempts_student_idx ON learn_attempts(student_id, class_id);
