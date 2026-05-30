@@ -223,5 +223,36 @@ export async function POST(request) {
     return Response.json({ success: true, isEarlyExit, paidOut });
   }
 
+  // ── CLAIM ALL ─────────────────────────────────────────────────────────────
+  // Sweeps every claimable and restaked position in one shot.
+  if (action === 'claim-all') {
+    const { data: positions } = await db.from('staking_positions').select('*')
+      .eq('student_id', student.id).eq('class_id', classId)
+      .in('status', ['claimable', 'restaked']);
+
+    if (!positions?.length) return Response.json({ error: 'Nothing to claim' }, { status: 400 });
+
+    let totalRewards = 0;
+    let coinsReturned = [];
+
+    for (const position of positions) {
+      const { data: priceData } = await db.from('price_cache').select('price').eq('symbol', position.coin).single();
+      const price = parseFloat(priceData?.price || 0);
+      const reward = parseFloat(position.claimable_rewards || 0);
+      totalRewards += reward;
+
+      if (position.status === 'claimable') {
+        await returnCoinsToHoldings(student.id, classId, position.coin, parseFloat(position.quantity), price);
+        coinsReturned.push({ coin: position.coin, quantity: parseFloat(position.quantity) });
+      }
+
+      await db.from('staking_positions').update({ status: 'completed' }).eq('id', position.id);
+    }
+
+    if (totalRewards > 0) await creditCash(student.id, classId, totalRewards);
+
+    return Response.json({ success: true, totalRewards, coinsReturned, count: positions.length });
+  }
+
   return Response.json({ error: 'Unknown action' }, { status: 400 });
 }

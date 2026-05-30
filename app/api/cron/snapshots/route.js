@@ -141,7 +141,8 @@ export async function POST(request) {
           last_reward_at: now.toISOString(),
         });
 
-        // Mark old position restaked — claimable_rewards stays for manual pickup
+        // Each missed cycle keeps its own restaked record so students can see
+        // per-period breakdowns. The UI provides a Claim All button to sweep them.
         await db.from('staking_positions').update({ status: 'restaked' }).eq('id', pos.id);
         stakingProcessed++;
       }

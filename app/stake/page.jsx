@@ -160,7 +160,9 @@ function UnclaimedRewardCard({ pos, onClaim, claiming }) {
       <span style={{ fontSize: 24 }}>{info.emoji || '🪙'}</span>
       <div style={{ flex: 1, minWidth: 120 }}>
         <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 13 }}>{pos.coin} Staking Rewards</div>
-        <div style={{ fontSize: 11, color: 'var(--muted)' }}>Auto-restaked · rewards waiting to be claimed</div>
+        <div style={{ fontSize: 11, color: 'var(--muted)' }}>
+          Period ending {new Date(pos.unlocks_at || pos.staked_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · auto-restaked
+        </div>
       </div>
       <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 18, color: '#00e5a0' }}>{fmtUSD(rewards)}</div>
       <button
@@ -238,6 +240,7 @@ export default function StakePage() {
   const [staking, setStaking] = useState(null);
   const [unstaking, setUnstaking] = useState(null);
   const [claiming, setClaiming] = useState(null);
+  const [claimingAll, setClaimingAll] = useState(false);
   const [flash, setFlash] = useState(null);
   const [activeTab, setActiveTab] = useState('all');
 
@@ -276,6 +279,24 @@ export default function StakePage() {
       if (res.coinsReturned) parts.push(`${fmt(pos.quantity, 4)} ${pos.coin} returned to wallet`);
       if (res.rewardCredited > 0) parts.push(`${fmtUSD(res.rewardCredited)} rewards added to cash`);
       showFlash('success', `⚡ Claimed! ${parts.join(' · ')}`);
+      load();
+    }
+  };
+
+  const handleClaimAll = async () => {
+    setClaimingAll(true);
+    const res = await fetch('/api/staking', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'claim-all', classId: data?.classId }),
+    }).then(r => r.json()).catch(() => ({ error: 'Network error' }));
+    setClaimingAll(false);
+    if (res.error) showFlash('error', res.error);
+    else {
+      const coinSummary = res.coinsReturned?.map(c => `${fmt(c.quantity, 4)} ${c.coin}`).join(', ');
+      const parts = [];
+      if (coinSummary) parts.push(coinSummary + ' returned');
+      if (res.totalRewards > 0) parts.push(fmtUSD(res.totalRewards) + ' rewards claimed');
+      showFlash('success', `⚡ Claimed all! ${parts.join(' · ')}`);
       load();
     }
   };
@@ -378,6 +399,27 @@ export default function StakePage() {
           </div>
         )}
 
+        {/* Claim All banner — shown whenever there are 2+ claimable/restaked items */}
+        {(claimable.length + restaked.length) >= 2 && (
+          <div style={{ background: 'rgba(0,229,160,.08)', border: '1px solid rgba(0,229,160,.35)', borderRadius: 16, padding: '14px 20px', marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+            <div>
+              <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 14, color: '#00e5a0' }}>
+                ⚡ {claimable.length + restaked.length} pending claims · {fmtUSD(totalClaimable)} total
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 3 }}>
+                Claim all at once, or pick individual periods below
+              </div>
+            </div>
+            <button
+              onClick={handleClaimAll}
+              disabled={claimingAll}
+              style={{ padding: '10px 24px', borderRadius: 12, border: 'none', background: '#00e5a0', color: '#000', fontFamily: "'DM Mono',monospace", fontSize: 13, fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap', opacity: claimingAll ? 0.7 : 1 }}
+            >
+              {claimingAll ? 'Claiming…' : `Claim All ${fmtUSD(totalClaimable)}`}
+            </button>
+          </div>
+        )}
+
         {/* 1. Ready to claim (most urgent, top of page) */}
         {claimable.length > 0 && (
           <>
@@ -396,7 +438,10 @@ export default function StakePage() {
         {/* 2. Unclaimed rewards from auto-restaked positions */}
         {restaked.length > 0 && (
           <>
-            <div className="section-title">💰 Unclaimed Rewards</div>
+            <div className="section-title">
+              💰 Unclaimed Rewards
+              {restaked.length > 1 && <span style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 400 }}> — {restaked.length} periods</span>}
+            </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 28 }}>
               {restaked.map(pos => (
                 <UnclaimedRewardCard key={pos.id} pos={pos} onClaim={handleClaim} claiming={claiming} />
