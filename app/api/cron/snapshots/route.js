@@ -81,65 +81,73 @@ export async function POST(request) {
       }
     }
 
-    // ── Distribute staking rewards ────────────────────────────────────────
-    let stakingRewards = 0;
+    // ── Staking: accumulate rewards, flip mature → claimable, auto-restake ──
+    let stakingProcessed = 0;
     try {
+      const GRACE_MS = 24 * 60 * 60 * 1000; // 24 h before auto-restake
+      const now = new Date();
+
+      // 1. Active positions: accumulate rewards; locked+mature → claimable
       const { data: activePositions } = await db.from('staking_positions')
         .select('*').eq('status', 'active');
 
-      if (activePositions?.length) {
-        const now = new Date();
-        for (const pos of activePositions) {
-          const price = priceMap[pos.coin] || 0;
-          if (!price) continue;
+      for (const pos of activePositions || []) {
+        const price = priceMap[pos.coin] || 0;
+        if (!price) continue;
 
-          const daysElapsed = (now - new Date(pos.last_reward_at)) / (1000 * 86400);
-          if (daysElapsed < 0.01) continue; // skip if rewarded very recently
+        const daysElapsed = (now - new Date(pos.last_reward_at)) / (1000 * 86400);
+        if (daysElapsed < 0.01) continue;
 
-          const reward = calcDailyReward(parseFloat(pos.quantity), price, parseFloat(pos.apy)) * daysElapsed;
+        const reward = calcDailyReward(parseFloat(pos.quantity), price, parseFloat(pos.apy)) * daysElapsed;
+        const newTotal = parseFloat(pos.total_rewards_earned) + reward;
+        const isMature = pos.unlocks_at && now >= new Date(pos.unlocks_at);
 
-          const isMature = pos.unlocks_at ? now >= new Date(pos.unlocks_at) : false;
-
-          if (isMature) {
-            // Auto-complete: return coins + final reward
-            const { data: existingHolding } = await db.from('holdings').select('quantity')
-              .eq('student_id', pos.student_id).eq('class_id', pos.class_id).eq('coin', pos.coin).single();
-            if (existingHolding) {
-              await db.from('holdings').update({ quantity: parseFloat(existingHolding.quantity) + parseFloat(pos.quantity) })
-                .eq('student_id', pos.student_id).eq('class_id', pos.class_id).eq('coin', pos.coin);
-            } else {
-              await db.from('holdings').insert({
-                student_id: pos.student_id, class_id: pos.class_id, coin: pos.coin,
-                quantity: parseFloat(pos.quantity), avg_price: price, margin_borrowed: 0,
-              });
-            }
-            await db.from('staking_positions').update({
-              status: 'completed',
-              total_rewards_earned: parseFloat(pos.total_rewards_earned) + reward,
-              last_reward_at: now.toISOString(),
-            }).eq('id', pos.id);
-          } else {
-            await db.from('staking_positions').update({
-              total_rewards_earned: parseFloat(pos.total_rewards_earned) + reward,
-              last_reward_at: now.toISOString(),
-            }).eq('id', pos.id);
-          }
-
-          // Credit reward to cash
-          if (reward > 0) {
-            const { data: portfolio } = await db.from('portfolios').select('cash')
-              .eq('student_id', pos.student_id).eq('class_id', pos.class_id).single();
-            if (portfolio) {
-              await db.from('portfolios').update({ cash: parseFloat(portfolio.cash) + reward })
-                .eq('student_id', pos.student_id).eq('class_id', pos.class_id);
-              stakingRewards++;
-            }
-          }
+        if (isMature) {
+          // Flip to claimable — do NOT touch holdings or cash; student must claim.
+          await db.from('staking_positions').update({
+            status: 'claimable',
+            total_rewards_earned: newTotal,
+            claimable_rewards: newTotal,
+            last_reward_at: now.toISOString(),
+          }).eq('id', pos.id);
+        } else {
+          // Still earning — accumulate only (no cash credit until claimed)
+          await db.from('staking_positions').update({
+            total_rewards_earned: newTotal,
+            last_reward_at: now.toISOString(),
+          }).eq('id', pos.id);
         }
+        stakingProcessed++;
+      }
+
+      // 2. Claimable positions past the grace window → auto-restake
+      const { data: claimablePositions } = await db.from('staking_positions')
+        .select('*').eq('status', 'claimable');
+
+      for (const pos of claimablePositions || []) {
+        if (!pos.unlocks_at) continue;
+        const pastGrace = now >= new Date(new Date(pos.unlocks_at).getTime() + GRACE_MS);
+        if (!pastGrace) continue;
+
+        // Create new identical staking position — coins never returned to holdings
+        await db.from('staking_positions').insert({
+          student_id: pos.student_id, class_id: pos.class_id,
+          coin: pos.coin, quantity: pos.quantity,
+          apy: pos.apy, lock_days: pos.lock_days,
+          staked_at: now.toISOString(),
+          unlocks_at: new Date(now.getTime() + pos.lock_days * 86400 * 1000).toISOString(),
+          status: 'active',
+          total_rewards_earned: 0, claimable_rewards: 0,
+          last_reward_at: now.toISOString(),
+        });
+
+        // Mark old position restaked — claimable_rewards stays for manual pickup
+        await db.from('staking_positions').update({ status: 'restaked' }).eq('id', pos.id);
+        stakingProcessed++;
       }
     } catch (_) { /* staking tables may not exist yet — skip silently */ }
 
-    return Response.json({ success: true, snapshotsCreated: total, stakingRewards });
+    return Response.json({ success: true, snapshotsCreated: total, stakingProcessed });
   } catch (e) {
     return Response.json({ error: e.message }, { status: 500 });
   }

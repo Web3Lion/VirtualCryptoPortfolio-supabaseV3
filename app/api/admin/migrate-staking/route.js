@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 
 const TEACHER_EMAIL = process.env.TEACHER_EMAIL;
 
+// No CHECK constraint on status so we can expand it freely without ALTER.
 const CREATE_SQL = `
 CREATE TABLE IF NOT EXISTS staking_positions (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -15,8 +16,9 @@ CREATE TABLE IF NOT EXISTS staking_positions (
   lock_days integer NOT NULL DEFAULT 0,
   staked_at timestamptz DEFAULT now(),
   unlocks_at timestamptz,
-  status text NOT NULL DEFAULT 'active' CHECK (status IN ('active','unstaked','completed')),
+  status text NOT NULL DEFAULT 'active',
   total_rewards_earned numeric(20,8) DEFAULT 0,
+  claimable_rewards numeric(20,8) DEFAULT 0,
   last_reward_at timestamptz DEFAULT now(),
   created_at timestamptz DEFAULT now()
 );
@@ -28,6 +30,10 @@ CREATE TABLE IF NOT EXISTS staking_config (
   enabled boolean DEFAULT true,
   updated_at timestamptz DEFAULT now()
 );
+
+-- Upgrade existing installations (safe to run on fresh ones too)
+ALTER TABLE staking_positions ADD COLUMN IF NOT EXISTS claimable_rewards numeric(20,8) DEFAULT 0;
+ALTER TABLE staking_positions DROP CONSTRAINT IF EXISTS staking_positions_status_check;
 `;
 
 export async function GET() {
