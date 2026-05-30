@@ -55,6 +55,10 @@ export default function Teacher() {
   const [botConfig, setBotConfig] = useState({ enabled:false, strategy:'momentum', risk:'moderate', maxPositions:5, buyThreshold:2, takeProfit:15, stopLoss:10, seedMoney:10000 });
   const [botStats, setBotStats]   = useState(null);
   const [botSaving, setBotSaving] = useState(false);
+  const [grantRecipient, setGrantRecipient] = useState('all');
+  const [grantAmount, setGrantAmount]       = useState(50);
+  const [grantNote, setGrantNote]           = useState('');
+  const [granting, setGranting]             = useState(false);
 
   useEffect(() => { applyTheme(getTheme()); }, []);
   useEffect(()=>{ if(status==='unauthenticated') router.replace('/'); },[status,router]);
@@ -605,6 +609,62 @@ export default function Teacher() {
                         <button className="btn btn-gold" onClick={saveRewardConfig} disabled={rewardSaving}>
                           {rewardSaving?'Saving...':'💾 Save Settings'}
                         </button>
+                      </div>
+                    </div>
+
+                    {/* Award Tokens */}
+                    <div className="ctrl-card" style={{gridColumn:'1/-1',border:'1px solid rgba(0,229,160,.2)',background:'rgba(0,229,160,.03)'}}>
+                      <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:6}}>
+                        <div className="ctrl-title" style={{marginBottom:0}}>🪙 Award Tokens</div>
+                        <span style={{fontSize:10,color:'var(--muted)'}}>Manually grant ClassReward Tokens to a student or the whole class</span>
+                      </div>
+                      <div style={{display:'grid',gridTemplateColumns:'1fr 120px 1fr auto',gap:10,alignItems:'end',marginBottom:10}}>
+                        <div>
+                          <div className="form-label">Recipient</div>
+                          <select className="text-input" style={{marginBottom:0}} value={grantRecipient} onChange={e=>setGrantRecipient(e.target.value)}>
+                            <option value="all">🌟 All Students in Class</option>
+                            <option disabled>──────────────</option>
+                            {humans.map(s=>(
+                              <option key={s.id} value={s.id}>{s.name}</option>
+                            ))}
+                            <option value="_email">✉ Other (enter email below)</option>
+                          </select>
+                        </div>
+                        <div>
+                          <div className="form-label">Tokens</div>
+                          <input type="number" min={1} max={10000} className="text-input" style={{marginBottom:0}}
+                            value={grantAmount} onChange={e=>setGrantAmount(Math.max(1,parseInt(e.target.value)||1))} />
+                        </div>
+                        <div>
+                          <div className="form-label">{grantRecipient==='_email'?'Recipient Email':'Note / Reason (optional)'}</div>
+                          <input className="text-input" style={{marginBottom:0}}
+                            placeholder={grantRecipient==='_email'?'student@school.edu':'e.g. Great participation today'}
+                            value={grantNote} onChange={e=>setGrantNote(e.target.value)} />
+                        </div>
+                        <button className="btn btn-accent" onClick={async()=>{
+                          if (!activeClass||granting) return;
+                          setGranting(true);
+                          const body={classId:activeClass.id,amount:grantAmount};
+                          if(grantRecipient==='all') body.all=true;
+                          else if(grantRecipient==='_email'){ body.email=grantNote.trim(); }
+                          else body.studentId=grantRecipient;
+                          if(grantRecipient!=='_email') body.note=grantNote.trim()||'Teacher award';
+                          else body.note='Teacher award';
+                          const res=await fetch('/api/teacher/grant-tokens',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json()).catch(()=>({error:'Network error'}));
+                          setGranting(false);
+                          if(res.error){setActionMsg({type:'error',msg:res.error});}
+                          else{
+                            const who=grantRecipient==='all'?`all ${res.count} student${res.count!==1?'s':''}`:grantRecipient==='_email'?grantNote.trim():humans.find(s=>s.id===grantRecipient)?.name||'student';
+                            setActionMsg({type:'success',msg:`✅ ${grantAmount} token${grantAmount!==1?'s':''} awarded to ${who}`});
+                            if(grantRecipient!=='_email') setGrantNote('');
+                          }
+                          setTimeout(()=>setActionMsg(null),3500);
+                        }} disabled={granting||(grantRecipient==='_email'&&!grantNote.trim())} style={{whiteSpace:'nowrap'}}>
+                          {granting?'Awarding…':'+ Award'}
+                        </button>
+                      </div>
+                      <div style={{fontSize:10,color:'var(--muted)'}}>
+                        Each token = $1.00 in the student wallet • To award yourself, add your email in the Students tab first
                       </div>
                     </div>
 
