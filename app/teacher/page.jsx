@@ -59,16 +59,23 @@ export default function Teacher() {
   const [grantAmount, setGrantAmount]       = useState(50);
   const [grantNote, setGrantNote]           = useState('');
   const [granting, setGranting]             = useState(false);
+  const [stakingReady, setStakingReady]     = useState(true);
+  const [migratingStaking, setMigratingStaking] = useState(false);
+  const [stakingConfig, setStakingConfig]   = useState({ enabled: false });
+  const [stakingStats, setStakingStats]     = useState(null);
+  const [stakingSaving, setStakingSaving]   = useState(false);
 
   useEffect(() => { applyTheme(getTheme()); }, []);
   useEffect(()=>{ if(status==='unauthenticated') router.replace('/'); },[status,router]);
 
   const fetchData = async (classId) => {
     try {
-      const [clsRes, mktRes, settingsRes, schemaRes, ordersSchemaRes] = await Promise.all([
+      const [clsRes, mktRes, settingsRes, schemaRes, ordersSchemaRes, stakingSchemaRes] = await Promise.all([
         fetch('/api/classes'), fetch('/api/teacher/market-status'), fetch('/api/settings'),
         fetch('/api/admin/migrate-schema'), fetch('/api/admin/migrate-orders'),
+        fetch('/api/admin/migrate-staking'),
       ]);
+      if(stakingSchemaRes.ok){ const s=await stakingSchemaRes.json(); setStakingReady(s.tablesExist!==false); }
       if(settingsRes.ok) {
         const s = await settingsRes.json();
         setTradeSettings({ marginEnabled: s.marginEnabled||false, marginMult: s.marginMult||2, shortEnabled: s.shortEnabled||false });
@@ -89,11 +96,13 @@ export default function Teacher() {
         const active = clsArr.find(c=>c.id===cid) || clsArr[0];
         setActiveClass(active);
         if(active) {
-          const [lbRes, coinsRes, rewardRes] = await Promise.all([
+          const [lbRes, coinsRes, rewardRes, stakingRes] = await Promise.all([
             fetch(`/api/leaderboard?classId=${active.id}`),
             fetch(`/api/coins?classId=${active.id}`),
             fetch(`/api/teacher/rewards?classId=${active.id}`),
+            fetch(`/api/teacher/staking?classId=${active.id}`),
           ]);
+          if(stakingRes.ok){ const sd=await stakingRes.json(); setStakingConfig({enabled:sd.enabled}); setStakingStats(sd); }
           if(lbRes.ok) {
             const lb = await lbRes.json();
             setStudents(Array.isArray(lb) ? lb : []);
@@ -237,6 +246,25 @@ export default function Teacher() {
     else setActionMsg({type:'error',msg:data.error||'Migration failed'});
     setMigrating(false);
     setTimeout(()=>setActionMsg(null),5000);
+  };
+
+  const saveStakingConfig = async () => {
+    setStakingSaving(true);
+    const res = await fetch('/api/teacher/staking',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({classId:activeClass.id,enabled:stakingConfig.enabled})});
+    if(res.ok) setActionMsg({type:'success',msg:'✅ Staking settings saved'});
+    else setActionMsg({type:'error',msg:'Failed to save staking config'});
+    setStakingSaving(false);
+    setTimeout(()=>setActionMsg(null),3000);
+  };
+
+  const runStakingMigration = async () => {
+    setMigratingStaking(true);
+    const res = await fetch('/api/admin/migrate-staking',{method:'POST'});
+    const d = await res.json();
+    if(res.ok){ setStakingReady(true); setActionMsg({type:'success',msg:'✅ Staking tables created'}); }
+    else setActionMsg({type:'error',msg: d.sql ? `Run this SQL in Supabase:\n${d.sql}` : d.error||'Migration failed'});
+    setMigratingStaking(false);
+    setTimeout(()=>setActionMsg(null),8000);
   };
 
   const runOrdersMigration = async () => {
@@ -667,6 +695,46 @@ export default function Teacher() {
                         Each token = $1.00 in the student wallet • To award yourself, add your email in the Students tab first
                       </div>
                     </div>
+
+                    {/* Staking */}
+                    <div className="ctrl-card" style={{gridColumn:'1/-1'}}>
+                      <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:6}}>
+                        <div className="ctrl-title" style={{marginBottom:0}}>⛏️ Virtual Staking</div>
+                        <div className={`status-pill ${stakingConfig.enabled?'on':'off'}`} style={{margin:0}}>{stakingConfig.enabled?'🟢 ENABLED':'⚪ DISABLED'}</div>
+                      </div>
+                      <div className="ctrl-desc">
+                        Students lock Proof-of-Stake coins (ETH, SOL, ADA, DOT, ATOM, and more) to earn simulated APY. Staked coins leave their tradeable balance — rewards are credited daily as cash. BTC, DOGE, and other Proof-of-Work coins cannot be staked.
+                      </div>
+                      {stakingStats && stakingStats.activePositions > 0 && (
+                        <div style={{background:'rgba(0,229,160,.06)',border:'1px solid rgba(0,229,160,.15)',borderRadius:12,padding:'10px 14px',marginBottom:14,display:'flex',gap:24,flexWrap:'wrap',fontSize:12}}>
+                          <span><span style={{color:'var(--muted)'}}>Active positions: </span><strong style={{color:'var(--accent)'}}>{stakingStats.activePositions}</strong></span>
+                          <span><span style={{color:'var(--muted)'}}>Total earned: </span><strong style={{color:'var(--accent)'}}>{'$'+parseFloat(stakingStats.totalEarned||0).toFixed(2)}</strong></span>
+                          {Object.entries(stakingStats.byCoin||{}).map(([coin,info])=>(
+                            <span key={coin}><span style={{color:'var(--muted)'}}>{coin}: </span><strong>{info.count} positions</strong></span>
+                          ))}
+                        </div>
+                      )}
+                      <div className="btn-row">
+                        <button className={`btn ${stakingConfig.enabled?'btn-red':'btn-green'}`} onClick={()=>setStakingConfig(c=>({...c,enabled:!c.enabled}))}>
+                          {stakingConfig.enabled?'Disable Staking':'Enable Staking'}
+                        </button>
+                        <button className="btn btn-gold" onClick={saveStakingConfig} disabled={stakingSaving}>
+                          {stakingSaving?'Saving...':'💾 Save'}
+                        </button>
+                        <a href="/stake" style={{textDecoration:'none'}}><button className="btn btn-muted">↗ View Staking Page</button></a>
+                      </div>
+                    </div>
+
+                    {/* Staking migration banner */}
+                    {!stakingReady && (
+                      <div className="ctrl-card" style={{gridColumn:'1/-1',border:'1px solid rgba(96,165,250,.4)',background:'rgba(96,165,250,.06)'}}>
+                        <div className="ctrl-title" style={{color:'#60a5fa',marginBottom:6}}>⛏️ Staking — Setup Required</div>
+                        <div className="ctrl-desc">Virtual staking needs two new database tables (<code>staking_positions</code> and <code>staking_config</code>). Click to create them automatically.</div>
+                        <button className="btn" style={{background:'rgba(96,165,250,.2)',color:'#60a5fa',border:'1px solid rgba(96,165,250,.4)'}} onClick={runStakingMigration} disabled={migratingStaking}>
+                          {migratingStaking?'Creating tables...':'🔧 Apply Staking Migration'}
+                        </button>
+                      </div>
+                    )}
 
                     {/* DB migration banner */}
                     {!schemaReady && (

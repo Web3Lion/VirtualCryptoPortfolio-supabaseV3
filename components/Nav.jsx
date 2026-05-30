@@ -8,6 +8,7 @@ const LINKS = [
   { href: '/dashboard',          label: 'Wallet',      key: 'wallet' },
   { href: '/leaderboard',        label: 'Leaderboard', key: 'leaderboard' },
   { href: '/market',             label: 'Market',      key: 'market' },
+  { href: '/stake',              label: 'Stake',       key: 'stake' },
   { href: '/news',               label: 'News',        key: 'news' },
   { href: '/badges',             label: 'Badges',      key: 'badges' },
   { href: '/learn',              label: 'Learn',       key: 'learn' },

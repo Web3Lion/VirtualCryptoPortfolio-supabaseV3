@@ -1,4 +1,5 @@
 import { db } from '@/lib/db';
+import { calcDailyReward } from '@/lib/staking';
 
 const TEACHER_EMAIL = process.env.TEACHER_EMAIL;
 
@@ -80,7 +81,65 @@ export async function POST(request) {
       }
     }
 
-    return Response.json({ success: true, snapshotsCreated: total });
+    // ── Distribute staking rewards ────────────────────────────────────────
+    let stakingRewards = 0;
+    try {
+      const { data: activePositions } = await db.from('staking_positions')
+        .select('*').eq('status', 'active');
+
+      if (activePositions?.length) {
+        const now = new Date();
+        for (const pos of activePositions) {
+          const price = priceMap[pos.coin] || 0;
+          if (!price) continue;
+
+          const daysElapsed = (now - new Date(pos.last_reward_at)) / (1000 * 86400);
+          if (daysElapsed < 0.01) continue; // skip if rewarded very recently
+
+          const reward = calcDailyReward(parseFloat(pos.quantity), price, parseFloat(pos.apy)) * daysElapsed;
+
+          const isMature = pos.unlocks_at ? now >= new Date(pos.unlocks_at) : false;
+
+          if (isMature) {
+            // Auto-complete: return coins + final reward
+            const { data: existingHolding } = await db.from('holdings').select('quantity')
+              .eq('student_id', pos.student_id).eq('class_id', pos.class_id).eq('coin', pos.coin).single();
+            if (existingHolding) {
+              await db.from('holdings').update({ quantity: parseFloat(existingHolding.quantity) + parseFloat(pos.quantity) })
+                .eq('student_id', pos.student_id).eq('class_id', pos.class_id).eq('coin', pos.coin);
+            } else {
+              await db.from('holdings').insert({
+                student_id: pos.student_id, class_id: pos.class_id, coin: pos.coin,
+                quantity: parseFloat(pos.quantity), avg_price: price, margin_borrowed: 0,
+              });
+            }
+            await db.from('staking_positions').update({
+              status: 'completed',
+              total_rewards_earned: parseFloat(pos.total_rewards_earned) + reward,
+              last_reward_at: now.toISOString(),
+            }).eq('id', pos.id);
+          } else {
+            await db.from('staking_positions').update({
+              total_rewards_earned: parseFloat(pos.total_rewards_earned) + reward,
+              last_reward_at: now.toISOString(),
+            }).eq('id', pos.id);
+          }
+
+          // Credit reward to cash
+          if (reward > 0) {
+            const { data: portfolio } = await db.from('portfolios').select('cash')
+              .eq('student_id', pos.student_id).eq('class_id', pos.class_id).single();
+            if (portfolio) {
+              await db.from('portfolios').update({ cash: parseFloat(portfolio.cash) + reward })
+                .eq('student_id', pos.student_id).eq('class_id', pos.class_id);
+              stakingRewards++;
+            }
+          }
+        }
+      }
+    } catch (_) { /* staking tables may not exist yet — skip silently */ }
+
+    return Response.json({ success: true, snapshotsCreated: total, stakingRewards });
   } catch (e) {
     return Response.json({ error: e.message }, { status: 500 });
   }
