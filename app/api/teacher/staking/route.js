@@ -47,9 +47,20 @@ export async function POST(request) {
   const { classId, enabled } = await request.json();
   if (!classId) return Response.json({ error: 'classId required' }, { status: 400 });
 
-  await db.from('staking_config').upsert(
+  const { error } = await db.from('staking_config').upsert(
     { class_id: classId, enabled: !!enabled, updated_at: new Date().toISOString() },
     { onConflict: 'class_id' }
   );
+
+  if (error) {
+    // Most likely cause: staking tables haven't been created yet
+    const tablesMissing = error.message?.includes('relation') || error.code === '42P01';
+    return Response.json({
+      error: tablesMissing
+        ? 'Staking tables not set up — run the Staking Migration in Controls first'
+        : error.message,
+    }, { status: 500 });
+  }
+
   return Response.json({ success: true });
 }

@@ -251,10 +251,18 @@ export default function Teacher() {
   const saveStakingConfig = async () => {
     setStakingSaving(true);
     const res = await fetch('/api/teacher/staking',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({classId:activeClass.id,enabled:stakingConfig.enabled})});
-    if(res.ok) setActionMsg({type:'success',msg:'✅ Staking settings saved'});
-    else setActionMsg({type:'error',msg:'Failed to save staking config'});
+    const data = await res.json().catch(()=>({}));
+    if(res.ok) {
+      setActionMsg({type:'success',msg:`✅ Staking ${stakingConfig.enabled?'enabled':'disabled'}`});
+      // Re-fetch to confirm DB state matches what we saved
+      fetch(`/api/teacher/staking?classId=${activeClass.id}`).then(r=>r.ok?r.json():null).then(d=>{ if(d) { setStakingConfig({enabled:d.enabled}); setStakingStats(d); } });
+    } else {
+      setActionMsg({type:'error',msg:data.error||'Failed to save staking config'});
+      // Revert toggle to match DB state
+      fetch(`/api/teacher/staking?classId=${activeClass.id}`).then(r=>r.ok?r.json():null).then(d=>{ if(d) setStakingConfig({enabled:d.enabled}); });
+    }
     setStakingSaving(false);
-    setTimeout(()=>setActionMsg(null),3000);
+    setTimeout(()=>setActionMsg(null),4000);
   };
 
   const runStakingMigration = async () => {
