@@ -64,6 +64,7 @@ export default function Teacher() {
   const [stakingConfig, setStakingConfig]   = useState({ enabled: false });
   const [stakingStats, setStakingStats]     = useState(null);
   const [stakingSaving, setStakingSaving]   = useState(false);
+  const [stakingSql, setStakingSql]         = useState(null); // shows manual SQL modal
 
   useEffect(() => { applyTheme(getTheme()); }, []);
   useEffect(()=>{ if(status==='unauthenticated') router.replace('/'); },[status,router]);
@@ -267,12 +268,25 @@ export default function Teacher() {
 
   const runStakingMigration = async () => {
     setMigratingStaking(true);
-    const res = await fetch('/api/admin/migrate-staking',{method:'POST'});
-    const d = await res.json();
-    if(res.ok){ setStakingReady(true); setActionMsg({type:'success',msg:'✅ Staking tables created'}); }
-    else setActionMsg({type:'error',msg: d.sql ? `Run this SQL in Supabase:\n${d.sql}` : d.error||'Migration failed'});
+    try {
+      const res = await fetch('/api/admin/migrate-staking', {method:'POST'});
+      const d = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setStakingReady(true);
+        setActionMsg({type:'success', msg:'✅ Staking tables created — enable staking below'});
+        setTimeout(()=>setActionMsg(null), 4000);
+      } else if (d.sql) {
+        // run_sql not available — show SQL in a copyable modal
+        setStakingSql(d.sql);
+      } else {
+        setActionMsg({type:'error', msg: d.error || 'Migration failed'});
+        setTimeout(()=>setActionMsg(null), 6000);
+      }
+    } catch (e) {
+      setActionMsg({type:'error', msg:'Migration request failed — check your connection'});
+      setTimeout(()=>setActionMsg(null), 6000);
+    }
     setMigratingStaking(false);
-    setTimeout(()=>setActionMsg(null),8000);
   };
 
   const runOrdersMigration = async () => {
@@ -1022,6 +1036,30 @@ export default function Teacher() {
         )}
       </div>
       {actionMsg&&<div className={`action-msg ${actionMsg.type}`}>{actionMsg.msg}</div>}
+
+      {/* SQL modal — shown when run_sql RPC isn't available */}
+      {stakingSql && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.8)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000,padding:16}} onClick={()=>setStakingSql(null)}>
+          <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:20,padding:28,maxWidth:640,width:'100%',maxHeight:'80vh',overflow:'auto'}} onClick={e=>e.stopPropagation()}>
+            <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:16,marginBottom:8,color:'var(--text)'}}>⛏️ Manual Staking Migration</div>
+            <div style={{fontSize:12,color:'#94a3b8',marginBottom:16,lineHeight:1.6}}>
+              The <code>run_sql</code> function isn't available in your Supabase project. Copy the SQL below, paste it into your <strong>Supabase dashboard → SQL Editor</strong>, and run it. Then refresh this page.
+            </div>
+            <pre style={{background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:12,padding:16,fontSize:11,color:'var(--accent)',overflowX:'auto',whiteSpace:'pre-wrap',wordBreak:'break-all',marginBottom:16}}>
+              {stakingSql}
+            </pre>
+            <div style={{display:'flex',gap:10}}>
+              <button className="btn btn-accent" style={{flex:1}} onClick={()=>{navigator.clipboard?.writeText(stakingSql);setActionMsg({type:'success',msg:'SQL copied to clipboard!'});setTimeout(()=>setActionMsg(null),2500);}}>
+                📋 Copy SQL
+              </button>
+              <button className="btn btn-muted" onClick={()=>{setStakingSql(null);setStakingReady(true);}}>
+                ✓ I ran it
+              </button>
+              <button className="btn btn-muted" onClick={()=>setStakingSql(null)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Move Student Modal */}
       {moveStudent && (
