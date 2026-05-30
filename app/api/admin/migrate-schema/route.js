@@ -14,13 +14,21 @@ export async function POST() {
 
   const { error } = await db.rpc('run_sql', {
     query: 'ALTER TABLE holdings ADD COLUMN IF NOT EXISTS margin_borrowed NUMERIC(20,8) NOT NULL DEFAULT 0;'
-  }).catch(() => ({ error: 'rpc_unavailable' }));
+  }).catch(() => ({ error: { code: 'NET' } }));
 
-  if (error === 'rpc_unavailable') {
-    // Fallback: try a direct column check via select
+  const errMsg = typeof error === 'string' ? error : (error?.message || '');
+  const errCode = error?.code || '';
+  const rpcMissing = errCode === 'PGRST202' || errCode === 'NET'
+    || errMsg.includes('Could not find the function') || errMsg.includes('run_sql');
+
+  if (rpcMissing || error) {
+    // Fallback: check if the column already exists via a direct select
     const { data } = await db.from('holdings').select('margin_borrowed').limit(1);
     if (data !== null) return Response.json({ success: true, note: 'Column already exists' });
-    return Response.json({ error: 'Please run this SQL in your Supabase dashboard: ALTER TABLE holdings ADD COLUMN IF NOT EXISTS margin_borrowed NUMERIC(20,8) NOT NULL DEFAULT 0;' }, { status: 500 });
+    return Response.json({
+      error: 'Run this SQL in your Supabase SQL Editor:',
+      sql: 'ALTER TABLE holdings ADD COLUMN IF NOT EXISTS margin_borrowed NUMERIC(20,8) NOT NULL DEFAULT 0;',
+    }, { status: 422 });
   }
 
   return Response.json({ success: true });

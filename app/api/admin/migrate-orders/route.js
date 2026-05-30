@@ -38,14 +38,21 @@ export async function POST() {
   const session = await getServerSession(authOptions);
   if (session?.user?.email !== TEACHER_EMAIL) return Response.json({ error: 'Teacher only' }, { status: 403 });
 
-  const { error } = await db.rpc('run_sql', { query: CREATE_SQL }).catch(() => ({ error: 'rpc_unavailable' }));
+  const { error } = await db.rpc('run_sql', { query: CREATE_SQL })
+    .catch(() => ({ error: { code: 'NET' } }));
 
-  if (error === 'rpc_unavailable') {
+  if (!error) return Response.json({ success: true });
+
+  const errMsg = typeof error === 'string' ? error : (error?.message || '');
+  const errCode = error?.code || '';
+  const rpcMissing = errCode === 'PGRST202' || errCode === 'NET'
+    || errMsg.includes('Could not find the function') || errMsg.includes('run_sql');
+
+  if (rpcMissing || error) {
     return Response.json({
-      error: 'Auto-migration unavailable. Run this SQL in your Supabase dashboard:',
+      error: 'Auto-migration unavailable. Run this SQL in your Supabase SQL Editor:',
       sql: CREATE_SQL.trim(),
     }, { status: 422 });
   }
-  if (error) return Response.json({ error: error.message || error }, { status: 500 });
   return Response.json({ success: true });
 }

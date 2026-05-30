@@ -4,8 +4,6 @@ import { db } from '@/lib/db';
 
 const TEACHER_EMAIL = process.env.TEACHER_EMAIL;
 
-// Split into individual statements so we can run them one-by-one and
-// skip failures on statements that are no-ops (e.g. column already exists).
 const SQL_STATEMENTS = [
   `CREATE TABLE IF NOT EXISTS staking_positions (
     id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -30,12 +28,21 @@ const SQL_STATEMENTS = [
     enabled boolean DEFAULT true,
     updated_at timestamptz DEFAULT now()
   )`,
-  // Upgrade existing installations — safe on fresh tables too
   `ALTER TABLE staking_positions ADD COLUMN IF NOT EXISTS claimable_rewards numeric(20,8) DEFAULT 0`,
 ];
 
-// Full SQL shown to teachers who need to run it manually in Supabase
-const MANUAL_SQL = SQL_STATEMENTS.join(';\n') + ';';
+export const MANUAL_SQL = SQL_STATEMENTS.join(';\n\n') + ';';
+
+function isRpcUnavailable(error) {
+  if (!error) return false;
+  const msg = typeof error === 'string' ? error : (error.message || '');
+  const code = error.code || '';
+  // PGRST202 = PostgREST "function not found in schema cache"
+  return code === 'PGRST202'
+    || msg.includes('Could not find the function')
+    || msg.includes('run_sql')
+    || msg.includes('does not exist');
+}
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -51,25 +58,24 @@ export async function POST() {
   if (session?.user?.email?.toLowerCase() !== TEACHER_EMAIL?.toLowerCase())
     return Response.json({ error: 'Teacher only' }, { status: 403 });
 
-  // Try each statement individually so a no-op (column already exists, etc.)
-  // doesn't abort the whole migration.
-  const errors = [];
   for (const sql of SQL_STATEMENTS) {
-    const { error } = await db.rpc('run_sql', { query: sql }).catch(() => ({ error: 'rpc_unavailable' }));
-    if (error === 'rpc_unavailable') {
-      // run_sql function doesn't exist — return the full SQL for manual execution
-      return Response.json({
-        error: 'Auto-migration unavailable — paste the SQL below into your Supabase SQL editor and run it.',
-        sql: MANUAL_SQL,
-      }, { status: 422 });
+    // db.rpc() resolves (never rejects) — catch is only for network errors
+    const { error } = await db.rpc('run_sql', { query: sql })
+      .catch(() => ({ error: { message: 'network_error', code: 'NET' } }));
+
+    if (!error) continue; // statement succeeded
+
+    if (isRpcUnavailable(error)) {
+      // run_sql function doesn't exist in this Supabase project —
+      // return the SQL so the teacher can paste it into the SQL editor
+      return Response.json({ sql: MANUAL_SQL }, { status: 422 });
     }
-    if (error) {
-      const msg = typeof error === 'string' ? error : (error.message || JSON.stringify(error));
-      // "already exists" errors are fine — treat as success
-      if (!msg.includes('already exists')) errors.push(msg);
-    }
+
+    const msg = typeof error === 'string' ? error : (error.message || JSON.stringify(error));
+    if (msg.includes('already exists')) continue; // idempotent, treat as success
+
+    return Response.json({ error: msg }, { status: 500 });
   }
 
-  if (errors.length) return Response.json({ error: errors.join(' | ') }, { status: 500 });
   return Response.json({ success: true });
 }
