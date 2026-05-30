@@ -4,7 +4,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Nav from "@/components/Nav";
 import { applyTheme, getTheme } from "@/lib/theme";
-import { COSMETIC_THEMES, setCosmetic, getCosmetic } from "@/lib/cosmetics";
+import { COSMETIC_THEMES, setCosmetic, getCosmetic, applyCosmetic, saveOwnedThemes } from "@/lib/cosmetics";
 
 const CAT_LABELS = { flair: '✨ Leaderboard Flair', title: '🏷️ Profile Titles', theme: '🎨 Portfolio Themes' };
 const CAT_ORDER  = ['theme', 'flair', 'title'];
@@ -42,14 +42,24 @@ export default function RewardsStore() {
   const [flash, setFlash] = useState(null);
   const [localTheme, setLocalTheme] = useState(null);
 
-  useEffect(() => { applyTheme(getTheme()); setLocalTheme(getCosmetic()); }, []);
+  useEffect(() => {
+    const c = getCosmetic();
+    setLocalTheme(c);
+    if (c) applyCosmetic(c);
+    else applyTheme(getTheme());
+  }, []);
   useEffect(() => { if (status === 'unauthenticated') router.replace('/'); }, [status, router]);
 
   const load = () => {
     if (status !== 'authenticated') return;
     fetch('/api/rewards/store')
       .then(r => r.json())
-      .then(d => { setData(d); setLoading(false); })
+      .then(d => {
+        setData(d);
+        setLoading(false);
+        const ownedThemeIds = (d.owned || []).filter(id => id.startsWith('theme_'));
+        saveOwnedThemes(ownedThemeIds);
+      })
       .catch(() => setLoading(false));
   };
   useEffect(load, [status]);
