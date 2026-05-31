@@ -54,19 +54,28 @@ export async function GET(request) {
 
   const FLAIR_EMOJI = { flair_star:'⭐', flair_fire:'🔥', flair_diamond:'💎', flair_crown:'👑' };
 
-  const [portfoliosRes, holdingsRes, tradesRes, pricesRes, snapshotsRes, flairRes] = await Promise.all([
+  const [portfoliosRes, holdingsRes, tradesRes, pricesRes, snapshotsRes, flairRes, stakingRes] = await Promise.all([
     db.from('portfolios').select('student_id, cash, fees_paid').in('student_id', studentIds).eq('class_id', classId),
     db.from('holdings').select('student_id, coin, quantity, avg_buy_price').in('student_id', studentIds).eq('class_id', classId).gt('quantity', 0),
     db.from('trades').select('student_id, action, coin, gross_value, fee').in('student_id', studentIds).eq('class_id', classId),
     db.from('price_cache').select('symbol, price'),
     db.from('snapshots').select('student_id, total_value, created_at').in('student_id', studentIds).eq('class_id', classId).order('created_at', { ascending: true }),
     db.from('class_reward_ledger').select('student_id, reason, created_at').in('student_id', studentIds).eq('class_id', classId).like('reason', 'store:flair_%').order('created_at', { ascending: false }),
+    // Staking: include locked coins in portfolio total (graceful if table missing)
+    db.from('staking_positions').select('student_id, coin, quantity').in('student_id', studentIds).eq('class_id', classId).in('status', ['active', 'claimable']).catch(() => ({ data: [] })),
   ]);
 
   // Most recent flair per student (purchases have negative tokens implied by reason pattern + order)
   const flairMap = {};
   (flairRes.data || []).forEach(f => {
     if (!flairMap[f.student_id]) flairMap[f.student_id] = FLAIR_EMOJI[f.reason.replace('store:', '')] || null;
+  });
+
+  // Staked value per student (coins locked in staking_positions)
+  const stakingMap = {};
+  (stakingRes?.data || []).forEach(s => {
+    const price = priceMap[s.coin] || 0;
+    stakingMap[s.student_id] = (stakingMap[s.student_id] || 0) + parseFloat(s.quantity) * price;
   });
 
   const portfolioMap = {};
@@ -109,20 +118,22 @@ export async function GET(request) {
       holdingsVal += parseFloat(h.quantity) * price;
     });
 
-    const totalVal  = cash + holdingsVal;
-    const pl        = totalVal - seedMoney;
-    const returnPct = ((pl / seedMoney) * 100);
+    const stakingVal = stakingMap[student.id] || 0;
+    const totalVal   = cash + holdingsVal + stakingVal;
+    const pl         = totalVal - seedMoney;
+    const returnPct  = ((pl / seedMoney) * 100);
 
     return {
-      id:         student.id,
-      name:       student.name,
-      email:      student.email,
-      isBot:      student.is_bot || false,
-      cash:       parseFloat(cash.toFixed(2)),
-      holdingsVal:parseFloat(holdingsVal.toFixed(2)),
-      total:      parseFloat(totalVal.toFixed(2)),
-      pl:         parseFloat(pl.toFixed(2)),
-      returnPct:  parseFloat(returnPct.toFixed(2)),
+      id:          student.id,
+      name:        student.name,
+      email:       student.email,
+      isBot:       student.is_bot || false,
+      cash:        parseFloat(cash.toFixed(2)),
+      holdingsVal: parseFloat(holdingsVal.toFixed(2)),
+      stakingVal:  parseFloat(stakingVal.toFixed(2)),
+      total:       parseFloat(totalVal.toFixed(2)),
+      pl:          parseFloat(pl.toFixed(2)),
+      returnPct:   parseFloat(returnPct.toFixed(2)),
       fees:       parseFloat(feesPaid.toFixed(2)),
       coinCount:  holdings.length,
       tradeCount:  tradeCountMap[student.id] || 0,

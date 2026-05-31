@@ -329,7 +329,10 @@ export default function Leaderboard() {
                               <div style={{fontFamily:"'Syne',sans-serif",fontWeight:600,fontSize:13}}>{s.isBot?'🤖 ':''}{s.flair && <span style={{marginRight:3}}>{s.flair}</span>}{s.name}</div>
                             </div>
                           </td>
-                          <td style={{fontFamily:"'Syne',sans-serif",fontWeight:700}}>{fmtUSD(s.total)}</td>
+                          <td style={{fontFamily:"'Syne',sans-serif",fontWeight:700}}>
+                            {fmtUSD(s.total)}
+                            {s.stakingVal > 0 && <div style={{fontSize:9,color:'#60a5fa',fontWeight:600,marginTop:1}}>⛏ {fmtUSD(s.stakingVal)}</div>}
+                          </td>
                           <td style={{color:isPos?'var(--up)':'var(--down)',fontWeight:500}}>{fmtPct(ret)}</td>
                           <td style={{color:isPos?'var(--up)':'var(--down)'}}>{isPos?'+':''}{fmtUSD(pl)}</td>
                           <td style={{color:'var(--muted)'}}>{fmtUSD(s.cash)}</td>
@@ -494,7 +497,7 @@ export default function Leaderboard() {
                         </div>
                       </div>
                       <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:10,marginBottom:20}}>
-                        {[['Cash',fmtUSD(s.cash),'var(--text)'],['Holdings',fmtUSD(s.holdingsVal),'var(--text)'],['Fees',fmtUSD(s.fees),'var(--muted)'],['Start',fmtUSD(s.seedMoney),'var(--muted)']].map(([label,val,color])=>(
+                        {[['Cash',fmtUSD(s.cash),'var(--text)'],['Holdings',fmtUSD(s.holdingsVal),'var(--text)'],s.stakingVal>0?['Staked',fmtUSD(s.stakingVal),'#60a5fa']:['Fees',fmtUSD(s.fees),'var(--muted)'],['Start',fmtUSD(s.seedMoney),'var(--muted)']].map(([label,val,color])=>(
                           <div key={label} style={{background:'var(--surface2)',borderRadius:12,padding:'10px 12px',textAlign:'center'}}>
                             <div style={{fontSize:10,color:'#94a3b8',marginBottom:4}}>{label}</div>
                             <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:13,color}}>{val}</div>
