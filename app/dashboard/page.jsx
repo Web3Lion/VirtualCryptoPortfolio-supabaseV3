@@ -235,6 +235,7 @@ export default function Dashboard() {
   const [rewardLedger, setRewardLedger] = useState(null);
   const [rewardLessons, setRewardLessons] = useState([]);
   const [rewardModules, setRewardModules] = useState([]);
+  const [stakingData, setStakingData] = useState(null);
 
   useEffect(() => {
     applyTheme(getTheme());
@@ -242,12 +243,13 @@ export default function Dashboard() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [pRes, prRes, hRes, mRes, meRes] = await Promise.all([
+      const [pRes, prRes, hRes, mRes, meRes, stRes] = await Promise.all([
         fetch("/api/portfolio"),
         fetch("/api/prices"),
         fetch(`/api/history?range=${chartRange}`),
         fetch("/api/market"),
         fetch("/api/me"),
+        fetch("/api/staking"),
       ]);
       if (pRes.ok) {
         setPortfolio(await pRes.json());
@@ -265,6 +267,7 @@ export default function Dashboard() {
         setClassId(me?.classes?.[0]?.id);
         if (me?.classes?.[0]?.id) fetchDailyChallenge(me.classes[0].id);
       }
+      if (stRes.ok) setStakingData(await stRes.json());
     } catch (e) {
       console.error(e);
     } finally {
@@ -1258,6 +1261,46 @@ export default function Dashboard() {
                       )}
                   </>
                 )}
+
+                {/* ── Staking summary ─────────────────────────────── */}
+                {(() => {
+                  const positions = stakingData?.positions || [];
+                  if (!positions.length) return null;
+                  const active    = positions.filter(p => p.status === 'active');
+                  const claimable = positions.filter(p => p.status === 'claimable');
+                  const restaked  = positions.filter(p => p.status === 'restaked' && parseFloat(p.claimable_rewards||0) > 0);
+                  const totalLocked   = [...active, ...claimable].reduce((s,p) => s + (p.currentValue||0), 0);
+                  const totalAccruing = active.reduce((s,p) => s + parseFloat(p.total_rewards_earned||0) + (p.accruedRewards||0), 0);
+                  const totalClaimable = [...claimable, ...restaked].reduce((s,p) => s + parseFloat(p.claimable_rewards||0), 0);
+                  const hasClaimable = totalClaimable > 0;
+                  return (
+                    <div className="cash-row" style={{ marginTop:8, cursor:'pointer', background: hasClaimable ? 'rgba(245,158,11,.06)' : 'rgba(96,165,250,.04)', borderColor: hasClaimable ? 'rgba(245,158,11,.3)' : 'rgba(96,165,250,.2)' }}
+                      onClick={() => window.location.href='/stake'}>
+                      <div style={{display:'flex',alignItems:'center',gap:12}}>
+                        <div style={{width:40,height:40,borderRadius:10,background: hasClaimable ? 'rgba(245,158,11,.15)' : 'rgba(96,165,250,.15)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}}>
+                          ⛏️
+                        </div>
+                        <div>
+                          <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:13,color: hasClaimable ? '#f59e0b' : '#60a5fa',display:'flex',alignItems:'center',gap:6}}>
+                            Staking
+                            {hasClaimable && <span style={{fontSize:9,fontWeight:800,padding:'2px 6px',borderRadius:6,background:'rgba(245,158,11,.2)',color:'#f59e0b',letterSpacing:1}}>⚡ CLAIM READY</span>}
+                          </div>
+                          <div style={{fontSize:11,color:'var(--muted)',marginTop:2}}>
+                            {active.length + claimable.length} position{active.length+claimable.length!==1?'s':''} · {fmtUSD(totalAccruing)} earned
+                          </div>
+                        </div>
+                      </div>
+                      <div style={{display:'flex',alignItems:'center',gap:10}}>
+                        <div style={{textAlign:'right'}}>
+                          <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:15,color:'#60a5fa'}}>{fmtUSD(totalLocked)}</div>
+                          {hasClaimable && <div style={{fontSize:10,color:'#f59e0b',fontWeight:600}}>{fmtUSD(totalClaimable)} claimable</div>}
+                        </div>
+                        <span style={{color:'var(--muted)',fontSize:12}}>→</span>
+                      </div>
+                    </div>
+                  );
+                })()}
+
               </div>
             )}
 
