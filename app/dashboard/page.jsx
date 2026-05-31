@@ -1190,69 +1190,72 @@ export default function Dashboard() {
                           </div>
                         </div>
                         {showRewardDetail && (
-                          <div style={{
-                            marginTop: 6,
-                            border: "1px solid rgba(0,229,160,.15)",
-                            borderRadius: 12,
-                            background: "rgba(0,229,160,.03)",
-                            padding: "12px 14px",
-                          }}>
-                            <div style={{fontSize:11,color:"var(--muted)",fontFamily:"'Syne',sans-serif",fontWeight:700,marginBottom:10,letterSpacing:"0.06em"}}>REWARD HISTORY</div>
+                          <div style={{marginTop:6,border:"1px solid rgba(0,229,160,.15)",borderRadius:12,background:"rgba(0,229,160,.03)",padding:"12px 14px"}}>
+                            <div style={{fontSize:11,color:"var(--muted)",fontFamily:"'Syne',sans-serif",fontWeight:700,marginBottom:10,letterSpacing:"0.06em"}}>TOKEN HISTORY</div>
                             {rewardLedger === null ? (
                               <div style={{fontSize:11,color:"var(--muted)"}}>Loading...</div>
-                            ) : rewardLessons.length === 0 ? (
-                              <div style={{fontSize:11,color:"var(--muted)"}}>No lessons available yet.</div>
-                            ) : (
-                              rewardModules.map(mod => {
-                                const modLessons = rewardLessons.filter(l => l.module_id === mod.id);
-                                if (!modLessons.length) return null;
+                            ) : rewardLedger.length === 0 ? (
+                              <div style={{fontSize:11,color:"var(--muted)"}}>No tokens earned yet.</div>
+                            ) : (() => {
+                              // Label helper
+                              const label = (e) => {
+                                const r = e.reason || '';
+                                if (r.startsWith('lesson:')) {
+                                  const l = rewardLessons.find(x => x.id === r.replace('lesson:',''));
+                                  return ['📚', l ? l.title : 'Lesson completed'];
+                                }
+                                if (r.startsWith('badge:'))         return ['🏅', `Badge: ${r.replace('badge:','')}`];
+                                if (r.startsWith('teacher_grant:')) return ['🎓', `Teacher award: ${r.replace('teacher_grant:','')}`];
+                                if (r.startsWith('store_refund:'))  return ['🔄', `Refund: ${r.replace('store_refund:','')}`];
+                                if (r.startsWith('store:'))         return ['🛒', `Store: ${r.replace('store:','')}`];
+                                if (r.startsWith('crush:'))         return ['🎮', `Crypto Crush (${r.replace('crush:','')})`];
+                                if (r.startsWith('daily_challenge:')) return ['📅', `Daily challenge: ${r.replace('daily_challenge:','')}`];
+                                if (r === 'redeemed')               return ['💵', 'Redeemed for cash'];
+                                return ['🎁', r || 'Reward'];
+                              };
+                              return rewardLedger.map((e, i) => {
+                                const [icon, text] = label(e);
+                                const isPositive = e.tokens > 0;
                                 return (
-                                  <div key={mod.id} style={{marginBottom:10}}>
-                                    <div style={{fontSize:10,color:"var(--muted)",marginBottom:5,fontFamily:"'DM Mono',monospace"}}>{mod.emoji || "📚"} {mod.title}</div>
-                                    {modLessons.map(lesson => {
-                                      const earned = (rewardLedger || []).some(e => e.reason === `lesson:${lesson.id}`);
-                                      return (
-                                        <div key={lesson.id} style={{
-                                          display:"flex",
-                                          alignItems:"center",
-                                          justifyContent:"space-between",
-                                          padding:"6px 8px",
-                                          borderRadius:8,
-                                          marginBottom:4,
-                                          background: earned ? "rgba(0,229,160,.08)" : "rgba(255,255,255,.03)",
-                                          border: `1px solid ${earned ? "rgba(0,229,160,.2)" : "var(--border)"}`,
-                                          opacity: earned ? 1 : 0.5,
-                                        }}>
-                                          <div style={{display:"flex",alignItems:"center",gap:7}}>
-                                            <span style={{fontSize:13}}>{earned ? "✅" : "⬜"}</span>
-                                            <span style={{fontSize:11,color: earned ? "var(--text)" : "var(--muted)",fontFamily:"'DM Mono',monospace"}}>{lesson.title}</span>
-                                          </div>
-                                          <span style={{fontSize:11,fontWeight:700,color: earned ? "var(--accent)" : "var(--muted)",fontFamily:"'Syne',sans-serif"}}>
-                                            {earned ? "+" : ""}{lesson.tokens_reward} tkn
-                                          </span>
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                );
-                              })
-                            )}
-                            {rewardLedger && rewardLedger.some(e => e.reason?.startsWith('badge:')) && (
-                              <div style={{marginTop:6}}>
-                                <div style={{fontSize:10,color:"var(--muted)",marginBottom:5,fontFamily:"'DM Mono',monospace"}}>🏅 Badges</div>
-                                {rewardLedger.filter(e => e.reason?.startsWith('badge:')).map((e, i) => (
                                   <div key={i} style={{
                                     display:"flex",alignItems:"center",justifyContent:"space-between",
                                     padding:"6px 8px",borderRadius:8,marginBottom:4,
-                                    background:"rgba(0,229,160,.08)",border:"1px solid rgba(0,229,160,.2)",
+                                    background: isPositive ? "rgba(0,229,160,.06)" : "rgba(244,63,94,.05)",
+                                    border: `1px solid ${isPositive ? "rgba(0,229,160,.15)" : "rgba(244,63,94,.15)"}`,
                                   }}>
-                                    <div style={{display:"flex",alignItems:"center",gap:7}}>
-                                      <span style={{fontSize:13}}>✅</span>
-                                      <span style={{fontSize:11,color:"var(--text)",fontFamily:"'DM Mono',monospace"}}>{e.reason.replace('badge:','Badge #')}</span>
+                                    <div style={{display:"flex",alignItems:"center",gap:7,minWidth:0}}>
+                                      <span style={{fontSize:13,flexShrink:0}}>{icon}</span>
+                                      <span style={{fontSize:11,color:"var(--text)",fontFamily:"'DM Mono',monospace",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{text}</span>
                                     </div>
-                                    <span style={{fontSize:11,fontWeight:700,color:"var(--accent)",fontFamily:"'Syne',sans-serif"}}>+{e.tokens} tkn</span>
+                                    <span style={{fontSize:11,fontWeight:700,color:isPositive?"var(--accent)":"var(--down)",fontFamily:"'Syne',sans-serif",flexShrink:0,marginLeft:8}}>
+                                      {isPositive?"+":""}{e.tokens} tkn
+                                    </span>
                                   </div>
-                                ))}
+                                );
+                              });
+                            })()}
+                            {/* Lesson completion checklist */}
+                            {rewardLessons.length > 0 && (
+                              <div style={{marginTop:10,paddingTop:10,borderTop:"1px solid rgba(0,229,160,.1)"}}>
+                                <div style={{fontSize:10,color:"var(--muted)",marginBottom:6,letterSpacing:"0.08em"}}>LESSON PROGRESS</div>
+                                {rewardModules.map(mod => {
+                                  const modLessons = rewardLessons.filter(l => l.module_id === mod.id);
+                                  if (!modLessons.length) return null;
+                                  return (
+                                    <div key={mod.id} style={{marginBottom:8}}>
+                                      <div style={{fontSize:10,color:"var(--muted)",marginBottom:4}}>{mod.emoji||"📚"} {mod.title}</div>
+                                      {modLessons.map(lesson => {
+                                        const earned = (rewardLedger||[]).some(e => e.reason === `lesson:${lesson.id}`);
+                                        return (
+                                          <div key={lesson.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"4px 8px",borderRadius:6,marginBottom:3,background:earned?"rgba(0,229,160,.06)":"rgba(255,255,255,.02)",opacity:earned?1:0.55}}>
+                                            <span style={{fontSize:11,color:earned?"var(--text)":"var(--muted)"}}>{earned?"✅":"⬜"} {lesson.title}</span>
+                                            <span style={{fontSize:10,color:earned?"var(--accent)":"var(--muted)",fontWeight:700}}>{earned?"+":""}{lesson.tokens_reward} tkn</span>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  );
+                                })}
                               </div>
                             )}
                           </div>
