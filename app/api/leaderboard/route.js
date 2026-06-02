@@ -54,15 +54,13 @@ export async function GET(request) {
 
   const FLAIR_EMOJI = { flair_star:'⭐', flair_fire:'🔥', flair_diamond:'💎', flair_crown:'👑' };
 
-  const [portfoliosRes, holdingsRes, tradesRes, pricesRes, snapshotsRes, flairRes, stakingRes] = await Promise.all([
+  const [portfoliosRes, holdingsRes, tradesRes, pricesRes, snapshotsRes, flairRes] = await Promise.all([
     db.from('portfolios').select('student_id, cash, fees_paid').in('student_id', studentIds).eq('class_id', classId),
     db.from('holdings').select('student_id, coin, quantity, avg_buy_price').in('student_id', studentIds).eq('class_id', classId).gt('quantity', 0),
     db.from('trades').select('student_id, action, coin, gross_value, fee').in('student_id', studentIds).eq('class_id', classId),
     db.from('price_cache').select('symbol, price'),
     db.from('snapshots').select('student_id, total_value, created_at').in('student_id', studentIds).eq('class_id', classId).order('created_at', { ascending: true }),
     db.from('class_reward_ledger').select('student_id, reason, created_at').in('student_id', studentIds).eq('class_id', classId).like('reason', 'store:flair_%').order('created_at', { ascending: false }),
-    // Staking: include locked coins in portfolio total (graceful if table missing)
-    db.from('staking_positions').select('student_id, coin, quantity').in('student_id', studentIds).eq('class_id', classId).in('status', ['active', 'claimable']).catch(() => ({ data: [] })),
   ]);
 
   // Most recent flair per student (purchases have negative tokens implied by reason pattern + order)
@@ -71,12 +69,19 @@ export async function GET(request) {
     if (!flairMap[f.student_id]) flairMap[f.student_id] = FLAIR_EMOJI[f.reason.replace('store:', '')] || null;
   });
 
-  // Staked value per student (coins locked in staking_positions)
+  // Staked value — run completely isolated so a missing table never breaks the leaderboard
   const stakingMap = {};
-  (stakingRes?.data || []).forEach(s => {
-    const price = priceMap[s.coin] || 0;
-    stakingMap[s.student_id] = (stakingMap[s.student_id] || 0) + parseFloat(s.quantity) * price;
-  });
+  try {
+    const { data: staked } = await db.from('staking_positions')
+      .select('student_id, coin, quantity')
+      .in('student_id', studentIds)
+      .eq('class_id', classId)
+      .in('status', ['active', 'claimable']);
+    (staked || []).forEach(s => {
+      const price = priceMap[s.coin] || 0;
+      stakingMap[s.student_id] = (stakingMap[s.student_id] || 0) + parseFloat(s.quantity) * price;
+    });
+  } catch (_) { /* staking table may not exist yet */ }
 
   const portfolioMap = {};
   (portfoliosRes.data || []).forEach(p => { portfolioMap[p.student_id] = p; });
