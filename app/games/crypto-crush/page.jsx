@@ -303,31 +303,59 @@ export default function CryptoCrush() {
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
         :root{--bg:#080c14;--surface:#0f172a;--surface2:#1a2235;--border:#1e293b;--accent:#00e5a0;--text:#e2e8f0;--muted:#475569}
         body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;min-height:100vh}
-        .page{max-width:660px;margin:0 auto;padding:24px 16px}
+        .page{max-width:820px;margin:0 auto;padding:24px 16px}
 
-        /* Board */
+        /* ── Header ── */
+        .crush-header{
+          display:flex;align-items:center;justify-content:space-between;
+          background:var(--surface);border:1px solid var(--border);border-radius:16px;
+          padding:18px 24px;margin-bottom:14px;gap:16px;flex-wrap:wrap;
+        }
+        .crush-title{font-family:'Syne',sans-serif;font-weight:800;font-size:28px;letter-spacing:-1px;line-height:1}
+        .crush-title span{color:var(--accent)}
+        .crush-sub{font-size:11px;color:#64748b;margin-top:4px}
+
+        /* ── Stats bar ── */
+        .stats-bar{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px}
+        .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;text-align:center}
+        .stat-val{font-family:'Syne',sans-serif;font-weight:800;font-size:24px;line-height:1}
+        .stat-lbl{font-size:9px;color:#475569;margin-top:4px;letter-spacing:1.5px;text-transform:uppercase}
+        .timer-bar{height:5px;border-radius:3px;background:var(--surface2);overflow:hidden;margin-top:6px}
+        .timer-fill{height:100%;border-radius:3px;transition:width .9s linear,background .5s}
+
+        /* ── Board ── */
         .board-wrap{position:relative}
-        .board{display:grid;grid-template-columns:repeat(8,1fr);gap:4px;background:rgba(15,23,42,.9);border:2px solid var(--border);border-radius:16px;padding:8px;user-select:none}
+        .board{
+          display:grid;grid-template-columns:repeat(8,1fr);gap:5px;
+          background:var(--surface);border:1px solid var(--border);border-radius:16px;
+          padding:10px;user-select:none;
+        }
+        .board-idle-overlay{
+          position:absolute;inset:0;border-radius:16px;
+          background:rgba(8,12,20,.75);backdrop-filter:blur(2px);
+          display:flex;align-items:center;justify-content:center;
+          font-family:'Syne',sans-serif;font-weight:700;font-size:15px;
+          color:#475569;pointer-events:none;letter-spacing:.5px;
+        }
         .tile{
           aspect-ratio:1;border-radius:10px;display:flex;flex-direction:column;
           align-items:center;justify-content:center;cursor:pointer;
-          transition:transform .15s ease, filter .15s, box-shadow .15s;
+          transition:transform .15s ease,filter .15s,box-shadow .15s;
           border:2px solid transparent;position:relative;overflow:hidden;
         }
         .tile:hover{transform:scale(1.08);filter:brightness(1.2)}
         .tile.selected{border-color:#fff;transform:scale(1.1);box-shadow:0 0 0 3px rgba(255,255,255,.5);filter:brightness(1.25)}
         .tile.swapping{transform:scale(1.15);filter:brightness(1.3);box-shadow:0 0 12px rgba(255,255,255,.4)}
         .tile.popping{animation:pop .38s ease forwards}
-        .sym{font-size:clamp(11px,2vw,19px);font-weight:800;line-height:1;pointer-events:none}
+        .sym{font-size:clamp(12px,2vw,20px);font-weight:800;line-height:1;pointer-events:none}
         .lbl{font-size:clamp(6px,.9vw,9px);font-weight:700;opacity:.8;line-height:1;margin-top:1px;pointer-events:none}
 
-        /* Combo text */
+        /* ── Combo text ── */
         .combo{
           position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-          font-family:'Syne',sans-serif;font-weight:800;font-size:28px;
+          font-family:'Syne',sans-serif;font-weight:800;font-size:32px;
           color:#f59e0b;text-shadow:0 2px 8px rgba(0,0,0,.8);
-          animation:comboPop .7s ease forwards;pointer-events:none;z-index:10;
-          white-space:nowrap;
+          animation:comboPop .7s ease forwards;pointer-events:none;z-index:10;white-space:nowrap;
         }
         @keyframes comboPop{
           0%{opacity:0;transform:translate(-50%,-50%) scale(.5)}
@@ -341,53 +369,76 @@ export default function CryptoCrush() {
           100%{transform:scale(0);opacity:0}
         }
 
-        /* UI */
-        .btn{padding:10px 22px;border-radius:12px;font-family:'DM Mono',monospace;font-size:12px;font-weight:700;cursor:pointer;border:none;transition:all .2s;letter-spacing:.5px}
+        /* ── Buttons ── */
+        .btn{padding:11px 26px;border-radius:12px;font-family:'DM Mono',monospace;font-size:13px;font-weight:700;cursor:pointer;border:none;transition:all .2s;letter-spacing:.5px}
         .btn-primary{background:var(--accent);color:#000}.btn-primary:hover{background:#00c98e}.btn-primary:disabled{opacity:.5;cursor:not-allowed}
         .btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted)}.btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
-        .card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:20px}
-        .timer-bar{height:6px;border-radius:3px;background:var(--surface2);overflow:hidden;margin-top:6px}
-        .timer-fill{height:100%;border-radius:3px;transition:width .9s linear,background .5s}
+        .btn-lg{padding:13px 32px;font-size:14px;border-radius:14px}
+
+        /* ── Result card ── */
+        .result-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;margin-top:12px;text-align:center}
+
+        /* ── Hint strip ── */
+        .hint-strip{text-align:center;font-size:11px;color:#475569;padding:8px 0;margin-top:6px}
       `}</style>
 
       <div className="page">
         <Nav active="crush" />
 
-        {/* Header */}
-        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16, flexWrap:"wrap", gap:10 }}>
+        {/* ── Header: title left, action right ── */}
+        <div className="crush-header">
           <div>
-            <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:26, letterSpacing:-1 }}>
-              🎮 <span style={{ color:"var(--accent)" }}>Crypto Crush</span>
+            <div className="crush-title">🎮 <span>Crypto Crush</span></div>
+            <div className="crush-sub">
+              Match 3+ coins in a row or column · {PTS_PER_TILE} pts/tile · {pointsPerToken} pts = 1 Token · max {maxTokens}/day
             </div>
-            <div style={{ fontSize:11, color:"#94a3b8", marginTop:2 }}>Match crypto coins • earn Class Reward Tokens</div>
           </div>
-          {classes.length > 1 && (
-            <select value={classId || ""} onChange={e => setClassId(e.target.value)}
-              style={{ background:"var(--surface2)", border:"1px solid var(--border)", color:"var(--text)", borderRadius:10, padding:"6px 10px", fontFamily:"'DM Mono',monospace", fontSize:11 }}>
-              {classes.map(c => <option key={c.id} value={c.id}>{c.name || c.id}</option>)}
-            </select>
-          )}
-        </div>
-
-        {/* Stats bar */}
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:12 }}>
-          <div className="card" style={{ textAlign:"center", padding:12 }}>
-            <div style={{ fontSize:20, fontWeight:800, color:"var(--accent)", fontFamily:"'Syne',sans-serif" }}>{score}</div>
-            <div style={{ fontSize:9, color:"#475569", marginTop:2 }}>SCORE</div>
-          </div>
-          <div className="card" style={{ textAlign:"center", padding:12 }}>
-            <div style={{ fontSize:20, fontWeight:800, fontFamily:"'Syne',sans-serif", color:timerColor }}>{timeLeft}s</div>
-            <div className="timer-bar"><div className="timer-fill" style={{ width:`${pct}%`, background:timerColor }} /></div>
-          </div>
-          <div className="card" style={{ textAlign:"center", padding:12 }}>
-            <div style={{ fontSize:20, fontWeight:800, color:"#f59e0b", fontFamily:"'Syne',sans-serif" }}>
-              {tokensToday}<span style={{ fontSize:12, color:"#475569" }}>/{maxTokens}</span>
-            </div>
-            <div style={{ fontSize:9, color:"#475569", marginTop:2 }}>TOKENS TODAY</div>
+          <div style={{ display:"flex", alignItems:"center", gap:10, flexShrink:0 }}>
+            {classes.length > 1 && (
+              <select value={classId || ""} onChange={e => setClassId(e.target.value)}
+                style={{ background:"var(--surface2)", border:"1px solid var(--border)", color:"var(--text)", borderRadius:10, padding:"8px 12px", fontFamily:"'DM Mono',monospace", fontSize:11 }}>
+                {classes.map(c => <option key={c.id} value={c.id}>{c.name || c.id}</option>)}
+              </select>
+            )}
+            {(gameState === "idle" || gameState === "claimed") && (
+              <button className="btn btn-primary btn-lg" onClick={startGame} disabled={tokensToday >= maxTokens}>
+                {tokensToday >= maxTokens ? "🚫 Daily Limit Reached" : gameState === "claimed" ? "▶ Play Again" : "▶ Start Game"}
+              </button>
+            )}
+            {gameState === "over" && (
+              <button className="btn btn-ghost btn-lg" onClick={startGame}>↺ Play Again</button>
+            )}
+            {gameState === "playing" && (
+              <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:14, color:"#f59e0b" }}>
+                🎁 {tokensToday}<span style={{ fontSize:11, color:"#475569", fontWeight:400 }}>/{maxTokens} today</span>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Board */}
+        {/* ── Stats bar ── */}
+        <div className="stats-bar">
+          <div className="stat-card">
+            <div className="stat-val" style={{ color:"var(--accent)" }}>{score}</div>
+            <div className="stat-lbl">Score</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-val" style={{ color:timerColor }}>
+              {gameState === "idle" ? `${GAME_SECONDS}s` : gameState === "over" || gameState === "claimed" ? "0s" : `${timeLeft}s`}
+            </div>
+            <div className="timer-bar">
+              <div className="timer-fill" style={{ width: gameState === "idle" ? "100%" : `${pct}%`, background: timerColor }} />
+            </div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-val" style={{ color:"#f59e0b" }}>
+              {tokensToday}<span style={{ fontSize:14, color:"#475569" }}>/{maxTokens}</span>
+            </div>
+            <div className="stat-lbl">Tokens Today</div>
+          </div>
+        </div>
+
+        {/* ── Board ── */}
         <div className="board-wrap">
           <div className="board">
             {cells.map((row, r) => row.map((coinId, c) => {
@@ -410,88 +461,74 @@ export default function CryptoCrush() {
             }))}
           </div>
           {comboText && <div className="combo">{comboText}</div>}
-        </div>
-
-        {/* Game state panels */}
-        <div style={{ marginTop:12 }}>
           {gameState === "idle" && (
-            <div className="card" style={{ textAlign:"center", padding:28 }}>
-              <div style={{ fontSize:36, marginBottom:10 }}>🎮</div>
-              <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:17, marginBottom:8 }}>Ready to Play?</div>
-              <div style={{ fontSize:12, color:"#94a3b8", marginBottom:20, lineHeight:1.8 }}>
-                Select a coin, then click an adjacent coin to swap.<br/>
-                Match <strong style={{ color:"var(--accent)" }}>3 or more</strong> in a row or column to score.<br/>
-                <strong style={{ color:"var(--accent)" }}>{PTS_PER_TILE} pts</strong> per tile · {pointsPerToken} pts = <strong style={{ color:"#f59e0b" }}>1 Token</strong> · max <strong style={{ color:"#f59e0b" }}>{maxTokens}/day</strong>
-                {tokensToday > 0 && <><br /><span style={{ color:"#f59e0b" }}>Today so far: {tokensToday} token{tokensToday !== 1 ? "s" : ""} earned.</span></>}
-              </div>
-              <button className="btn btn-primary" onClick={startGame} disabled={tokensToday >= maxTokens}>
-                {tokensToday >= maxTokens ? "Daily limit reached" : "Start Game"}
-              </button>
-            </div>
-          )}
-
-          {gameState === "playing" && (
-            <div style={{ textAlign:"center", fontSize:11, color:"#475569", padding:"4px 0" }}>
-              {selectedCell ? "Now click an adjacent coin to swap ↔" : "Click any coin to select it"}
-            </div>
-          )}
-
-          {gameState === "over" && (
-            <div className="card" style={{ textAlign:"center", padding:26 }}>
-              <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:20, marginBottom:6 }}>⏱ Time's Up!</div>
-              <div style={{ fontSize:14, color:"#94a3b8", marginBottom:14 }}>
-                Final score: <strong style={{ color:"var(--accent)", fontSize:22 }}>{score}</strong>
-              </div>
-              {tokensPreview > 0 ? (
-                <div style={{ background:"rgba(245,158,11,.1)", border:"1px solid rgba(245,158,11,.3)", borderRadius:12, padding:"10px 18px", marginBottom:18, fontSize:13 }}>
-                  🎉 You earned <strong style={{ color:"#f59e0b", fontSize:18 }}>{tokensPreview}</strong> Class Reward Token{tokensPreview !== 1 ? "s" : ""}!
-                </div>
-              ) : (
-                <div style={{ color:"#475569", fontSize:12, marginBottom:18 }}>
-                  {tokensToday >= maxTokens ? "Daily limit already reached." : `Need ${pointsPerToken} pts per token. Keep going!`}
-                </div>
-              )}
-              <div style={{ display:"flex", gap:10, justifyContent:"center" }}>
-                {tokensPreview > 0 && (
-                  <button className="btn btn-primary" onClick={claimTokens} disabled={claiming}>
-                    {claiming ? "Claiming…" : `Claim ${tokensPreview} Token${tokensPreview !== 1 ? "s" : ""}`}
-                  </button>
-                )}
-                <button className="btn btn-ghost" onClick={startGame}>Play Again</button>
-              </div>
-            </div>
-          )}
-
-          {gameState === "claimed" && (
-            <div className="card" style={{ textAlign:"center", padding:26 }}>
-              {claimResult?.tokensAwarded > 0 ? (
-                <>
-                  <div style={{ fontSize:36, marginBottom:8 }}>🏆</div>
-                  <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:20, marginBottom:6, color:"#f59e0b" }}>
-                    +{claimResult.tokensAwarded} Token{claimResult.tokensAwarded !== 1 ? "s" : ""} Claimed!
-                  </div>
-                  <div style={{ fontSize:12, color:"#94a3b8", marginBottom:18 }}>Today: {claimResult.tokensToday}/{maxTokens}</div>
-                </>
-              ) : (
-                <>
-                  <div style={{ fontSize:32, marginBottom:8 }}>😅</div>
-                  <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:15, marginBottom:6 }}>No tokens this time</div>
-                  <div style={{ fontSize:12, color:"#94a3b8", marginBottom:18 }}>{claimResult?.reason}</div>
-                </>
-              )}
-              <button className="btn btn-ghost" onClick={startGame}>Play Again</button>
-            </div>
+            <div className="board-idle-overlay">Press ▶ Start Game to play</div>
           )}
         </div>
 
-        {/* Coin legend */}
-        <div className="card" style={{ marginTop:14, padding:12 }}>
-          <div style={{ fontSize:9, color:"#475569", marginBottom:8, textTransform:"uppercase", letterSpacing:1 }}>Coins in play</div>
+        {/* ── Playing hint ── */}
+        {gameState === "playing" && (
+          <div className="hint-strip">
+            {selectedCell ? "Click an adjacent coin to swap ↔" : "Click any coin to select it"}
+          </div>
+        )}
+
+        {/* ── Game Over panel ── */}
+        {gameState === "over" && (
+          <div className="result-card">
+            <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:22, marginBottom:8 }}>⏱ Time's Up!</div>
+            <div style={{ fontSize:15, color:"#94a3b8", marginBottom:14 }}>
+              Final score: <strong style={{ color:"var(--accent)", fontSize:26 }}>{score}</strong>
+            </div>
+            {tokensPreview > 0 ? (
+              <div style={{ background:"rgba(245,158,11,.1)", border:"1px solid rgba(245,158,11,.3)", borderRadius:12, padding:"12px 20px", marginBottom:18, fontSize:14 }}>
+                🎉 You earned <strong style={{ color:"#f59e0b", fontSize:20 }}>{tokensPreview}</strong> Class Reward Token{tokensPreview !== 1 ? "s" : ""}!
+              </div>
+            ) : (
+              <div style={{ color:"#475569", fontSize:12, marginBottom:18 }}>
+                {tokensToday >= maxTokens ? "Daily limit already reached." : `Need ${pointsPerToken} pts per token. Keep going!`}
+              </div>
+            )}
+            <div style={{ display:"flex", gap:10, justifyContent:"center" }}>
+              {tokensPreview > 0 && (
+                <button className="btn btn-primary" onClick={claimTokens} disabled={claiming}>
+                  {claiming ? "Claiming…" : `Claim ${tokensPreview} Token${tokensPreview !== 1 ? "s" : ""}`}
+                </button>
+              )}
+              <button className="btn btn-ghost" onClick={startGame}>↺ Play Again</button>
+            </div>
+          </div>
+        )}
+
+        {/* ── Claimed panel ── */}
+        {gameState === "claimed" && (
+          <div className="result-card">
+            {claimResult?.tokensAwarded > 0 ? (
+              <>
+                <div style={{ fontSize:40, marginBottom:8 }}>🏆</div>
+                <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:22, marginBottom:6, color:"#f59e0b" }}>
+                  +{claimResult.tokensAwarded} Token{claimResult.tokensAwarded !== 1 ? "s" : ""} Claimed!
+                </div>
+                <div style={{ fontSize:12, color:"#94a3b8", marginBottom:4 }}>Today: {claimResult.tokensToday}/{maxTokens}</div>
+              </>
+            ) : (
+              <>
+                <div style={{ fontSize:36, marginBottom:8 }}>😅</div>
+                <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:16, marginBottom:6 }}>No tokens this time</div>
+                <div style={{ fontSize:12, color:"#94a3b8" }}>{claimResult?.reason}</div>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ── Coin legend ── */}
+        <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:14, padding:"12px 16px", marginTop:14 }}>
+          <div style={{ fontSize:9, color:"#475569", marginBottom:8, textTransform:"uppercase", letterSpacing:1.5 }}>Coins in play</div>
           <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
             {COINS.map(c => (
-              <div key={c.id} style={{ display:"flex", alignItems:"center", gap:5, background:"var(--surface2)", borderRadius:8, padding:"3px 8px" }}>
-                <div style={{ width:18, height:18, borderRadius:"50%", background:c.bg, display:"flex", alignItems:"center", justifyContent:"center", fontSize:9, fontWeight:800, color:c.fg }}>{c.symbol}</div>
-                <span style={{ fontSize:10, color:"#94a3b8" }}>{c.label}</span>
+              <div key={c.id} style={{ display:"flex", alignItems:"center", gap:5, background:"var(--surface2)", borderRadius:8, padding:"4px 10px" }}>
+                <div style={{ width:20, height:20, borderRadius:"50%", background:c.bg, display:"flex", alignItems:"center", justifyContent:"center", fontSize:10, fontWeight:800, color:c.fg }}>{c.symbol}</div>
+                <span style={{ fontSize:11, color:"#94a3b8" }}>{c.label}</span>
               </div>
             ))}
           </div>
