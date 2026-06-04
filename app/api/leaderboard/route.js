@@ -69,20 +69,6 @@ export async function GET(request) {
     if (!flairMap[f.student_id]) flairMap[f.student_id] = FLAIR_EMOJI[f.reason.replace('store:', '')] || null;
   });
 
-  // Staked value — run completely isolated so a missing table never breaks the leaderboard
-  const stakingMap = {};
-  try {
-    const { data: staked } = await db.from('staking_positions')
-      .select('student_id, coin, quantity')
-      .in('student_id', studentIds)
-      .eq('class_id', classId)
-      .in('status', ['active', 'claimable']);
-    (staked || []).forEach(s => {
-      const price = priceMap[s.coin] || 0;
-      stakingMap[s.student_id] = (stakingMap[s.student_id] || 0) + parseFloat(s.quantity) * price;
-    });
-  } catch (_) { /* staking table may not exist yet */ }
-
   const portfolioMap = {};
   (portfoliosRes.data || []).forEach(p => { portfolioMap[p.student_id] = p; });
 
@@ -102,6 +88,20 @@ export async function GET(request) {
 
   const priceMap = {};
   (pricesRes.data || []).forEach(p => { priceMap[p.symbol] = parseFloat(p.price); });
+
+  // Staked value — after priceMap is built so lookups work
+  const stakingMap = {};
+  try {
+    const { data: staked } = await db.from('staking_positions')
+      .select('student_id, coin, quantity')
+      .in('student_id', studentIds)
+      .eq('class_id', classId)
+      .in('status', ['active', 'claimable']);
+    (staked || []).forEach(s => {
+      const price = priceMap[s.coin] || 0;
+      stakingMap[s.student_id] = (stakingMap[s.student_id] || 0) + parseFloat(s.quantity) * price;
+    });
+  } catch (_) {}
 
   const snapshotsByStudent = {};
   (snapshotsRes.data || []).forEach(s => {

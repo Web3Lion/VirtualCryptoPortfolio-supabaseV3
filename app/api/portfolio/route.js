@@ -22,8 +22,19 @@ export async function GET(request) {
   const { portfolio, holdings, trades } = await getStudentPortfolio(student.id, classId);
   const activeCoins = await getClassCoins(classId);
 
-  // Get cached prices for all held coins
-  const heldSymbols = [...new Set(holdings.map(h => h.coin))];
+  // Fetch staking positions alongside portfolio data
+  const { data: stakingPositions } = await db.from('staking_positions')
+    .select('coin, quantity')
+    .eq('student_id', student.id)
+    .eq('class_id', classId)
+    .in('status', ['active', 'claimable'])
+    .catch(() => ({ data: null }));
+
+  // Get cached prices for held + staked coins
+  const heldSymbols = [...new Set([
+    ...holdings.map(h => h.coin),
+    ...(stakingPositions || []).map(p => p.coin),
+  ])];
   const priceMap = {};
   if (heldSymbols.length > 0) {
     const { data: cached } = await db.from('price_cache').select('symbol, price').in('symbol', heldSymbols);
@@ -65,8 +76,9 @@ export async function GET(request) {
 
   const holdingsValue  = holdingsWithPrices.reduce((s, h) => s + h.curVal, 0);
   const totalBorrowed  = holdingsWithPrices.reduce((s, h) => s + h.marginBorrowed, 0);
-  // Subtract borrowed capital so portfolio value reflects only student equity
-  const totalValue    = cash + holdingsValue - totalBorrowed;
+  const stakingValue   = (stakingPositions || []).reduce((s, p) => s + parseFloat(p.quantity) * (priceMap[p.coin] || 0), 0);
+  // Include staked coins in total — they leave holdings when staked but still belong to the student
+  const totalValue    = cash + holdingsValue + stakingValue - totalBorrowed;
   const pl            = totalValue - seedMoney;
   const returnPct     = ((totalValue / seedMoney) - 1) * 100;
 
@@ -78,7 +90,7 @@ export async function GET(request) {
 
   return Response.json({
     classId,
-    summary: { startCash: seedMoney, cash: cash.toFixed(2), holdingsVal: holdingsValue.toFixed(2), totalVal: totalValue.toFixed(2), pl: pl.toFixed(2), returnPct: returnPct.toFixed(2), fees: feesPaid.toFixed(2) },
+    summary: { startCash: seedMoney, cash: cash.toFixed(2), holdingsVal: holdingsValue.toFixed(2), stakingVal: stakingValue.toFixed(2), totalVal: totalValue.toFixed(2), pl: pl.toFixed(2), returnPct: returnPct.toFixed(2), fees: feesPaid.toFixed(2) },
     holdings: holdingsWithPrices,
     history:  trades.map(t => ({ id: t.id, action: t.action, coin: t.coin, quantity: parseFloat(t.quantity), price: parseFloat(t.price), grossValue: parseFloat(t.gross_value), fee: parseFloat(t.fee), cashAfter: parseFloat(t.cash_after), reasoning: t.reasoning, createdAt: t.created_at })),
     availableCoins: coins,

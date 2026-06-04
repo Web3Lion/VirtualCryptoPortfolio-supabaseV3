@@ -64,7 +64,15 @@ export default function Teacher() {
   const [stakingConfig, setStakingConfig]   = useState({ enabled: false });
   const [stakingStats, setStakingStats]     = useState(null);
   const [stakingSaving, setStakingSaving]   = useState(false);
-  const [stakingSql, setStakingSql]         = useState(null); // shows manual SQL modal
+  const [stakingSql, setStakingSql]         = useState(null);
+  const [analyticsData, setAnalyticsData]   = useState(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [schedBullAt, setSchedBullAt]       = useState('');
+  const [schedBullMult, setSchedBullMult]   = useState(2);
+  const [schedFlashAt, setSchedFlashAt]     = useState('');
+  const [schedFlashCoin, setSchedFlashCoin] = useState('');
+  const [schedFlashPct, setSchedFlashPct]   = useState('20');
+  const [schedFlashMins, setSchedFlashMins] = useState('30');
 
   useEffect(() => { applyTheme(getTheme()); }, []);
   useEffect(()=>{ if(status==='unauthenticated') router.replace('/'); },[status,router]);
@@ -356,6 +364,16 @@ export default function Teacher() {
     fetchData(activeClass?.id);
   };
 
+  const fetchAnalytics = async (classId) => {
+    if (!classId) return;
+    setAnalyticsLoading(true);
+    try {
+      const res = await fetch(`/api/teacher/analytics?classId=${classId}`);
+      if (res.ok) setAnalyticsData(await res.json());
+    } catch(e) { console.error(e); }
+    setAnalyticsLoading(false);
+  };
+
   const humans    = students.filter(s=>!s.isBot);
   const classAvg  = humans.length ? humans.reduce((s,r)=>s+clean(r.returnPct),0)/humans.length : 0;
   const profitable = humans.filter(s=>clean(s.pl)>0).length;
@@ -471,8 +489,8 @@ export default function Teacher() {
         {activeClass && (
           <>
             <div className="tabs">
-              {['overview','controls','students','coins','news'].map(s=>(
-                <button key={s} className={`stab${activeSection===s?' active':''}`} onClick={()=>setActiveSection(s)}>{s.charAt(0).toUpperCase()+s.slice(1)}</button>
+              {['overview','controls','students','analytics','coins','news'].map(s=>(
+                <button key={s} className={`stab${activeSection===s?' active':''}`} onClick={()=>{ setActiveSection(s); if(s==='analytics') fetchAnalytics(activeClass?.id); }}>{s.charAt(0).toUpperCase()+s.slice(1)}</button>
               ))}
             </div>
 
@@ -557,11 +575,33 @@ export default function Teacher() {
                       <div className="ctrl-title">🐂 Bull Run</div>
                       <div className="ctrl-desc">Amplify all price changes.</div>
                       <div className={`status-pill ${marketStatus?.bullRun?'on':'off'}`}>{marketStatus?.bullRun?`🟢 ACTIVE ${marketStatus.bullMult}×`:'⚪ INACTIVE'}</div>
-                      <div className="btn-row">
+                      <div className="btn-row" style={{marginBottom:10}}>
                         {marketStatus?.bullRun
                           ? <button className="btn btn-red" onClick={()=>teacherAction('bull-run/stop')}>⏹ End</button>
                           : <><button className="btn btn-gold" onClick={()=>teacherAction('bull-run/start',{multiplier:2})}>🐂 2×</button><button className="btn btn-red" onClick={()=>teacherAction('bull-run/start',{multiplier:3})}>🚀 3×</button></>}
                       </div>
+                      {!marketStatus?.bullRun && (
+                        <div style={{borderTop:'1px solid var(--border)',paddingTop:10}}>
+                          <div className="tools-label">⏰ Schedule</div>
+                          {marketStatus?.bullRunScheduledAt ? (
+                            <div style={{fontSize:11,color:'var(--gold)',marginBottom:8}}>
+                              Scheduled: {new Date(marketStatus.bullRunScheduledAt).toLocaleString()} ({marketStatus.bullRunScheduledMult}×)
+                            </div>
+                          ) : null}
+                          <div className="form-row" style={{marginBottom:6}}>
+                            <input type="datetime-local" className="text-input" style={{marginBottom:0}} value={schedBullAt} onChange={e=>setSchedBullAt(e.target.value)}/>
+                            <select className="text-input" style={{marginBottom:0}} value={schedBullMult} onChange={e=>setSchedBullMult(parseInt(e.target.value))}>
+                              <option value={2}>2×</option><option value={3}>3×</option>
+                            </select>
+                          </div>
+                          <div className="btn-row">
+                            {marketStatus?.bullRunScheduledAt
+                              ? <button className="btn btn-red" style={{fontSize:11}} onClick={()=>teacherAction('bull-run/cancel-schedule')}>✕ Cancel Schedule</button>
+                              : <button className="btn btn-muted" style={{fontSize:11}} onClick={()=>{if(schedBullAt)teacherAction('bull-run/schedule',{scheduledAt:schedBullAt,multiplier:schedBullMult})}}>Schedule</button>
+                            }
+                          </div>
+                        </div>
+                      )}
                     </div>
                     <div className="ctrl-card">
                       <div className="ctrl-title">⚡ Flash Sale</div>
@@ -569,11 +609,33 @@ export default function Teacher() {
                       <div className={`status-pill ${marketStatus?.flashSale?'warn':'off'}`}>{marketStatus?.flashSale?`🟡 ${marketStatus.flashSale.coin}`:'⚪ NONE'}</div>
                       {!marketStatus?.flashSale&&<div className="form-row"><input className="text-input" placeholder="Coin (BTC)" value={flashCoin} onChange={e=>setFlashCoin(e.target.value)} style={{marginBottom:0}}/><input className="text-input" placeholder="% off (20)" value={flashPct} onChange={e=>setFlashPct(e.target.value)} style={{marginBottom:0}}/></div>}
                       {!marketStatus?.flashSale&&<div style={{height:10}}/>}
-                      <div className="btn-row">
+                      <div className="btn-row" style={{marginBottom:10}}>
                         {marketStatus?.flashSale
                           ? <button className="btn btn-muted" onClick={()=>teacherAction('flash-sale/stop')}>⏹ End</button>
                           : <button className="btn btn-gold" onClick={()=>{if(flashCoin)teacherAction('flash-sale/start',{coin:flashCoin.toUpperCase(),discountPct:parseFloat(flashPct)||20,minutes:30})}}>⚡ Start</button>}
                       </div>
+                      {!marketStatus?.flashSale && (
+                        <div style={{borderTop:'1px solid var(--border)',paddingTop:10}}>
+                          <div className="tools-label">⏰ Schedule</div>
+                          {marketStatus?.flashSaleScheduledAt ? (
+                            <div style={{fontSize:11,color:'var(--gold)',marginBottom:8}}>
+                              Scheduled: {new Date(marketStatus.flashSaleScheduledAt).toLocaleString()} — {marketStatus.flashSaleScheduledCoin} {marketStatus.flashSaleScheduledPct}% off
+                            </div>
+                          ) : null}
+                          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginBottom:6}}>
+                            <input type="datetime-local" className="text-input" style={{marginBottom:0}} value={schedFlashAt} onChange={e=>setSchedFlashAt(e.target.value)}/>
+                            <input className="text-input" placeholder="Coin (ETH)" style={{marginBottom:0}} value={schedFlashCoin} onChange={e=>setSchedFlashCoin(e.target.value)}/>
+                            <input className="text-input" placeholder="% off (20)" style={{marginBottom:0}} value={schedFlashPct} onChange={e=>setSchedFlashPct(e.target.value)}/>
+                            <input className="text-input" placeholder="Duration mins (30)" style={{marginBottom:0}} value={schedFlashMins} onChange={e=>setSchedFlashMins(e.target.value)}/>
+                          </div>
+                          <div className="btn-row">
+                            {marketStatus?.flashSaleScheduledAt
+                              ? <button className="btn btn-red" style={{fontSize:11}} onClick={()=>teacherAction('flash-sale/cancel-schedule')}>✕ Cancel Schedule</button>
+                              : <button className="btn btn-muted" style={{fontSize:11}} onClick={()=>{if(schedFlashAt&&schedFlashCoin)teacherAction('flash-sale/schedule',{scheduledAt:schedFlashAt,coin:schedFlashCoin,discountPct:parseFloat(schedFlashPct)||20,minutes:parseInt(schedFlashMins)||30})}}>Schedule</button>
+                            }
+                          </div>
+                        </div>
+                      )}
                     </div>
                     <div className="ctrl-card">
                       <div className="ctrl-title">🏁 Simulation</div>
@@ -991,6 +1053,82 @@ export default function Teacher() {
                       )}
                     </div>
                   </>
+                )}
+
+                {activeSection==='analytics' && (
+                  <div>
+                    {analyticsLoading ? (
+                      <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                        {[1,2,3,4].map(i=><div key={i} className="skeleton" style={{height:52}}/>)}
+                      </div>
+                    ) : !analyticsData ? (
+                      <div style={{textAlign:'center',padding:48,color:'var(--muted)',fontSize:13}}>No data — click Analytics tab to load</div>
+                    ) : (
+                      <>
+                        {/* Summary row */}
+                        {(() => {
+                          const inactive = analyticsData.filter(s=>s.isInactive).length;
+                          const totalTrades = analyticsData.reduce((s,r)=>s+r.tradeCount,0);
+                          const todayTrades = analyticsData.reduce((s,r)=>s+r.tradesToday,0);
+                          const avgBadges = analyticsData.length ? (analyticsData.reduce((s,r)=>s+r.badgesCount,0)/analyticsData.length).toFixed(1) : 0;
+                          return (
+                            <div className="stats-grid" style={{marginBottom:16}}>
+                              <div className="stat-card"><div className="stat-label">Trades Today</div><div className="stat-value gold">{todayTrades}</div></div>
+                              <div className="stat-card"><div className="stat-label">Total Trades</div><div className="stat-value">{totalTrades}</div></div>
+                              <div className="stat-card"><div className="stat-label">Inactive (&gt;3d)</div><div className={`stat-value ${inactive>0?'down':''}`}>{inactive}</div></div>
+                              <div className="stat-card"><div className="stat-label">Avg Badges</div><div className="stat-value gold">{avgBadges}</div></div>
+                            </div>
+                          );
+                        })()}
+                        {/* Student table */}
+                        <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:16,overflow:'hidden'}}>
+                          <table className="student-table">
+                            <thead>
+                              <tr>
+                                <th>Student</th>
+                                <th>Trades Today</th>
+                                <th>Total Trades</th>
+                                <th>Badges</th>
+                                <th>Last Active</th>
+                                <th>Status</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {[...analyticsData].sort((a,b)=>b.tradesToday-a.tradesToday||b.tradeCount-a.tradeCount).map(s=>{
+                                const lastDate = s.lastTradeAt ? new Date(s.lastTradeAt) : null;
+                                const daysAgo = lastDate ? Math.floor((Date.now()-lastDate.getTime())/(1000*86400)) : null;
+                                return (
+                                  <tr key={s.studentId} className="srow">
+                                    <td>
+                                      <div style={{fontWeight:600}}>{s.name}</div>
+                                      <div style={{fontSize:10,color:'var(--muted)'}}>{s.email}</div>
+                                    </td>
+                                    <td style={{textAlign:'center'}}>
+                                      <span style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:14,color:s.tradesToday>0?'var(--accent)':'var(--muted)'}}>{s.tradesToday}</span>
+                                    </td>
+                                    <td style={{textAlign:'center',color:'var(--muted)'}}>{s.tradeCount}</td>
+                                    <td style={{textAlign:'center'}}>
+                                      <span style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:13,color:s.badgesCount>0?'var(--gold)':'var(--muted)'}}>{s.badgesCount}</span>
+                                    </td>
+                                    <td style={{fontSize:11,color:'var(--muted)'}}>
+                                      {lastDate ? (daysAgo===0 ? 'Today' : daysAgo===1 ? 'Yesterday' : `${daysAgo}d ago`) : 'Never'}
+                                    </td>
+                                    <td>
+                                      {s.isInactive
+                                        ? <span style={{fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:6,background:'rgba(244,63,94,.12)',color:'var(--down)',border:'1px solid rgba(244,63,94,.25)'}}>INACTIVE</span>
+                                        : <span style={{fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:6,background:'rgba(0,229,160,.1)',color:'var(--up)',border:'1px solid rgba(0,229,160,.2)'}}>ACTIVE</span>
+                                      }
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                        <div style={{fontSize:10,color:'var(--muted)',marginTop:8,textAlign:'right'}}>Inactive = no trade in 3+ days</div>
+                      </>
+                    )}
+                  </div>
                 )}
 
                 {activeSection==='coins' && (

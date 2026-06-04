@@ -51,9 +51,10 @@ export async function POST(request) {
       }
       if (!targets.length) continue;
 
-      const [portfoliosRes, holdingsRes] = await Promise.all([
+      const [portfoliosRes, holdingsRes, stakingRes] = await Promise.all([
         db.from('portfolios').select('student_id, cash').in('student_id', targets).eq('class_id', cls.id),
         db.from('holdings').select('student_id, coin, quantity, margin_borrowed').in('student_id', targets).eq('class_id', cls.id),
+        db.from('staking_positions').select('student_id, coin, quantity').in('student_id', targets).eq('class_id', cls.id).in('status', ['active', 'claimable']).catch(() => ({ data: null })),
       ]);
 
       const pMap = {};
@@ -65,6 +66,12 @@ export async function POST(request) {
         hMap[h.student_id].push(h);
       });
 
+      const sMap = {};
+      (stakingRes.data || []).forEach(p => {
+        if (!sMap[p.student_id]) sMap[p.student_id] = [];
+        sMap[p.student_id].push(p);
+      });
+
       const rows = targets.map(sid => {
         const cash = pMap[sid] ?? 0;
         let holdingsVal = 0, borrowed = 0;
@@ -72,7 +79,8 @@ export async function POST(request) {
           holdingsVal += parseFloat(h.quantity) * (priceMap[h.coin] || 0);
           borrowed    += parseFloat(h.margin_borrowed || 0);
         });
-        return { student_id: sid, class_id: cls.id, total_value: cash + holdingsVal - borrowed, cash, snapshot_type: 'daily' };
+        const stakingVal = (sMap[sid] || []).reduce((s, p) => s + parseFloat(p.quantity) * (priceMap[p.coin] || 0), 0);
+        return { student_id: sid, class_id: cls.id, total_value: cash + holdingsVal + stakingVal - borrowed, cash, snapshot_type: 'daily' };
       });
 
       if (rows.length) {

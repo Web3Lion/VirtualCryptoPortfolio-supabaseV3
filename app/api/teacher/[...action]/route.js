@@ -26,6 +26,14 @@ export async function POST(request, { params }) {
     case 'bull-run/stop':
       await setConfigs({ BULL_RUN_ACTIVE: '0' });
       return Response.json({ success: true, message: '⏹ Bull run ended' });
+    case 'bull-run/schedule': {
+      if (!body.scheduledAt) return Response.json({ error: 'scheduledAt required' }, { status: 400 });
+      await setConfigs({ BULL_RUN_SCHEDULED_AT: new Date(body.scheduledAt).toISOString(), BULL_RUN_SCHEDULED_MULT: String(body.multiplier || 2) });
+      return Response.json({ success: true, message: `🐂 Bull run scheduled for ${new Date(body.scheduledAt).toLocaleString()}` });
+    }
+    case 'bull-run/cancel-schedule':
+      await setConfigs({ BULL_RUN_SCHEDULED_AT: '', BULL_RUN_SCHEDULED_MULT: '2' });
+      return Response.json({ success: true, message: '✅ Bull run schedule cancelled' });
     case 'flash-sale/start': {
       if (!body.coin) return Response.json({ error: 'Coin required' }, { status: 400 });
       await setConfigs({ FLASH_SALE_COIN: body.coin.toUpperCase(), FLASH_SALE_FACTOR: String(1 - (body.discountPct || 20) / 100), FLASH_SALE_UNTIL: new Date(Date.now() + (body.minutes || 30) * 60000).toISOString() });
@@ -34,6 +42,14 @@ export async function POST(request, { params }) {
     case 'flash-sale/stop':
       await setConfigs({ FLASH_SALE_COIN: '', FLASH_SALE_FACTOR: '', FLASH_SALE_UNTIL: '' });
       return Response.json({ success: true, message: '⏹ Flash sale ended' });
+    case 'flash-sale/schedule': {
+      if (!body.scheduledAt || !body.coin) return Response.json({ error: 'scheduledAt and coin required' }, { status: 400 });
+      await setConfigs({ FLASH_SALE_SCHEDULED_AT: new Date(body.scheduledAt).toISOString(), FLASH_SALE_SCHEDULED_COIN: body.coin.toUpperCase(), FLASH_SALE_SCHEDULED_FACTOR: String(1 - (body.discountPct || 20) / 100), FLASH_SALE_SCHEDULED_MINS: String(body.minutes || 30) });
+      return Response.json({ success: true, message: `⚡ Flash sale on ${body.coin.toUpperCase()} scheduled` });
+    }
+    case 'flash-sale/cancel-schedule':
+      await setConfigs({ FLASH_SALE_SCHEDULED_AT: '', FLASH_SALE_SCHEDULED_COIN: '', FLASH_SALE_SCHEDULED_FACTOR: '0.8', FLASH_SALE_SCHEDULED_MINS: '30' });
+      return Response.json({ success: true, message: '✅ Flash sale schedule cancelled' });
     case 'pause':
       await setConfigs({ SIM_PAUSED: '1', MARKET_FREEZE: '1', MARKET_FREEZE_REASON: '⏸ Simulation paused' });
       return Response.json({ success: true, message: '⏸ Paused' });
