@@ -970,6 +970,17 @@ export default function Dashboard() {
                 <Link href="/leaderboard" className="btn btn-secondary">
                   🏆 Leaderboard
                 </Link>
+                <button className="btn btn-secondary" onClick={async () => {
+                  const res = await fetch('/api/share');
+                  if (res.ok) {
+                    const { url } = await res.json();
+                    await navigator.clipboard.writeText(url).catch(() => {});
+                    setTradeStatus({ type: 'success', msg: '🔗 Share link copied to clipboard!' });
+                    setTimeout(() => setTradeStatus(null), 3000);
+                  }
+                }}>
+                  🔗 Share
+                </button>
               </div>
             </div>
 
