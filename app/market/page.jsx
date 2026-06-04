@@ -93,6 +93,7 @@ export default function Market() {
   const [sortBy, setSortBy]   = useState('marketCap');
   const [sortDir, setSortDir] = useState('desc');
   const [heatView, setHeatView] = useState('all'); // 'all' or 'sector'
+  const [fearGreed, setFearGreed] = useState(null);
 
   useEffect(() => { applyTheme(getTheme()); }, []);
   useEffect(() => { if (status === 'unauthenticated') router.replace('/'); }, [status, router]);
@@ -130,6 +131,11 @@ export default function Market() {
     if (status === 'authenticated') {
       fetchData();
       const iv = setInterval(fetchData, 30000);
+      // Fetch Fear & Greed index once (updates once daily)
+      fetch('https://api.alternative.me/fng/?limit=1')
+        .then(r => r.ok ? r.json() : null)
+        .then(d => { if (d?.data?.[0]) setFearGreed(d.data[0]); })
+        .catch(() => {});
       return () => clearInterval(iv);
     }
   }, [status, fetchData]);
@@ -211,11 +217,42 @@ export default function Market() {
       <div className="page">
         <Nav active="market" right={lastUpdated && <span style={{fontSize:10,color:'var(--muted)',fontSize:10}}>Updated {lastUpdated.toLocaleTimeString()}</span>} />
 
-        <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 32, letterSpacing: -1, marginBottom: 4, color: 'var(--text)' }}>
-          📈 <span style={{ color: 'var(--accent)' }}>Market</span>
-        </div>
-        <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 24 }}>
-          Live prices · Tile size = market cap · Updates every 30 minutes
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 16 }}>
+          <div>
+            <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 32, letterSpacing: -1, marginBottom: 4, color: 'var(--text)' }}>
+              📈 <span style={{ color: 'var(--accent)' }}>Market</span>
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--muted)' }}>
+              Live prices · Tile size = market cap · Updates every 30 minutes
+            </div>
+          </div>
+          {fearGreed && (() => {
+            const val = parseInt(fearGreed.value);
+            const label = fearGreed.value_classification;
+            const color = val <= 25 ? '#ef4444' : val <= 45 ? '#f97316' : val <= 55 ? '#f59e0b' : val <= 75 ? '#84cc16' : '#22c55e';
+            const bgColor = val <= 25 ? 'rgba(239,68,68,.1)' : val <= 45 ? 'rgba(249,115,22,.1)' : val <= 55 ? 'rgba(245,158,11,.1)' : val <= 75 ? 'rgba(132,204,18,.1)' : 'rgba(34,197,94,.1)';
+            const borderColor = val <= 25 ? 'rgba(239,68,68,.3)' : val <= 45 ? 'rgba(249,115,22,.3)' : val <= 55 ? 'rgba(245,158,11,.3)' : val <= 75 ? 'rgba(132,204,18,.3)' : 'rgba(34,197,94,.3)';
+            // Arc gauge
+            const radius = 32, cx = 44, cy = 44;
+            const startAngle = Math.PI; // 180°
+            const endAngle = startAngle + (val / 100) * Math.PI;
+            const x1 = cx + radius * Math.cos(startAngle), y1 = cy + radius * Math.sin(startAngle);
+            const x2 = cx + radius * Math.cos(endAngle),   y2 = cy + radius * Math.sin(endAngle);
+            return (
+              <div style={{ background: bgColor, border: `1px solid ${borderColor}`, borderRadius: 16, padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 14, minWidth: 220 }}>
+                <svg width={88} height={52} viewBox="0 0 88 52" style={{ flexShrink: 0 }}>
+                  <path d={`M ${cx - radius} ${cy} A ${radius} ${radius} 0 0 1 ${cx + radius} ${cy}`} fill="none" stroke="#1e293b" strokeWidth={7} strokeLinecap="round" />
+                  <path d={`M ${x1} ${y1} A ${radius} ${radius} 0 ${val >= 50 ? 1 : 0} 1 ${x2} ${y2}`} fill="none" stroke={color} strokeWidth={7} strokeLinecap="round" style={{ filter: `drop-shadow(0 0 6px ${color}88)` }} />
+                  <text x={cx} y={cy + 2} textAnchor="middle" fill={color} fontSize={14} fontWeight={700} fontFamily="'DM Mono',monospace">{val}</text>
+                </svg>
+                <div>
+                  <div style={{ fontSize: 9, color: 'var(--muted)', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 3 }}>Fear & Greed</div>
+                  <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 15, color }}>{label}</div>
+                  <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 2 }}>crypto sentiment index</div>
+                </div>
+              </div>
+            );
+          })()}
         </div>
 
         {loading ? (
