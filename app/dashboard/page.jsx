@@ -221,6 +221,7 @@ export default function Dashboard() {
   const [watchStatus, setWatchStatus] = useState(null);
   const [earnedBadge, setEarnedBadge] = useState(null);
   const [milestoneToast, setMilestoneToast] = useState(null);
+  const [postMortem, setPostMortem] = useState(null);
   const [tokensAwarded, setTokensAwarded] = useState(0);
   const [redeemingTokens, setRedeemingTokens] = useState(false);
   const [historyLimit, setHistoryLimit] = useState(50);
@@ -442,6 +443,7 @@ export default function Dashboard() {
         });
         if (data.newBadge) setEarnedBadge(data.newBadge);
         if (data.tokensAwarded > 0) setTokensAwarded(data.tokensAwarded);
+        if (data.postMortem) { setPostMortem(data.postMortem); }
         fetchDailyChallenge();
         setTradeForm((f) => ({ ...f, amount: "", reasoning: "" }));
         setTimeout(() => {
@@ -2613,6 +2615,18 @@ export default function Dashboard() {
                                   >
                                     Fee: {fmtUSD(t.fee || 0)}
                                   </div>
+                                  {/* "Since sold" hint for SELL trades on coins no longer held */}
+                                  {!isBuy && !isShortTx && prices[t.coin] && !holdingsArr.find(h => h.coin === t.coin) && (() => {
+                                    const soldAt = t.price || 0;
+                                    const now = parseFloat(prices[t.coin].price);
+                                    const pct = soldAt > 0 ? ((now - soldAt) / soldAt) * 100 : 0;
+                                    const up = pct >= 0;
+                                    return (
+                                      <div style={{fontSize:10,marginTop:4,textAlign:'right',color:up?'var(--down)':'var(--up)',fontWeight:600}} title={`${t.coin} is now $${now.toLocaleString()} — ${up?'up':'down'} ${Math.abs(pct).toFixed(1)}% since you sold`}>
+                                        {up ? '↑' : '↓'} {Math.abs(pct).toFixed(1)}% since sold
+                                      </div>
+                                    );
+                                  })()}
                                 </div>
                               </div>
                             );
@@ -2920,6 +2934,53 @@ export default function Dashboard() {
         )}
       </div>
 
+      {postMortem && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.65)',zIndex:9998,display:'flex',alignItems:'center',justifyContent:'center',padding:16}} onClick={()=>setPostMortem(null)}>
+          <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:24,padding:28,width:'100%',maxWidth:420,animation:'milestoneIn .4s cubic-bezier(.175,.885,.32,1.275)'}} onClick={e=>e.stopPropagation()}>
+            <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:20}}>
+              <div style={{width:48,height:48,borderRadius:14,background:postMortem.pnl>=0?'rgba(0,229,160,.15)':'rgba(244,63,94,.12)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:22}}>
+                {postMortem.pnl>=0?'🏆':'📖'}
+              </div>
+              <div>
+                <div style={{fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:18}}>Position Closed</div>
+                <div style={{fontSize:11,color:'var(--muted)'}}>
+                  {postMortem.coin} · held {postMortem.holdingDays} day{postMortem.holdingDays!==1?'s':''}
+                </div>
+              </div>
+            </div>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:16}}>
+              {[
+                ['Avg Entry', `$${postMortem.avgEntry?.toLocaleString('en-US',{maximumFractionDigits:4})}`, 'var(--muted)'],
+                ['Exit Price', `$${postMortem.exitPrice?.toLocaleString('en-US',{maximumFractionDigits:4})}`, 'var(--text)'],
+                ['Total Cost', fmtUSD(postMortem.totalCost), 'var(--muted)'],
+                ['Proceeds', fmtUSD(postMortem.proceeds), 'var(--text)'],
+              ].map(([label,val,color])=>(
+                <div key={label} style={{background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:10,padding:'10px 14px'}}>
+                  <div style={{fontSize:9,color:'var(--muted)',letterSpacing:2,textTransform:'uppercase',marginBottom:3}}>{label}</div>
+                  <div style={{fontSize:13,fontWeight:600,color}}>{val}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{background:postMortem.pnl>=0?'rgba(0,229,160,.1)':'rgba(244,63,94,.1)',border:`1px solid ${postMortem.pnl>=0?'rgba(0,229,160,.3)':'rgba(244,63,94,.3)'}`,borderRadius:14,padding:'14px 18px',textAlign:'center',marginBottom:16}}>
+              <div style={{fontSize:10,color:'var(--muted)',letterSpacing:2,textTransform:'uppercase',marginBottom:4}}>Realized P&L</div>
+              <div style={{fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:28,color:postMortem.pnl>=0?'var(--up)':'var(--down)',letterSpacing:-1}}>
+                {postMortem.pnl>=0?'+':''}{fmtUSD(postMortem.pnl)}
+              </div>
+              <div style={{fontSize:13,color:postMortem.pnl>=0?'var(--up)':'var(--down)',fontWeight:600}}>
+                {postMortem.pnlPct>=0?'+':''}{postMortem.pnlPct?.toFixed(2)}% return
+              </div>
+            </div>
+            <div style={{fontSize:11,color:'var(--muted)',textAlign:'center',marginBottom:16}}>
+              {postMortem.pnl>=0
+                ? `Nice trade! Check if ${postMortem.coin} kept rising after you sold.`
+                : `Tough one. Every loss is a lesson — what would you do differently?`}
+            </div>
+            <button onClick={()=>setPostMortem(null)} style={{width:'100%',padding:'10px',borderRadius:12,border:'1px solid var(--border)',background:'transparent',color:'var(--muted)',cursor:'pointer',fontFamily:"'DM Mono',monospace",fontSize:12}}>
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
       {milestoneToast && (
         <div style={{position:'fixed',inset:0,display:'flex',alignItems:'center',justifyContent:'center',zIndex:10000,pointerEvents:'none'}}>
           <div style={{background:'var(--surface)',border:`2px solid ${milestoneToast.milestone?.color||'#00e5a0'}`,borderRadius:24,padding:'32px 48px',textAlign:'center',boxShadow:`0 0 60px ${milestoneToast.milestone?.color||'#00e5a0'}44`,animation:'milestoneIn .5s cubic-bezier(.175,.885,.32,1.275)',maxWidth:360,pointerEvents:'auto'}}>
