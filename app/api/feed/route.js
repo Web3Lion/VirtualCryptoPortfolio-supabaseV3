@@ -45,6 +45,7 @@ export async function GET(request) {
     const emoji = t.action === 'BUY' ? '📈' : t.action === 'SELL' ? '📉' : '⬇';
     items.push({
       type: 'trade',
+      id: t.id,
       ts: t.created_at,
       emoji,
       text: `${name} ${t.action.toLowerCase()}${t.action === 'SHORT' ? 'ed' : 't'} ${t.coin}`,

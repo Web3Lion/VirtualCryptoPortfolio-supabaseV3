@@ -248,6 +248,7 @@ export default function Dashboard() {
   const [dcaStatus, setDcaStatus] = useState(null);
   const [feedItems, setFeedItems] = useState([]);
   const [feedLoading, setFeedLoading] = useState(false);
+  const [feedReactions, setFeedReactions] = useState({});
   const [activeTournament, setActiveTournament] = useState(null);
   const [optionsPositions, setOptionsPositions] = useState([]);
   const [optionsForm, setOptionsForm] = useState({ coin: '', type: 'call', strikeMode: 'atm', customStrike: '', expiryDays: 7 });
@@ -1048,7 +1049,18 @@ export default function Dashboard() {
                   className={`tab${activeTab === t ? " active" : ""}`}
                   onClick={() => {
                     setActiveTab(t);
-                    if (t === 'feed' && feedItems.length === 0) { setFeedLoading(true); fetch(`/api/feed${classId ? `?classId=${classId}` : ''}`).then(r=>r.ok?r.json():[]).then(d=>{setFeedItems(Array.isArray(d)?d:[]);setFeedLoading(false);}).catch(()=>setFeedLoading(false)); }
+                    if (t === 'feed' && feedItems.length === 0) {
+                      setFeedLoading(true);
+                      fetch(`/api/feed${classId ? `?classId=${classId}` : ''}`)
+                        .then(r=>r.ok?r.json():[])
+                        .then(d=>{
+                          const items = Array.isArray(d) ? d : [];
+                          setFeedItems(items);
+                          setFeedLoading(false);
+                          const tradeIds = items.filter(i=>i.type==='trade'&&i.id).map(i=>i.id);
+                          if (tradeIds.length) fetch(`/api/feed/react?tradeIds=${tradeIds.join(',')}`).then(r=>r.ok?r.json():{}).then(setFeedReactions).catch(()=>{});
+                        }).catch(()=>setFeedLoading(false));
+                    }
                     if (t === 'options') { fetch('/api/options').then(r=>r.ok?r.json():r.json().then(d=>{if(d.tableNotReady)setOptionsTableReady(false);return[];})).then(d=>Array.isArray(d)&&setOptionsPositions(d)).catch(()=>{}); }
                   }}
                 >
@@ -2915,14 +2927,40 @@ export default function Dashboard() {
                         return `${Math.floor(h/24)}d ago`;
                       })();
                       const borderColor = item.type === 'trade' ? (item.emoji === '📈' ? 'rgba(0,229,160,.15)' : 'rgba(244,63,94,.15)') : item.type === 'badge' ? 'rgba(245,158,11,.15)' : 'rgba(96,165,250,.15)';
+                      const rxns = item.id ? (feedReactions[item.id] || {}) : {};
+                      const myReaction = rxns.__mine;
+                      const EMOJIS = ['👀','💎','🚀','🔥','📉','🤝'];
+                      const react = async (emoji) => {
+                        if (!item.id) return;
+                        const res = await fetch('/api/feed/react', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ tradeId: item.id, emoji }) });
+                        if (res.ok) {
+                          const tradeIds = feedItems.filter(x=>x.type==='trade'&&x.id).map(x=>x.id);
+                          fetch(`/api/feed/react?tradeIds=${tradeIds.join(',')}`).then(r=>r.ok?r.json():{}).then(setFeedReactions).catch(()=>{});
+                        }
+                      };
                       return (
-                        <div key={i} style={{background:'var(--surface)',border:`1px solid ${borderColor}`,borderRadius:12,padding:'10px 14px',display:'flex',alignItems:'center',gap:12}}>
-                          <span style={{fontSize:18,flexShrink:0}}>{item.emoji}</span>
-                          <div style={{flex:1,minWidth:0}}>
-                            <div style={{fontSize:12,color:'var(--text)'}}>{item.text}</div>
-                            {item.sub && <div style={{fontSize:11,color:'var(--muted)',marginTop:1}}>{item.sub}</div>}
+                        <div key={i} style={{background:'var(--surface)',border:`1px solid ${borderColor}`,borderRadius:12,padding:'10px 14px'}}>
+                          <div style={{display:'flex',alignItems:'center',gap:12}}>
+                            <span style={{fontSize:18,flexShrink:0}}>{item.emoji}</span>
+                            <div style={{flex:1,minWidth:0}}>
+                              <div style={{fontSize:12,color:'var(--text)'}}>{item.text}</div>
+                              {item.sub && <div style={{fontSize:11,color:'var(--muted)',marginTop:1}}>{item.sub}</div>}
+                            </div>
+                            <span style={{fontSize:10,color:'var(--muted)',flexShrink:0}}>{ago}</span>
                           </div>
-                          <span style={{fontSize:10,color:'var(--muted)',flexShrink:0}}>{ago}</span>
+                          {item.type === 'trade' && item.id && (
+                            <div style={{display:'flex',alignItems:'center',gap:4,marginTop:8,paddingTop:8,borderTop:'1px solid rgba(30,41,59,.4)',flexWrap:'wrap'}}>
+                              {EMOJIS.map(e => {
+                                const count = rxns[e] || 0;
+                                const mine = myReaction === e;
+                                return (
+                                  <button key={e} onClick={()=>react(e)} style={{padding:'3px 8px',borderRadius:20,border:`1px solid ${mine?'var(--accent)':'rgba(30,41,59,.6)'}`,background:mine?'rgba(0,229,160,.12)':'transparent',cursor:'pointer',fontSize:13,display:'flex',alignItems:'center',gap:4,transition:'all .15s'}}>
+                                    {e}{count > 0 && <span style={{fontSize:10,color:mine?'var(--accent)':'var(--muted)',fontFamily:"'DM Mono',monospace"}}>{count}</span>}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
                         </div>
                       );
                     })}

@@ -330,6 +330,16 @@ CREATE TABLE IF NOT EXISTS learn_attempts (
 );
 CREATE INDEX IF NOT EXISTS learn_attempts_student_idx ON learn_attempts(student_id, class_id);
 
+CREATE TABLE IF NOT EXISTS trade_reactions (
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  trade_id    uuid NOT NULL,
+  student_id  uuid NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+  emoji       text NOT NULL,
+  created_at  timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (trade_id, student_id)
+);
+CREATE INDEX IF NOT EXISTS trade_reactions_trade ON trade_reactions(trade_id);
+
 CREATE TABLE IF NOT EXISTS tournaments (
   id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   class_id      uuid NOT NULL,
