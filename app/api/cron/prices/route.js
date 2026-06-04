@@ -222,7 +222,45 @@ export async function GET(request) {
     report.errors.push(`bot: ${e.message}`);
   }
 
-  // ── 5. Execute due DCA orders ─────────────────────────────────
+  // ── 5. Settle expired options ────────────────────────────────
+  try {
+    const now = new Date();
+    const { data: expired } = await db.from('options_positions')
+      .select('*').eq('status', 'open').lte('expires_at', now.toISOString());
+
+    for (const opt of expired || []) {
+      try {
+        const price = freshPriceMap[opt.coin]
+          || (await db.from('price_cache').select('price').eq('symbol', opt.coin).single()).data?.price;
+        const currentPrice = parseFloat(price || 0);
+        const strike = parseFloat(opt.strike_price);
+        const contracts = parseFloat(opt.contracts);
+
+        const intrinsic = opt.option_type === 'call'
+          ? Math.max(0, currentPrice - strike)
+          : Math.max(0, strike - currentPrice);
+        const payout = parseFloat((intrinsic * contracts).toFixed(2));
+
+        if (payout > 0) {
+          const { data: portfolio } = await db.from('portfolios').select('cash')
+            .eq('student_id', opt.student_id).eq('class_id', opt.class_id).single();
+          if (portfolio) {
+            await db.from('portfolios').update({ cash: parseFloat(portfolio.cash) + payout })
+              .eq('student_id', opt.student_id).eq('class_id', opt.class_id);
+          }
+          await db.from('options_positions').update({ status: 'exercised', payout }).eq('id', opt.id);
+        } else {
+          await db.from('options_positions').update({ status: 'expired', payout: 0 }).eq('id', opt.id);
+        }
+      } catch (e) {
+        report.errors.push(`options[${opt.id}]: ${e.message}`);
+      }
+    }
+  } catch (_) {
+    // options table may not exist yet
+  }
+
+  // ── 6. Execute due DCA orders ─────────────────────────────────
   try {
     const now = new Date();
     const { data: dueDca, error: dcaErr } = await db.from('dca_orders')

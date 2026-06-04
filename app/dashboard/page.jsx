@@ -246,6 +246,10 @@ export default function Dashboard() {
   const [dcaStatus, setDcaStatus] = useState(null);
   const [feedItems, setFeedItems] = useState([]);
   const [feedLoading, setFeedLoading] = useState(false);
+  const [optionsPositions, setOptionsPositions] = useState([]);
+  const [optionsForm, setOptionsForm] = useState({ coin: '', type: 'call', strikeMode: 'atm', customStrike: '', expiryDays: 7 });
+  const [optionsStatus, setOptionsStatus] = useState(null);
+  const [optionsTableReady, setOptionsTableReady] = useState(true);
 
   useEffect(() => {
     applyTheme(getTheme());
@@ -635,6 +639,7 @@ export default function Dashboard() {
     "charts",
     "allocation",
     "trade",
+    "options",
     "orders",
     "history",
     "watchlist",
@@ -998,7 +1003,11 @@ export default function Dashboard() {
                 <button
                   key={t}
                   className={`tab${activeTab === t ? " active" : ""}`}
-                  onClick={() => { setActiveTab(t); if (t === 'feed' && feedItems.length === 0) { setFeedLoading(true); fetch(`/api/feed${classId ? `?classId=${classId}` : ''}`).then(r=>r.ok?r.json():[]).then(d=>{setFeedItems(Array.isArray(d)?d:[]);setFeedLoading(false);}).catch(()=>setFeedLoading(false)); } }}
+                  onClick={() => {
+                    setActiveTab(t);
+                    if (t === 'feed' && feedItems.length === 0) { setFeedLoading(true); fetch(`/api/feed${classId ? `?classId=${classId}` : ''}`).then(r=>r.ok?r.json():[]).then(d=>{setFeedItems(Array.isArray(d)?d:[]);setFeedLoading(false);}).catch(()=>setFeedLoading(false)); }
+                    if (t === 'options') { fetch('/api/options').then(r=>r.ok?r.json():r.json().then(d=>{if(d.tableNotReady)setOptionsTableReady(false);return[];})).then(d=>Array.isArray(d)&&setOptionsPositions(d)).catch(()=>{}); }
+                  }}
                 >
                   {t.charAt(0).toUpperCase() + t.slice(1)}
                   {t === "watchlist" && triggeredCount > 0 && (
@@ -2098,6 +2107,183 @@ export default function Dashboard() {
                     </div>
                   )}
                 </div>
+              </div>
+            )}
+
+            {activeTab === "options" && (
+              <div className="panel">
+                {!optionsTableReady ? (
+                  <div className="empty">Options not enabled — ask your teacher to run the migration.</div>
+                ) : (
+                  <>
+                    <div className="card" style={{marginBottom:16}}>
+                      <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:15,marginBottom:4}}>📊 Buy Option Contract</div>
+                      <div style={{fontSize:11,color:'var(--muted)',marginBottom:16}}>
+                        <strong>Call</strong> = right to BUY at strike price (profit if price rises) ·
+                        <strong> Put</strong> = right to SELL at strike price (profit if price falls).
+                        You pay a premium upfront. Auto-exercises at expiry if in-the-money.
+                      </div>
+                      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:10,marginBottom:12}}>
+                        <div>
+                          <div className="form-label">Coin</div>
+                          <select className="form-select" value={optionsForm.coin} onChange={e=>setOptionsForm(f=>({...f,coin:e.target.value}))}>
+                            <option value="">Select…</option>
+                            {availableCoins.map(c=><option key={c} value={c}>{c}{prices[c]?` — $${parseFloat(prices[c].price).toLocaleString()}`:''}</option>)}
+                          </select>
+                        </div>
+                        <div>
+                          <div className="form-label">Type</div>
+                          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:4}}>
+                            {['call','put'].map(t=>(
+                              <button key={t} onClick={()=>setOptionsForm(f=>({...f,type:t}))} style={{padding:'9px',borderRadius:8,border:`1px solid ${optionsForm.type===t?(t==='call'?'rgba(0,229,160,.5)':'rgba(244,63,94,.5)'):'var(--border)'}`,background:optionsForm.type===t?(t==='call'?'rgba(0,229,160,.12)':'rgba(244,63,94,.1)'):'transparent',color:optionsForm.type===t?(t==='call'?'var(--up)':'var(--down)'):'var(--muted)',fontSize:11,cursor:'pointer',fontFamily:"'DM Mono',monospace",fontWeight:600}}>
+                                {t === 'call' ? '▲ Call' : '▼ Put'}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="form-label">Strike Price</div>
+                          <div style={{display:'flex',flexDirection:'column',gap:4}}>
+                            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:3}}>
+                              {['itm','atm','otm'].map(m=>(
+                                <button key={m} onClick={()=>setOptionsForm(f=>({...f,strikeMode:m}))} style={{padding:'5px 4px',borderRadius:6,border:`1px solid ${optionsForm.strikeMode===m?'var(--accent)':'var(--border)'}`,background:optionsForm.strikeMode===m?'rgba(0,229,160,.12)':'transparent',color:optionsForm.strikeMode===m?'var(--accent)':'var(--muted)',fontSize:10,cursor:'pointer',fontFamily:"'DM Mono',monospace"}}>
+                                  {m.toUpperCase()}
+                                </button>
+                              ))}
+                            </div>
+                            {optionsForm.strikeMode === 'custom' || (()=>{
+                              if (!optionsForm.coin || !prices[optionsForm.coin]) return null;
+                              const p = parseFloat(prices[optionsForm.coin].price);
+                              const strike = optionsForm.strikeMode === 'itm'
+                                ? (optionsForm.type === 'call' ? p * 0.95 : p * 1.05)
+                                : optionsForm.strikeMode === 'otm'
+                                ? (optionsForm.type === 'call' ? p * 1.05 : p * 0.95)
+                                : p;
+                              return <div style={{fontSize:10,color:'var(--muted)',textAlign:'center'}}>Strike: ${strike.toLocaleString('en-US',{maximumFractionDigits:2})}</div>;
+                            })()}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="form-label">Expiry</div>
+                          <select className="form-select" value={optionsForm.expiryDays} onChange={e=>setOptionsForm(f=>({...f,expiryDays:parseInt(e.target.value)}))}>
+                            <option value={7}>7 days</option>
+                            <option value={14}>14 days</option>
+                            <option value={30}>30 days</option>
+                          </select>
+                        </div>
+                      </div>
+                      {(() => {
+                        if (!optionsForm.coin || !prices[optionsForm.coin]) return null;
+                        const p = parseFloat(prices[optionsForm.coin].price);
+                        const strike = optionsForm.strikeMode === 'itm'
+                          ? (optionsForm.type === 'call' ? p * 0.95 : p * 1.05)
+                          : optionsForm.strikeMode === 'otm'
+                          ? (optionsForm.type === 'call' ? p * 1.05 : p * 0.95)
+                          : p;
+                        const intrinsic = optionsForm.type === 'call' ? Math.max(0, p - strike) : Math.max(0, strike - p);
+                        const vol = 0.30;
+                        const timeVal = strike * vol * Math.sqrt(Math.max(0, optionsForm.expiryDays) / 365);
+                        const premiumPer = intrinsic + timeVal;
+                        return (
+                          <div style={{background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:10,padding:'12px 16px',marginBottom:12,display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:10}}>
+                            <div><div style={{fontSize:9,color:'var(--muted)',letterSpacing:2,textTransform:'uppercase',marginBottom:2}}>Strike</div><div style={{fontSize:13,fontWeight:600}}>${strike.toLocaleString('en-US',{maximumFractionDigits:2})}</div></div>
+                            <div><div style={{fontSize:9,color:'var(--muted)',letterSpacing:2,textTransform:'uppercase',marginBottom:2}}>Premium / contract</div><div style={{fontSize:13,fontWeight:600,color:'var(--gold)'}}>${premiumPer.toLocaleString('en-US',{maximumFractionDigits:2})}</div></div>
+                            <div><div style={{fontSize:9,color:'var(--muted)',letterSpacing:2,textTransform:'uppercase',marginBottom:2}}>Break-even</div><div style={{fontSize:13,fontWeight:600}}>${(optionsForm.type==='call'?strike+premiumPer:strike-premiumPer).toLocaleString('en-US',{maximumFractionDigits:2})}</div></div>
+                            <div><div style={{fontSize:9,color:'var(--muted)',letterSpacing:2,textTransform:'uppercase',marginBottom:2}}>Max loss</div><div style={{fontSize:13,fontWeight:600,color:'var(--down)'}}>Premium paid</div></div>
+                          </div>
+                        );
+                      })()}
+                      <div style={{display:'grid',gridTemplateColumns:'1fr auto',gap:10}}>
+                        <div>
+                          <div className="form-label">Contracts</div>
+                          <input type="number" className="form-input" placeholder="1" min="0.01" step="0.01"
+                            value={optionsForm.contracts || ''}
+                            onChange={e=>setOptionsForm(f=>({...f,contracts:e.target.value}))} />
+                        </div>
+                        <button className="btn btn-primary" style={{alignSelf:'flex-end',background:optionsForm.type==='call'?undefined:'rgba(244,63,94,.8)'}} onClick={async()=>{
+                          if(!optionsForm.coin||!optionsForm.contracts){setOptionsStatus({type:'error',msg:'Fill coin and contracts'});return;}
+                          const p = prices[optionsForm.coin] ? parseFloat(prices[optionsForm.coin].price) : 0;
+                          const strike = optionsForm.strikeMode==='itm'?(optionsForm.type==='call'?p*0.95:p*1.05):optionsForm.strikeMode==='otm'?(optionsForm.type==='call'?p*1.05:p*0.95):p;
+                          const res = await fetch('/api/options',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'buy',coin:optionsForm.coin,optionType:optionsForm.type,strikePrice:strike,contracts:parseFloat(optionsForm.contracts),expiryDays:optionsForm.expiryDays,classId})});
+                          const d = await res.json();
+                          if(res.ok){
+                            setOptionsStatus({type:'success',msg:`✓ ${optionsForm.type.toUpperCase()} on ${optionsForm.coin} — $${d.premiumPaid?.toFixed(2)} premium paid`});
+                            setOptionsForm(f=>({...f,contracts:''}));
+                            fetch('/api/options').then(r=>r.ok?r.json():[]).then(d=>Array.isArray(d)&&setOptionsPositions(d));
+                            setTimeout(()=>fetchData(),1500);
+                          } else if(d.tableNotReady){
+                            setOptionsTableReady(false);
+                          } else {
+                            setOptionsStatus({type:'error',msg:d.error||'Failed'});
+                          }
+                          setTimeout(()=>setOptionsStatus(null),4000);
+                        }}>Buy {optionsForm.type==='call'?'▲ Call':'▼ Put'}</button>
+                      </div>
+                      {optionsStatus && <div className={`trade-status ${optionsStatus.type}`} style={{marginTop:10}}>{optionsStatus.msg}</div>}
+                    </div>
+
+                    {/* Open positions */}
+                    {optionsPositions.filter(p=>p.status==='open').length > 0 && (
+                      <div className="card" style={{marginBottom:16}}>
+                        <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:14,marginBottom:12}}>Open Positions</div>
+                        {optionsPositions.filter(p=>p.status==='open').map(pos=>{
+                          const currentPrice = pos.coin && prices[pos.coin] ? parseFloat(prices[pos.coin].price) : 0;
+                          const strike = parseFloat(pos.strike_price);
+                          const contracts = parseFloat(pos.contracts);
+                          const intrinsic = pos.option_type==='call'?Math.max(0,currentPrice-strike):Math.max(0,strike-currentPrice);
+                          const itm = intrinsic > 0;
+                          const daysLeft = Math.max(0, Math.ceil((new Date(pos.expires_at)-new Date())/(1000*86400)));
+                          const timeVal = strike * 0.30 * Math.sqrt(daysLeft/365);
+                          const currentVal = (intrinsic + timeVal) * contracts;
+                          const pnl = currentVal - parseFloat(pos.premium_paid);
+                          return (
+                            <div key={pos.id} style={{background:'var(--surface2)',border:`1px solid ${itm?'rgba(0,229,160,.25)':'var(--border)'}`,borderRadius:12,padding:'12px 16px',marginBottom:8,display:'grid',gridTemplateColumns:'auto 1fr auto auto',alignItems:'center',gap:12}}>
+                              <div style={{width:36,height:36,borderRadius:9,background:pos.option_type==='call'?'rgba(0,229,160,.15)':'rgba(244,63,94,.1)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16}}>
+                                {pos.option_type==='call'?'▲':'▼'}
+                              </div>
+                              <div>
+                                <div style={{fontSize:12,fontWeight:600}}>{pos.coin} {pos.option_type.toUpperCase()} @ ${parseFloat(pos.strike_price).toLocaleString()}</div>
+                                <div style={{fontSize:10,color:'var(--muted)',marginTop:2}}>
+                                  {contracts} contracts · expires {new Date(pos.expires_at).toLocaleDateString()} ({daysLeft}d)
+                                  {itm && <span style={{color:'var(--accent)',marginLeft:6,fontWeight:700}}>ITM</span>}
+                                </div>
+                              </div>
+                              <div style={{textAlign:'right'}}>
+                                <div style={{fontSize:12,fontWeight:700,color:pnl>=0?'var(--up)':'var(--down)'}}>{pnl>=0?'+':''}{fmtUSD(pnl)}</div>
+                                <div style={{fontSize:10,color:'var(--muted)'}}>paid {fmtUSD(pos.premium_paid)}</div>
+                              </div>
+                              <button onClick={async()=>{
+                                const res=await fetch('/api/options',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'close',positionId:pos.id,classId})});
+                                const d=await res.json();
+                                if(res.ok){setOptionsStatus({type:'success',msg:`Closed for ${fmtUSD(d.closeValue)} · P&L ${d.pnl>=0?'+':''}${fmtUSD(d.pnl)}`});fetch('/api/options').then(r=>r.ok?r.json():[]).then(d=>Array.isArray(d)&&setOptionsPositions(d));setTimeout(()=>fetchData(),1000);}
+                                else setOptionsStatus({type:'error',msg:d.error||'Failed'});
+                                setTimeout(()=>setOptionsStatus(null),4000);
+                              }} style={{padding:'6px 12px',borderRadius:8,border:'1px solid var(--border)',background:'transparent',color:'var(--muted)',cursor:'pointer',fontSize:11,fontFamily:"'DM Mono',monospace"}}>Close</button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Settled positions */}
+                    {optionsPositions.filter(p=>p.status!=='open').length > 0 && (
+                      <div className="card">
+                        <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:14,marginBottom:12}}>History</div>
+                        {optionsPositions.filter(p=>p.status!=='open').slice(0,10).map(pos=>{
+                          const pnl = (parseFloat(pos.payout)||0) - parseFloat(pos.premium_paid);
+                          return (
+                            <div key={pos.id} style={{display:'flex',alignItems:'center',gap:12,padding:'8px 14px',background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:10,marginBottom:6,fontSize:11}}>
+                              <span style={{opacity:.6}}>{pos.option_type==='call'?'▲':'▼'} {pos.coin} {pos.option_type.toUpperCase()}</span>
+                              <span style={{color:'var(--muted)',flex:1}}>@ ${parseFloat(pos.strike_price).toLocaleString()}</span>
+                              <span style={{padding:'2px 8px',borderRadius:6,background:pos.status==='exercised'?'rgba(0,229,160,.12)':'rgba(71,85,105,.2)',color:pos.status==='exercised'?'var(--accent)':'var(--muted)',fontWeight:700,fontSize:10}}>{pos.status.toUpperCase()}</span>
+                              <span style={{fontWeight:700,color:pnl>=0?'var(--up)':'var(--down)'}}>{pnl>=0?'+':''}{fmtUSD(pnl)}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             )}
 
