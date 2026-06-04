@@ -2289,7 +2289,7 @@ export default function Dashboard() {
                         marginLeft: 8,
                       }}
                     >
-                      Earns badges at 1, 10, and 20 alerts
+                      You'll get an email when triggered · Earns badges at 1, 10, and 20 alerts
                     </span>
                   </div>
                   <div className="watch-form-grid">

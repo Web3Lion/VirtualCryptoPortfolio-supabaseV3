@@ -2,6 +2,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db, getMarketStatus, setConfig } from '@/lib/db';
 import { fetchBulkPrices, GECKO_ID_MAP } from '@/lib/prices';
+import { sendWatchlistAlertEmail } from '@/lib/email';
 
 const REFRESH_MILESTONES = [
   { count: 1,   id: 'signal_found' },
@@ -183,7 +184,39 @@ export async function POST(request) {
     report.errors.push(`snapshots: ${e.message}`);
   }
 
-  // ── 3. Refresh badge tracking ──────────────────────────────────
+  // ── 3. Watchlist email alerts ──────────────────────────────────
+  try {
+    const { data: alerts } = await db.from('watchlist')
+      .select('id, coin, target_price, direction, students(email, name)');
+    const triggered = (alerts || []).filter(a => {
+      const price = freshPriceMap[a.coin];
+      if (!price || !a.students?.email) return false;
+      return (a.direction === 'above' && price >= parseFloat(a.target_price)) ||
+             (a.direction === 'below' && price <= parseFloat(a.target_price));
+    });
+    const notifiedIds = [];
+    for (const alert of triggered) {
+      try {
+        await sendWatchlistAlertEmail({
+          to:           alert.students.email,
+          name:         alert.students.name || 'Student',
+          coin:         alert.coin,
+          targetPrice:  parseFloat(alert.target_price),
+          currentPrice: freshPriceMap[alert.coin],
+          direction:    alert.direction,
+        });
+        notifiedIds.push(alert.id);
+      } catch (_) {}
+    }
+    if (notifiedIds.length) {
+      await db.from('watchlist').delete().in('id', notifiedIds);
+      report.alertsNotified = notifiedIds.length;
+    }
+  } catch (e) {
+    report.errors.push(`watchlist alerts: ${e.message}`);
+  }
+
+  // ── 4. Refresh badge tracking ──────────────────────────────────
   let newBadge = null;
   let tokensAwarded = 0;
   try {
