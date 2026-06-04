@@ -421,6 +421,39 @@ export default function Market() {
           </div>
         ) : (
           <>
+            {/* ── SECTOR ROTATION ─────────────────────────────── */}
+            {Object.keys(sectorGroups).length > 0 && (
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: 9, color: 'var(--muted)', letterSpacing: 3, textTransform: 'uppercase', marginBottom: 10 }}>Sector Performance</div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {Object.entries(sectorGroups)
+                    .filter(([, syms]) => syms.length > 0)
+                    .map(([sector, syms]) => {
+                      const avg24h = syms.map(s => parseFloat(prices[s]?.change24h) || 0).reduce((a,b)=>a+b,0) / syms.length;
+                      const avg7d  = syms.map(s => parseFloat(prices[s]?.change7d)  || 0).reduce((a,b)=>a+b,0) / syms.length;
+                      const color  = avg24h > 2 ? '#00e5a0' : avg24h > 0 ? '#4ade80' : avg24h > -2 ? '#f43f5e' : '#dc2626';
+                      const bg     = avg24h > 2 ? 'rgba(0,229,160,.12)' : avg24h > 0 ? 'rgba(74,222,128,.08)' : avg24h > -2 ? 'rgba(244,63,94,.1)' : 'rgba(220,38,38,.15)';
+                      const border = avg24h > 2 ? 'rgba(0,229,160,.3)' : avg24h > 0 ? 'rgba(74,222,128,.2)' : avg24h > -2 ? 'rgba(244,63,94,.25)' : 'rgba(220,38,38,.3)';
+                      return (
+                        <div key={sector} style={{ background: bg, border: `1px solid ${border}`, borderRadius: 12, padding: '10px 14px', minWidth: 110, cursor: 'pointer' }}
+                          onClick={() => { setHeatView('sector'); setSortBy('change24h'); }}>
+                          <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>
+                            {SECTOR_ICONS[sector] || '🔷'} {sector}
+                          </div>
+                          <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 16, color, marginBottom: 2 }}>
+                            {avg24h >= 0 ? '+' : ''}{avg24h.toFixed(1)}%
+                          </div>
+                          <div style={{ fontSize: 10, color: 'var(--muted)' }}>
+                            7d: <span style={{ color: avg7d >= 0 ? '#4ade80' : '#f43f5e' }}>{avg7d >= 0 ? '+' : ''}{avg7d.toFixed(1)}%</span>
+                            <span style={{ marginLeft: 6, opacity: .6 }}>{syms.length} coins</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
+            )}
+
             {/* ── HEATMAP ─────────────────────────────────────── */}
             <div className="card">
               <div className="card-header">
