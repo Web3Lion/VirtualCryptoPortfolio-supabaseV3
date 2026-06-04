@@ -222,3 +222,35 @@ export async function checkBadgesAfterTrade({ studentId, classId, action, coin, 
 
   return { badge: earned[0] || null, tokensAwarded };
 }
+
+// ── Portfolio milestone check (called from portfolio API + cron) ──
+// Returns the newly earned milestone badge id, or null.
+const MILESTONES = [
+  { pct: 100, badge: 'portfolio_x2',   label: 'Portfolio ×2!',     emoji: '🔱', color: '#a78bfa' },
+  { pct: 50,  badge: 'to_the_moon',    label: 'Up 50%!',           emoji: '🚀', color: '#f59e0b' },
+  { pct: 25,  badge: 'diamond_hands',  label: 'Diamond Hands!',    emoji: '💎', color: '#60a5fa' },
+  { pct: 10,  badge: 'ten_pct',        label: 'Up 10%!',           emoji: '🎯', color: '#00e5a0' },
+];
+
+export async function checkMilestones({ studentId, classId, returnPct }) {
+  for (const m of MILESTONES) {
+    if (returnPct >= m.pct) {
+      const awarded = await awardBadge(studentId, classId, m.badge);
+      if (awarded) {
+        // Grant ClassReward tokens if configured
+        try {
+          const { data: rewardCfg } = await db.from('class_reward_config')
+            .select('enabled, badge_reward_tokens').eq('class_id', classId).single();
+          if (rewardCfg?.enabled && rewardCfg.badge_reward_tokens > 0) {
+            await db.from('class_reward_ledger').insert({
+              student_id: studentId, class_id: classId,
+              tokens: rewardCfg.badge_reward_tokens, reason: `badge:${m.badge}`,
+            });
+          }
+        } catch {}
+        return { badge: m.badge, milestone: m };
+      }
+    }
+  }
+  return null;
+}

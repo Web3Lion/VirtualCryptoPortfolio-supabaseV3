@@ -3,6 +3,7 @@ import { authOptions } from '@/lib/auth';
 import { getStudentByEmail, getStudentPortfolio, getClassCoins } from '@/lib/students';
 import { db } from '@/lib/db';
 import { calculateSharpe, calculateSortino, calculateMaxDrawdown, calculateWinRate } from '@/lib/metrics';
+import { checkMilestones } from '@/app/api/trade/badge-check';
 
 export async function GET(request) {
   const session = await getServerSession(authOptions);
@@ -88,6 +89,12 @@ export async function GET(request) {
   const maxDrawdown    = calculateMaxDrawdown(snapshots);
   const winRate        = calculateWinRate(trades);
 
+  // Check portfolio milestones — awards badge + returns it for dashboard toast
+  let newMilestone = null;
+  try {
+    newMilestone = await checkMilestones({ studentId: student.id, classId, returnPct });
+  } catch {}
+
   return Response.json({
     classId,
     summary: { startCash: seedMoney, cash: cash.toFixed(2), holdingsVal: holdingsValue.toFixed(2), stakingVal: stakingValue.toFixed(2), totalVal: totalValue.toFixed(2), pl: pl.toFixed(2), returnPct: returnPct.toFixed(2), fees: feesPaid.toFixed(2) },
@@ -99,5 +106,6 @@ export async function GET(request) {
     classRewardEnabled: rewardCfg?.enabled || false,
     badgeRewardTokens: rewardCfg?.badge_reward_tokens || 50,
     sharpeRatio, sortinoRatio, maxDrawdown, winRate,
+    newMilestone,
   });
 }

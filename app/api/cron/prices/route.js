@@ -2,6 +2,7 @@ import { db, getMarketStatus, getAllConfig } from '@/lib/db';
 import { fetchBulkPrices, GECKO_ID_MAP } from '@/lib/prices';
 import { executeTrade } from '@/lib/trade';
 import { checkBadgesAfterOrderExecution } from '@/app/api/orders/badge-check';
+import { checkMilestones } from '@/app/api/trade/badge-check';
 import { runBot } from '@/lib/bot';
 
 export async function GET(request) {
@@ -101,6 +102,9 @@ export async function GET(request) {
           holdingsByStudent[h.student_id].push(h);
         });
 
+        const { data: clsInfo } = await db.from('classes').select('seed_money').eq('id', cls.id).single();
+        const seedMoney = parseFloat(clsInfo?.seed_money || 10000);
+
         const intradayRows = [], dailyRows = [];
         for (const studentId of studentIds) {
           const cash     = portfolioMap[studentId] ?? 0;
@@ -112,10 +116,13 @@ export async function GET(request) {
             borrowed    += parseFloat(h.margin_borrowed || 0);
           });
           const totalValue = cash + holdingsVal - borrowed;
+          const returnPct  = ((totalValue / seedMoney) - 1) * 100;
           intradayRows.push({ student_id: studentId, class_id: cls.id, total_value: totalValue, cash, snapshot_type: 'intraday' });
           if (!alreadyHaveDaily.has(studentId)) {
             dailyRows.push({ student_id: studentId, class_id: cls.id, total_value: totalValue, cash, snapshot_type: 'daily' });
           }
+          // Check portfolio milestones silently — badges awarded if newly crossed
+          checkMilestones({ studentId, classId: cls.id, returnPct }).catch(() => {});
         }
 
         if (intradayRows.length) {

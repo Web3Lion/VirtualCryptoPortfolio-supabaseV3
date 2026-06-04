@@ -220,6 +220,7 @@ export default function Dashboard() {
   });
   const [watchStatus, setWatchStatus] = useState(null);
   const [earnedBadge, setEarnedBadge] = useState(null);
+  const [milestoneToast, setMilestoneToast] = useState(null);
   const [tokensAwarded, setTokensAwarded] = useState(0);
   const [redeemingTokens, setRedeemingTokens] = useState(false);
   const [historyLimit, setHistoryLimit] = useState(50);
@@ -266,8 +267,13 @@ export default function Dashboard() {
         fetch("/api/staking"),
       ]);
       if (pRes.ok) {
-        setPortfolio(await pRes.json());
+        const pData = await pRes.json();
+        setPortfolio(pData);
         setLastUpdated(new Date());
+        if (pData.newMilestone) {
+          setMilestoneToast(pData.newMilestone);
+          setTimeout(() => setMilestoneToast(null), 6000);
+        }
       }
       if (prRes.ok) {
         const prData = await prRes.json();
@@ -2879,6 +2885,17 @@ export default function Dashboard() {
         )}
       </div>
 
+      {milestoneToast && (
+        <div style={{position:'fixed',inset:0,display:'flex',alignItems:'center',justifyContent:'center',zIndex:10000,pointerEvents:'none'}}>
+          <div style={{background:'var(--surface)',border:`2px solid ${milestoneToast.milestone?.color||'#00e5a0'}`,borderRadius:24,padding:'32px 48px',textAlign:'center',boxShadow:`0 0 60px ${milestoneToast.milestone?.color||'#00e5a0'}44`,animation:'milestoneIn .5s cubic-bezier(.175,.885,.32,1.275)',maxWidth:360,pointerEvents:'auto'}}>
+            <style>{`@keyframes milestoneIn{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:scale(1)}}`}</style>
+            <div style={{fontSize:64,marginBottom:12,lineHeight:1}}>{milestoneToast.milestone?.emoji||'🏆'}</div>
+            <div style={{fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:28,color:milestoneToast.milestone?.color||'#00e5a0',letterSpacing:-1,marginBottom:6}}>{milestoneToast.milestone?.label||'Milestone!'}</div>
+            <div style={{fontSize:13,color:'var(--muted)',marginBottom:4}}>Portfolio milestone reached</div>
+            <div style={{fontSize:11,color:'var(--muted)',opacity:.6}}>Badge earned 🏅</div>
+          </div>
+        </div>
+      )}
       <BadgeToast badgeIds={earnedBadge ? [earnedBadge] : []} />
     </>
   );
