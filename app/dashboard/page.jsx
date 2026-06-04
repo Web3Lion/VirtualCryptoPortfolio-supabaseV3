@@ -236,6 +236,9 @@ export default function Dashboard() {
   const [rewardLessons, setRewardLessons] = useState([]);
   const [rewardModules, setRewardModules] = useState([]);
   const [stakingData, setStakingData] = useState(null);
+  const [dcaOrders, setDcaOrders] = useState([]);
+  const [dcaForm, setDcaForm] = useState({ coin: '', amountUsd: '', frequency: 'daily' });
+  const [dcaStatus, setDcaStatus] = useState(null);
 
   useEffect(() => {
     applyTheme(getTheme());
@@ -372,6 +375,7 @@ export default function Dashboard() {
       fetchWatchlist();
       fetchOrders();
       fetchRefreshStatus();
+      fetch('/api/dca').then(r => r.ok ? r.json() : []).then(d => { if (Array.isArray(d)) setDcaOrders(d); });
       const iv = setInterval(fetchData, 60000);
       return () => clearInterval(iv);
     }
@@ -1994,6 +1998,55 @@ export default function Dashboard() {
                   >
                     Sell All
                   </button>
+                </div>
+
+                {/* DCA */}
+                <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:20,padding:22,marginTop:16}}>
+                  <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:15,marginBottom:4}}>🔄 Dollar-Cost Averaging</div>
+                  <div style={{fontSize:11,color:'var(--muted)',marginBottom:14}}>Auto-buy a fixed $ amount on a schedule. Executes daily at 4pm UTC.</div>
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr auto',gap:8,alignItems:'end',marginBottom:10}}>
+                    <div>
+                      <div className="form-label">Coin</div>
+                      <select className="form-select" value={dcaForm.coin} onChange={e=>setDcaForm(f=>({...f,coin:e.target.value}))}>
+                        <option value="">Select…</option>
+                        {availableCoins.map(c=><option key={c} value={c}>{c}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <div className="form-label">$ per run</div>
+                      <input type="number" className="form-input" placeholder="100" min="1" value={dcaForm.amountUsd} onChange={e=>setDcaForm(f=>({...f,amountUsd:e.target.value}))} />
+                    </div>
+                    <div>
+                      <div className="form-label">Frequency</div>
+                      <select className="form-select" value={dcaForm.frequency} onChange={e=>setDcaForm(f=>({...f,frequency:e.target.value}))}>
+                        <option value="daily">Daily</option>
+                        <option value="weekly">Weekly</option>
+                      </select>
+                    </div>
+                    <button className="btn btn-primary" style={{marginBottom:1}} onClick={async()=>{
+                      if(!dcaForm.coin||!dcaForm.amountUsd){setDcaStatus({type:'error',msg:'Fill all fields'});return;}
+                      const res=await fetch('/api/dca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...dcaForm,classId})});
+                      const d=await res.json();
+                      if(res.ok){setDcaStatus({type:'success',msg:`✓ DCA set — buy ${dcaForm.coin} ${dcaForm.frequency}`});setDcaForm(f=>({...f,coin:'',amountUsd:''}));fetch('/api/dca').then(r=>r.json()).then(d=>Array.isArray(d)&&setDcaOrders(d));}
+                      else setDcaStatus({type:'error',msg:d.error||'Failed'});
+                      setTimeout(()=>setDcaStatus(null),3000);
+                    }}>+ Add</button>
+                  </div>
+                  {dcaStatus && <div className={`trade-status ${dcaStatus.type}`} style={{marginBottom:10}}>{dcaStatus.msg}</div>}
+                  {dcaOrders.length > 0 && (
+                    <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                      {dcaOrders.map(o=>(
+                        <div key={o.id} style={{display:'flex',alignItems:'center',justifyContent:'space-between',background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:10,padding:'8px 14px'}}>
+                          <div>
+                            <span style={{fontWeight:600,fontSize:12}}>{o.coin}</span>
+                            <span style={{fontSize:11,color:'var(--muted)',marginLeft:8}}>${parseFloat(o.amount_usd).toLocaleString()} · {o.frequency}</span>
+                            <span style={{fontSize:10,color:'var(--muted)',marginLeft:8}}>{o.runs_count} runs · next {new Date(o.next_run_at).toLocaleDateString()}</span>
+                          </div>
+                          <button onClick={async()=>{await fetch('/api/dca',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:o.id})});setDcaOrders(p=>p.filter(x=>x.id!==o.id));}} style={{background:'none',border:'none',color:'var(--muted)',cursor:'pointer',fontSize:16,lineHeight:1}}>✕</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             )}

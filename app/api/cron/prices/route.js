@@ -222,5 +222,44 @@ export async function GET(request) {
     report.errors.push(`bot: ${e.message}`);
   }
 
+  // ── 5. Execute due DCA orders ─────────────────────────────────
+  try {
+    const now = new Date();
+    const { data: dueDca, error: dcaErr } = await db.from('dca_orders')
+      .select('*').eq('active', true).lte('next_run_at', now.toISOString());
+
+    if (!dcaErr && dueDca?.length) {
+      report.dcaExecuted = 0;
+      for (const dca of dueDca) {
+        try {
+          const mkt = await getMarketStatus(dca.class_id);
+          if (mkt.frozen || mkt.paused) continue;
+          const result = await executeTrade({
+            studentId: dca.student_id, classId: dca.class_id,
+            action: 'BUY', coin: dca.coin,
+            amountType: 'Dollar Amount', amount: parseFloat(dca.amount_usd),
+            leverageMultiplier: 1,
+            reasoning: `🔄 DCA — automatic ${dca.frequency} buy`,
+          });
+          if (result.success) {
+            const nextRun = new Date(dca.next_run_at);
+            if (dca.frequency === 'daily') nextRun.setDate(nextRun.getDate() + 1);
+            else nextRun.setDate(nextRun.getDate() + 7);
+            await db.from('dca_orders').update({
+              last_run_at: now.toISOString(),
+              next_run_at: nextRun.toISOString(),
+              runs_count: (dca.runs_count || 0) + 1,
+            }).eq('id', dca.id);
+            report.dcaExecuted++;
+          }
+        } catch (e) {
+          report.errors.push(`dca[${dca.id}]: ${e.message}`);
+        }
+      }
+    }
+  } catch (e) {
+    // DCA table may not exist yet — skip silently
+  }
+
   return Response.json({ success: true, ...report });
 }
