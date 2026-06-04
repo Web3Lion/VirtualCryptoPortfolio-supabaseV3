@@ -237,6 +237,37 @@ CREATE TABLE IF NOT EXISTS staking_config (
   updated_at timestamptz DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS dca_orders (
+  id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  student_id   uuid NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+  class_id     uuid NOT NULL,
+  coin         text NOT NULL,
+  amount_usd   numeric(20,2) NOT NULL,
+  frequency    text NOT NULL CHECK (frequency IN ('daily','weekly')),
+  next_run_at  timestamptz NOT NULL,
+  last_run_at  timestamptz,
+  runs_count   integer NOT NULL DEFAULT 0,
+  active       boolean NOT NULL DEFAULT true,
+  created_at   timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS dca_orders_next_run ON dca_orders(next_run_at) WHERE active = true;
+
+CREATE TABLE IF NOT EXISTS options_positions (
+  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  student_id    uuid NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+  class_id      uuid NOT NULL,
+  coin          text NOT NULL,
+  option_type   text NOT NULL CHECK (option_type IN ('call','put')),
+  strike_price  numeric(20,4) NOT NULL,
+  contracts     numeric(20,6) NOT NULL,
+  premium_paid  numeric(20,2) NOT NULL,
+  expires_at    timestamptz NOT NULL,
+  status        text NOT NULL DEFAULT 'open' CHECK (status IN ('open','exercised','expired','closed')),
+  payout        numeric(20,2),
+  created_at    timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS options_open ON options_positions(expires_at) WHERE status = 'open';
+
 -- ── Learning ─────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS learn_modules (
