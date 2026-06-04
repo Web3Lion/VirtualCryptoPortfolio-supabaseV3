@@ -13,6 +13,7 @@ const TABLE_GROUPS = [
   { label: 'Staking',      tables: ['staking_positions','staking_config'] },
   { label: 'DCA',          tables: ['dca_orders'] },
   { label: 'Options',      tables: ['options_positions'] },
+  { label: 'Tournaments',  tables: ['tournaments','tournament_snapshots'] },
   { label: 'Learning',     tables: ['learn_modules','learn_lessons','learn_blocks','learn_questions','learn_options','learn_attempts'] },
 ];
 

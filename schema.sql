@@ -329,3 +329,28 @@ CREATE TABLE IF NOT EXISTS learn_attempts (
   completed_at timestamptz DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS learn_attempts_student_idx ON learn_attempts(student_id, class_id);
+
+CREATE TABLE IF NOT EXISTS tournaments (
+  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  class_id      uuid NOT NULL,
+  name          text NOT NULL,
+  starts_at     timestamptz NOT NULL,
+  ends_at       timestamptz NOT NULL,
+  prize_tokens  integer NOT NULL DEFAULT 0,
+  status        text NOT NULL DEFAULT 'upcoming' CHECK (status IN ('upcoming','active','ended')),
+  winner_id     uuid,
+  created_at    timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS tournaments_class ON tournaments(class_id, status);
+
+CREATE TABLE IF NOT EXISTS tournament_snapshots (
+  id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  tournament_id  uuid NOT NULL REFERENCES tournaments(id) ON DELETE CASCADE,
+  student_id     uuid NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+  class_id       uuid NOT NULL,
+  start_value    numeric(20,2),
+  end_value      numeric(20,2),
+  return_pct     numeric(10,4),
+  rank           integer,
+  created_at     timestamptz NOT NULL DEFAULT now()
+);
