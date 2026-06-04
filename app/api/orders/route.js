@@ -33,7 +33,7 @@ export async function POST(request) {
 
   if (!coin || !action || !amount || !limitPrice || !classId)
     return Response.json({ error: 'coin, action, amount, limitPrice, classId required' }, { status: 400 });
-  if (!['BUY', 'SELL', 'SHORT'].includes(action))
+  if (!['BUY', 'SELL', 'SHORT', 'SELL_STOP', 'BUY_STOP'].includes(action))
     return Response.json({ error: 'Invalid action' }, { status: 400 });
   if (parseFloat(limitPrice) <= 0)
     return Response.json({ error: 'Limit price must be greater than 0' }, { status: 400 });

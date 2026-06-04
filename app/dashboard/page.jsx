@@ -435,21 +435,25 @@ export default function Dashboard() {
   };
 
   const placeOrder = async () => {
+    const isStop = orderMode === 'stop';
     if (!tradeForm.coin || !tradeForm.amount || !limitPrice) {
-      setTradeStatus({ type: "error", msg: "Fill in coin, amount, and limit price." });
+      setTradeStatus({ type: "error", msg: `Fill in coin, amount, and ${isStop ? 'stop' : 'limit'} price.` });
       return;
     }
+    const orderAction = isStop ? 'SELL_STOP' : tradeForm.action;
     setPlacingOrder(true);
-    setTradeStatus({ type: "pending", msg: "Placing limit order..." });
+    setTradeStatus({ type: "pending", msg: isStop ? "Setting stop-loss..." : "Placing limit order..." });
     try {
       const res = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...tradeForm, limitPrice: parseFloat(limitPrice), classId }),
+        body: JSON.stringify({ ...tradeForm, action: orderAction, limitPrice: parseFloat(limitPrice), classId }),
       });
       const data = await res.json();
       if (res.ok) {
-        setTradeStatus({ type: "success", msg: `✓ Limit order placed — ${tradeForm.action} ${tradeForm.coin} @ $${parseFloat(limitPrice).toLocaleString()}` });
+        setTradeStatus({ type: "success", msg: isStop
+          ? `🛑 Stop-loss set — sell ${tradeForm.coin} @ $${parseFloat(limitPrice).toLocaleString()}`
+          : `✓ Limit order placed — ${tradeForm.action} ${tradeForm.coin} @ $${parseFloat(limitPrice).toLocaleString()}` });
         setTradeForm((f) => ({ ...f, amount: "", reasoning: "" }));
         setLimitPrice("");
         fetchOrders();
@@ -1393,9 +1397,9 @@ export default function Dashboard() {
                     </h3>
                     {/* Market / Limit toggle */}
                     <div style={{display:'flex',gap:6,marginBottom:10}}>
-                      {['market','limit'].map(m => (
-                        <button key={m} onClick={()=>setOrderMode(m)} style={{flex:1,padding:'6px',borderRadius:8,border:`1px solid ${orderMode===m?'var(--accent)':'var(--border)'}`,background:orderMode===m?'rgba(0,229,160,.12)':'transparent',color:orderMode===m?'var(--accent)':'var(--muted)',fontFamily:"'DM Mono',monospace",fontSize:11,cursor:'pointer',transition:'all .15s'}}>
-                          {m === 'market' ? '⚡ Market' : '🎯 Limit'}
+                      {[['market','⚡ Market'],['limit','🎯 Limit'],['stop','🛑 Stop-Loss']].map(([m,label]) => (
+                        <button key={m} onClick={()=>setOrderMode(m)} style={{flex:1,padding:'6px',borderRadius:8,border:`1px solid ${orderMode===m?(m==='stop'?'rgba(244,63,94,.5)':'var(--accent)'):'var(--border)'}`,background:orderMode===m?(m==='stop'?'rgba(244,63,94,.12)':'rgba(0,229,160,.12)'):'transparent',color:orderMode===m?(m==='stop'?'var(--down)':'var(--accent)'):'var(--muted)',fontFamily:"'DM Mono',monospace",fontSize:11,cursor:'pointer',transition:'all .15s'}}>
+                          {label}
                         </button>
                       ))}
                     </div>
@@ -1753,31 +1757,38 @@ export default function Dashboard() {
                           {tradeForm.action === 'BUY' ? '🎯 Buy when price drops to' : tradeForm.action === 'SELL' ? '🎯 Sell when price rises to' : '🎯 Short when price reaches'}
                         </label>
                         <div style={{display:'flex',gap:8,alignItems:'center'}}>
-                          <input
-                            type="number"
-                            className="form-input"
-                            placeholder="0.00"
-                            min="0"
-                            step="any"
-                            value={limitPrice}
-                            onChange={e => setLimitPrice(e.target.value)}
-                            style={{flex:1}}
-                          />
+                          <input type="number" className="form-input" placeholder="0.00" min="0" step="any" value={limitPrice} onChange={e => setLimitPrice(e.target.value)} style={{flex:1}} />
                           {tradeForm.coin && prices[tradeForm.coin] && (
-                            <button
-                              onClick={() => setLimitPrice(parseFloat(prices[tradeForm.coin].price).toFixed(2))}
-                              style={{padding:'8px 10px',borderRadius:8,border:'1px solid var(--border)',background:'var(--surface2)',color:'var(--muted)',fontSize:10,cursor:'pointer',fontFamily:"'DM Mono',monospace",whiteSpace:'nowrap'}}
-                            >Use current</button>
+                            <button onClick={() => setLimitPrice(parseFloat(prices[tradeForm.coin].price).toFixed(2))} style={{padding:'8px 10px',borderRadius:8,border:'1px solid var(--border)',background:'var(--surface2)',color:'var(--muted)',fontSize:10,cursor:'pointer',fontFamily:"'DM Mono',monospace",whiteSpace:'nowrap'}}>Use current</button>
                           )}
                         </div>
                         {tradeForm.coin && prices[tradeForm.coin] && limitPrice && (
                           <div style={{fontSize:10,color:'var(--muted)',marginTop:5}}>
-                            Current price: ${parseFloat(prices[tradeForm.coin].price).toLocaleString()} · Limit: ${parseFloat(limitPrice).toLocaleString()}
-                            {tradeForm.action === 'BUY' && parseFloat(limitPrice) >= parseFloat(prices[tradeForm.coin].price) && (
-                              <span style={{color:'#fb923c'}}> · ⚠ Limit is at/above market — will fill immediately</span>
-                            )}
-                            {(tradeForm.action === 'SELL' || tradeForm.action === 'SHORT') && parseFloat(limitPrice) <= parseFloat(prices[tradeForm.coin].price) && (
-                              <span style={{color:'#fb923c'}}> · ⚠ Limit is at/below market — will fill immediately</span>
+                            Current: ${parseFloat(prices[tradeForm.coin].price).toLocaleString()} · Limit: ${parseFloat(limitPrice).toLocaleString()}
+                            {tradeForm.action === 'BUY' && parseFloat(limitPrice) >= parseFloat(prices[tradeForm.coin].price) && <span style={{color:'#fb923c'}}> · ⚠ At/above market — fills immediately</span>}
+                            {(tradeForm.action === 'SELL' || tradeForm.action === 'SHORT') && parseFloat(limitPrice) <= parseFloat(prices[tradeForm.coin].price) && <span style={{color:'#fb923c'}}> · ⚠ At/below market — fills immediately</span>}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {orderMode === 'stop' && (
+                      <div className="form-group">
+                        <div style={{background:'rgba(244,63,94,.07)',border:'1px solid rgba(244,63,94,.2)',borderRadius:10,padding:'10px 14px',marginBottom:10,fontSize:11,color:'#f87171',lineHeight:1.5}}>
+                          🛑 Auto-sells your position if price drops to your stop price — protects against large losses.
+                        </div>
+                        <label className="form-label">🛑 Sell {tradeForm.coin || 'coin'} if price drops to</label>
+                        <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                          <input type="number" className="form-input" placeholder="0.00" min="0" step="any" value={limitPrice} onChange={e => setLimitPrice(e.target.value)} style={{flex:1,borderColor:'rgba(244,63,94,.4)'}} />
+                          {tradeForm.coin && prices[tradeForm.coin] && (
+                            <button onClick={() => setLimitPrice((parseFloat(prices[tradeForm.coin].price) * 0.95).toFixed(2))} style={{padding:'8px 10px',borderRadius:8,border:'1px solid var(--border)',background:'var(--surface2)',color:'var(--muted)',fontSize:10,cursor:'pointer',fontFamily:"'DM Mono',monospace",whiteSpace:'nowrap'}}>-5%</button>
+                          )}
+                        </div>
+                        {tradeForm.coin && prices[tradeForm.coin] && limitPrice && (
+                          <div style={{fontSize:10,color:'var(--muted)',marginTop:5}}>
+                            Current: ${parseFloat(prices[tradeForm.coin].price).toLocaleString()} · Stop: ${parseFloat(limitPrice).toLocaleString()}
+                            {parseFloat(limitPrice) >= parseFloat(prices[tradeForm.coin].price) && <span style={{color:'#fb923c'}}> · ⚠ Stop is above current price — will trigger immediately</span>}
+                            {parseFloat(limitPrice) > 0 && parseFloat(limitPrice) < parseFloat(prices[tradeForm.coin].price) && (
+                              <span style={{color:'var(--down)'}}> · Loss capped at ~{(((parseFloat(prices[tradeForm.coin].price) - parseFloat(limitPrice)) / parseFloat(prices[tradeForm.coin].price)) * 100).toFixed(1)}%</span>
                             )}
                           </div>
                         )}
@@ -1862,14 +1873,16 @@ export default function Dashboard() {
                       )}
                     <button
                       className="btn btn-primary"
-                      style={{ width: "100%", background: orderMode === 'limit' ? 'rgba(0,229,160,.85)' : undefined }}
-                      onClick={orderMode === 'limit' ? placeOrder : executeTrade}
+                      style={{ width: "100%", background: orderMode === 'limit' ? 'rgba(0,229,160,.85)' : orderMode === 'stop' ? 'rgba(244,63,94,.8)' : undefined }}
+                      onClick={orderMode === 'market' ? executeTrade : placeOrder}
                       disabled={executing || placingOrder || (orderMode === 'market' && marketStatus?.frozen)}
                     >
                       {executing || placingOrder
                         ? "Processing..."
                         : orderMode === 'limit'
                         ? `🎯 Place Limit Order — ${tradeForm.action} ${tradeForm.coin || "—"}`
+                        : orderMode === 'stop'
+                        ? `🛑 Set Stop-Loss — ${tradeForm.coin || "—"}`
                         : marketStatus?.frozen
                         ? "Market Frozen"
                         : `${tradeForm.action} ${tradeForm.coin || "—"}`}

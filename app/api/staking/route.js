@@ -20,7 +20,7 @@ async function returnCoinsToHoldings(studentId, classId, coin, quantity, fallbac
   } else {
     await db.from('holdings').insert({
       student_id: studentId, class_id: classId, coin,
-      quantity, avg_price: fallbackPrice, margin_borrowed: 0,
+      quantity, avg_buy_price: fallbackPrice, margin_borrowed: 0,
     });
   }
 }

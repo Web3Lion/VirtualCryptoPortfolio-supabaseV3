@@ -149,24 +149,28 @@ export async function GET(request) {
           if (!currentPrice) continue;
 
           const price = parseFloat(currentPrice), limitPrice = parseFloat(order.limit_price);
+          const isStop = order.action === 'SELL_STOP' || order.action === 'BUY_STOP';
           const shouldFire =
-            (order.action === 'BUY'   && price <= limitPrice) ||
-            (order.action === 'SELL'  && price >= limitPrice) ||
-            (order.action === 'SHORT' && price >= limitPrice);
+            (order.action === 'BUY'       && price <= limitPrice) ||
+            (order.action === 'SELL'      && price >= limitPrice) ||
+            (order.action === 'SHORT'     && price >= limitPrice) ||
+            (order.action === 'SELL_STOP' && price <= limitPrice) ||
+            (order.action === 'BUY_STOP'  && price >= limitPrice);
           if (!shouldFire) continue;
 
           const mkt = await getMarketStatus(order.class_id);
           if (mkt.frozen || mkt.paused) continue;
 
+          const tradeAction = order.action === 'SELL_STOP' ? 'SELL' : order.action === 'BUY_STOP' ? 'BUY' : order.action;
           const result = await executeTrade({
             studentId:          order.student_id,
             classId:            order.class_id,
-            action:             order.action,
+            action:             tradeAction,
             coin:               order.coin,
             amountType:         order.amount_type,
             amount:             parseFloat(order.amount),
             leverageMultiplier: parseFloat(order.leverage_multiplier) || 1,
-            reasoning:          order.reasoning || `📋 Limit order triggered @ $${limitPrice.toLocaleString()}`,
+            reasoning:          order.reasoning || (isStop ? `🛑 Stop-loss triggered @ $${limitPrice.toLocaleString()}` : `📋 Limit order triggered @ $${limitPrice.toLocaleString()}`),
           });
 
           if (result.success) {
