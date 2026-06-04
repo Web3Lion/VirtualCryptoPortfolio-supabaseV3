@@ -769,6 +769,15 @@ export default function Dashboard() {
             </div>
           </div>
         )}
+        {marketStatus?.scenarioActive && (
+          <div style={{background:'rgba(167,139,250,.12)',border:'1px solid rgba(167,139,250,.4)',borderRadius:12,padding:'10px 16px',marginBottom:12,display:'flex',alignItems:'center',gap:10}}>
+            <span style={{fontSize:18}}>📅</span>
+            <div>
+              <span style={{fontSize:13,fontWeight:700,color:'#a78bfa'}}>HISTORICAL SCENARIO</span>
+              <span style={{fontSize:12,color:'#c4b5fd',marginLeft:8}}>Trading on historical prices — {marketStatus.scenarioLabel}</span>
+            </div>
+          </div>
+        )}
         {refreshResult && !refreshResult.blocked && !refreshResult.error && (
           <div style={{background:'rgba(0,229,160,.08)',border:'1px solid rgba(0,229,160,.3)',borderRadius:12,padding:'10px 16px',marginBottom:12,display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,animation:'fadeIn .3s ease'}}>
             <div style={{display:'flex',alignItems:'center',gap:10}}>

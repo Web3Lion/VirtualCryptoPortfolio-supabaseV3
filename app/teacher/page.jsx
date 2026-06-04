@@ -75,6 +75,9 @@ export default function Teacher() {
   const [schedFlashMins, setSchedFlashMins] = useState('30');
   const [announcementText, setAnnouncementText] = useState('');
   const [announcementColor, setAnnouncementColor] = useState('blue');
+  const [scenarioDate, setScenarioDate] = useState('');
+  const [scenarioLabel, setScenarioLabel] = useState('');
+  const [scenarioLoading, setScenarioLoading] = useState(false);
 
   useEffect(() => { applyTheme(getTheme()); }, []);
   useEffect(()=>{ if(status==='unauthenticated') router.replace('/'); },[status,router]);
@@ -648,6 +651,78 @@ export default function Teacher() {
                         <button className="btn btn-red" style={{width:'100%',marginBottom:8}} onClick={()=>{if(confirm('End simulation?'))teacherAction('end')}}>🏁 End Simulation</button>
                         <button className="btn btn-muted" style={{width:'100%'}} onClick={takeSnapshot} title="Saves a daily portfolio snapshot for every student right now — useful for populating history charts">📸 Save Portfolio Snapshot</button>
                       </div>
+                    </div>
+
+                    {/* Historical Scenario — full width */}
+                    <div className="ctrl-card" style={{gridColumn:'1/-1',border: marketStatus?.scenarioActive ? '1px solid rgba(167,139,250,.4)' : undefined, background: marketStatus?.scenarioActive ? 'rgba(167,139,250,.05)' : undefined}}>
+                      <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:6}}>
+                        <div className="ctrl-title" style={{marginBottom:0}}>📅 Historical Scenario</div>
+                        {marketStatus?.scenarioActive && <span style={{fontSize:10,padding:'2px 8px',borderRadius:6,background:'rgba(167,139,250,.2)',color:'#a78bfa',border:'1px solid rgba(167,139,250,.3)',fontWeight:700}}>ACTIVE — {marketStatus.scenarioLabel}</span>}
+                      </div>
+                      <div className="ctrl-desc">Load prices from a specific past date. Students trade on real historical data. Advance the date manually to move the simulation forward.</div>
+                      {!marketStatus?.scenarioActive ? (
+                        <>
+                          <div style={{marginBottom:8}}>
+                            <div className="tools-label" style={{marginBottom:6}}>Preset scenarios</div>
+                            <div className="btn-row" style={{flexWrap:'wrap'}}>
+                              {[
+                                ['2020-03-12','🌊 COVID Crash (Mar 2020)'],
+                                ['2021-11-08','🚀 ATH Peak (Nov 2021)'],
+                                ['2022-06-13','📉 Luna Crash (Jun 2022)'],
+                                ['2022-11-08','🔥 FTX Collapse (Nov 2022)'],
+                                ['2024-03-05','₿ BTC Halving Run (Mar 2024)'],
+                              ].map(([d,l])=>(
+                                <button key={d} className="btn btn-muted" style={{fontSize:10}} onClick={()=>{setScenarioDate(d);setScenarioLabel(l.replace(/^[^ ]+ /,''));}}>
+                                  {l}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr auto',gap:8,marginBottom:8}}>
+                            <div>
+                              <div className="form-label">Date</div>
+                              <input type="date" className="text-input" style={{marginBottom:0}} value={scenarioDate} onChange={e=>setScenarioDate(e.target.value)} max={new Date().toISOString().slice(0,10)} />
+                            </div>
+                            <div>
+                              <div className="form-label">Label (optional)</div>
+                              <input className="text-input" style={{marginBottom:0}} placeholder="e.g. Market Crash 2022" value={scenarioLabel} onChange={e=>setScenarioLabel(e.target.value)} />
+                            </div>
+                            <button className="btn btn-gold" style={{alignSelf:'flex-end'}} disabled={!scenarioDate||scenarioLoading} onClick={async()=>{
+                              setScenarioLoading(true);
+                              const res = await fetch('/api/teacher/scenario',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'load',date:scenarioDate,label:scenarioLabel||scenarioDate})});
+                              const d = await res.json();
+                              setActionMsg({type:res.ok&&d.success?'success':'error',msg:d.message||(d.failed?.length?`⚠ ${d.failed.join(', ')} failed`:'Done')});
+                              setTimeout(()=>setActionMsg(null),5000);
+                              fetchData(activeClass?.id);
+                              setScenarioLoading(false);
+                            }}>
+                              {scenarioLoading?'Loading…':'📅 Load Prices'}
+                            </button>
+                          </div>
+                          <div style={{fontSize:10,color:'var(--muted)'}}>Prices load into price_cache — market freeze recommended while loading. Students trade at historical prices until you end the scenario or load the next date.</div>
+                        </>
+                      ) : (
+                        <div className="btn-row">
+                          <input type="date" className="text-input" style={{marginBottom:0,width:160}} value={scenarioDate} onChange={e=>setScenarioDate(e.target.value)} max={new Date().toISOString().slice(0,10)} />
+                          <button className="btn btn-gold" disabled={!scenarioDate||scenarioLoading} onClick={async()=>{
+                            setScenarioLoading(true);
+                            const res = await fetch('/api/teacher/scenario',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'load',date:scenarioDate,label:scenarioLabel||scenarioDate})});
+                            const d = await res.json();
+                            setActionMsg({type:res.ok&&d.success?'success':'error',msg:d.message||'Done'});
+                            setTimeout(()=>setActionMsg(null),5000);
+                            fetchData(activeClass?.id);
+                            setScenarioLoading(false);
+                          }}>
+                            {scenarioLoading?'Loading…':'⏩ Advance to Date'}
+                          </button>
+                          <button className="btn btn-red" onClick={async()=>{
+                            await fetch('/api/teacher/scenario',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'end'})});
+                            setActionMsg({type:'success',msg:'✅ Scenario ended'});
+                            setTimeout(()=>setActionMsg(null),3000);
+                            fetchData(activeClass?.id);
+                          }}>⏹ End Scenario</button>
+                        </div>
+                      )}
                     </div>
 
                     {/* Announcement — full width */}
