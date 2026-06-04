@@ -244,6 +244,8 @@ export default function Dashboard() {
   const [dcaOrders, setDcaOrders] = useState([]);
   const [dcaForm, setDcaForm] = useState({ coin: '', amountUsd: '', frequency: 'daily' });
   const [dcaStatus, setDcaStatus] = useState(null);
+  const [feedItems, setFeedItems] = useState([]);
+  const [feedLoading, setFeedLoading] = useState(false);
 
   useEffect(() => {
     applyTheme(getTheme());
@@ -636,6 +638,7 @@ export default function Dashboard() {
     "orders",
     "history",
     "watchlist",
+    "feed",
   ];
 
   return (
@@ -975,7 +978,7 @@ export default function Dashboard() {
                 <button
                   key={t}
                   className={`tab${activeTab === t ? " active" : ""}`}
-                  onClick={() => setActiveTab(t)}
+                  onClick={() => { setActiveTab(t); if (t === 'feed' && feedItems.length === 0) { setFeedLoading(true); fetch(`/api/feed${classId ? `?classId=${classId}` : ''}`).then(r=>r.ok?r.json():[]).then(d=>{setFeedItems(Array.isArray(d)?d:[]);setFeedLoading(false);}).catch(()=>setFeedLoading(false)); } }}
                 >
                   {t.charAt(0).toUpperCase() + t.slice(1)}
                   {t === "watchlist" && triggeredCount > 0 && (
@@ -2626,6 +2629,43 @@ export default function Dashboard() {
                           } more for Serious Watchman badge`}
                     </div>
                   </>
+                )}
+              </div>
+            )}
+
+            {activeTab === "feed" && (
+              <div className="panel">
+                {feedLoading ? (
+                  <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                    {[1,2,3,4,5].map(i=><div key={i} className="skeleton" style={{height:52}}/>)}
+                  </div>
+                ) : feedItems.length === 0 ? (
+                  <div className="empty">No activity in the last 48 hours</div>
+                ) : (
+                  <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                    {feedItems.map((item, i) => {
+                      const ago = (() => {
+                        const diff = Date.now() - new Date(item.ts).getTime();
+                        const m = Math.floor(diff / 60000);
+                        if (m < 1) return 'just now';
+                        if (m < 60) return `${m}m ago`;
+                        const h = Math.floor(m / 60);
+                        if (h < 24) return `${h}h ago`;
+                        return `${Math.floor(h/24)}d ago`;
+                      })();
+                      const borderColor = item.type === 'trade' ? (item.emoji === '📈' ? 'rgba(0,229,160,.15)' : 'rgba(244,63,94,.15)') : item.type === 'badge' ? 'rgba(245,158,11,.15)' : 'rgba(96,165,250,.15)';
+                      return (
+                        <div key={i} style={{background:'var(--surface)',border:`1px solid ${borderColor}`,borderRadius:12,padding:'10px 14px',display:'flex',alignItems:'center',gap:12}}>
+                          <span style={{fontSize:18,flexShrink:0}}>{item.emoji}</span>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{fontSize:12,color:'var(--text)'}}>{item.text}</div>
+                            {item.sub && <div style={{fontSize:11,color:'var(--muted)',marginTop:1}}>{item.sub}</div>}
+                          </div>
+                          <span style={{fontSize:10,color:'var(--muted)',flexShrink:0}}>{ago}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
                 )}
               </div>
             )}
