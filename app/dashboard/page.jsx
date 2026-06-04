@@ -247,6 +247,7 @@ export default function Dashboard() {
   const [dcaStatus, setDcaStatus] = useState(null);
   const [feedItems, setFeedItems] = useState([]);
   const [feedLoading, setFeedLoading] = useState(false);
+  const [activeTournament, setActiveTournament] = useState(null);
   const [optionsPositions, setOptionsPositions] = useState([]);
   const [optionsForm, setOptionsForm] = useState({ coin: '', type: 'call', strikeMode: 'atm', customStrike: '', expiryDays: 7 });
   const [optionsStatus, setOptionsStatus] = useState(null);
@@ -393,6 +394,7 @@ export default function Dashboard() {
       fetchOrders();
       fetchRefreshStatus();
       fetch('/api/dca').then(r => r.ok ? r.json() : []).then(d => { if (Array.isArray(d)) setDcaOrders(d); });
+      fetch('/api/tournament').then(r => r.ok ? r.json() : []).then(d => { if (Array.isArray(d)) { const active = d.find(t => t.status === 'active'); setActiveTournament(active || null); } }).catch(() => {});
       const iv = setInterval(fetchData, 60000);
       return () => clearInterval(iv);
     }
@@ -891,6 +893,39 @@ export default function Dashboard() {
                 </div>
               </div>
             )}
+
+            {activeTournament && (() => {
+              const my = activeTournament.standings?.find(s => s.name === session?.user?.name);
+              const top3 = activeTournament.standings?.slice(0, 3) || [];
+              const daysLeft = Math.max(0, Math.ceil((new Date(activeTournament.ends_at) - new Date()) / (1000 * 86400)));
+              return (
+                <div style={{background:'rgba(245,158,11,.08)',border:'1px solid rgba(245,158,11,.3)',borderRadius:16,padding:'14px 20px',marginBottom:16,display:'flex',alignItems:'center',gap:16,flexWrap:'wrap'}}>
+                  <span style={{fontSize:28,flexShrink:0}}>🏆</span>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:2,flexWrap:'wrap'}}>
+                      <span style={{fontSize:9,color:'var(--gold)',letterSpacing:2,textTransform:'uppercase',fontWeight:700}}>Tournament Active</span>
+                      <span style={{fontSize:12,fontWeight:700,color:'var(--text)'}}>{activeTournament.name}</span>
+                      <span style={{fontSize:10,color:'var(--muted)'}}>{daysLeft}d remaining</span>
+                    </div>
+                    <div style={{display:'flex',gap:12,flexWrap:'wrap'}}>
+                      {top3.map((s,i)=>(
+                        <span key={s.studentId} style={{fontSize:11,color:i===0?'#f59e0b':i===1?'#94a3b8':'#a16207'}}>
+                          {i===0?'🥇':i===1?'🥈':'🥉'} {s.name} {s.returnPct>=0?'+':''}{s.returnPct.toFixed(1)}%
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  {my && (
+                    <div style={{textAlign:'right',flexShrink:0}}>
+                      <div style={{fontSize:10,color:'var(--muted)'}}>Your rank</div>
+                      <div style={{fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:22,color:'var(--gold)'}}>#{my.rank}</div>
+                      <div style={{fontSize:11,color:my.returnPct>=0?'var(--up)':'var(--down)'}}>{my.returnPct>=0?'+':''}{my.returnPct.toFixed(1)}%</div>
+                    </div>
+                  )}
+                  {activeTournament.prize_tokens > 0 && <div style={{fontSize:10,color:'var(--muted)',flexShrink:0}}>🎁 {activeTournament.prize_tokens} token prize</div>}
+                </div>
+              );
+            })()}
 
             <div className="hero">
               <div className="hero-label">Total Portfolio Value</div>

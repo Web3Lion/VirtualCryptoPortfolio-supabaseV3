@@ -78,6 +78,12 @@ export default function Teacher() {
   const [scenarioDate, setScenarioDate] = useState('');
   const [scenarioLabel, setScenarioLabel] = useState('');
   const [scenarioLoading, setScenarioLoading] = useState(false);
+  const [tournamentName, setTournamentName] = useState('');
+  const [tournamentStart, setTournamentStart] = useState('');
+  const [tournamentEnd, setTournamentEnd] = useState('');
+  const [tournamentPrize, setTournamentPrize] = useState('100');
+  const [tournaments, setTournaments] = useState([]);
+  const [tournamentLoading, setTournamentLoading] = useState(false);
 
   useEffect(() => { applyTheme(getTheme()); }, []);
   useEffect(()=>{ if(status==='unauthenticated') router.replace('/'); },[status,router]);
@@ -830,6 +836,61 @@ export default function Teacher() {
                           {rewardSaving?'Saving...':'💾 Save Settings'}
                         </button>
                       </div>
+                    </div>
+
+                    {/* Tournament Mode — full width */}
+                    <div className="ctrl-card" style={{gridColumn:'1/-1',border:'1px solid rgba(245,158,11,.25)',background:'rgba(245,158,11,.04)'}}>
+                      <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:6}}>
+                        <div className="ctrl-title" style={{marginBottom:0}}>🏆 Tournament Mode</div>
+                        <span style={{fontSize:10,color:'var(--muted)'}}>A formal time-boxed competition — ranked by % return over the period</span>
+                      </div>
+                      <div style={{display:'grid',gridTemplateColumns:'2fr 1fr 1fr 1fr',gap:8,marginBottom:8}}>
+                        <div><div className="form-label">Tournament Name</div><input className="text-input" style={{marginBottom:0}} placeholder="e.g. Spring Crypto Cup" value={tournamentName} onChange={e=>setTournamentName(e.target.value)}/></div>
+                        <div><div className="form-label">Start</div><input type="datetime-local" className="text-input" style={{marginBottom:0}} value={tournamentStart} onChange={e=>setTournamentStart(e.target.value)}/></div>
+                        <div><div className="form-label">End</div><input type="datetime-local" className="text-input" style={{marginBottom:0}} value={tournamentEnd} onChange={e=>setTournamentEnd(e.target.value)}/></div>
+                        <div><div className="form-label">Prize (tokens)</div><input type="number" className="text-input" style={{marginBottom:0}} min={0} value={tournamentPrize} onChange={e=>setTournamentPrize(e.target.value)}/></div>
+                      </div>
+                      <div className="btn-row" style={{marginBottom:16}}>
+                        <button className="btn btn-gold" disabled={!tournamentName||!tournamentStart||!tournamentEnd||tournamentLoading} onClick={async()=>{
+                          setTournamentLoading(true);
+                          const res=await fetch('/api/tournament',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'create',classId:activeClass?.id,name:tournamentName,startsAt:tournamentStart,endsAt:tournamentEnd,prizeTokens:parseInt(tournamentPrize)||0})});
+                          const d=await res.json();
+                          if(res.ok){setActionMsg({type:'success',msg:`🏆 ${d.tournament.name} created!`});setTournamentName('');setTournamentStart('');setTournamentEnd('');fetch(`/api/tournament?classId=${activeClass?.id}`).then(r=>r.ok?r.json():[]).then(d=>Array.isArray(d)&&setTournaments(d));}
+                          else setActionMsg({type:'error',msg:d.error||'Failed'});
+                          setTimeout(()=>setActionMsg(null),4000);
+                          setTournamentLoading(false);
+                        }}>{tournamentLoading?'Creating…':'+ Create Tournament'}</button>
+                        <button className="btn btn-muted" onClick={()=>fetch(`/api/tournament?classId=${activeClass?.id}`).then(r=>r.ok?r.json():[]).then(d=>Array.isArray(d)&&setTournaments(d))}>↻ Refresh</button>
+                      </div>
+                      {tournaments.length > 0 && (
+                        <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                          {tournaments.map(t=>(
+                            <div key={t.id} style={{background:'rgba(245,158,11,.07)',border:'1px solid rgba(245,158,11,.2)',borderRadius:10,padding:'10px 14px'}}>
+                              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:8}}>
+                                <div>
+                                  <span style={{fontWeight:700,fontSize:13,color:'var(--gold)'}}>{t.name}</span>
+                                  <span style={{fontSize:10,color:'var(--muted)',marginLeft:8}}>{new Date(t.starts_at).toLocaleDateString()} → {new Date(t.ends_at).toLocaleDateString()}</span>
+                                  <span style={{fontSize:10,marginLeft:8,padding:'1px 6px',borderRadius:4,background:t.status==='active'?'rgba(0,229,160,.2)':t.status==='ended'?'rgba(71,85,105,.3)':'rgba(245,158,11,.2)',color:t.status==='active'?'var(--accent)':t.status==='ended'?'var(--muted)':'var(--gold)',fontWeight:700}}>{t.status.toUpperCase()}</span>
+                                  {t.prize_tokens > 0 && <span style={{fontSize:10,color:'var(--muted)',marginLeft:8}}>🎁 {t.prize_tokens} tokens to winner</span>}
+                                </div>
+                                <div style={{display:'flex',gap:6}}>
+                                  {t.status==='upcoming'&&<button className="btn btn-green" style={{fontSize:10,padding:'4px 10px'}} onClick={async()=>{const res=await fetch('/api/tournament',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'start',tournamentId:t.id,classId:activeClass?.id})});const d=await res.json();setActionMsg({type:res.ok?'success':'error',msg:d.message||d.error||'Done'});setTimeout(()=>setActionMsg(null),4000);fetch(`/api/tournament?classId=${activeClass?.id}`).then(r=>r.ok?r.json():[]).then(d=>Array.isArray(d)&&setTournaments(d));}}>▶ Start Now</button>}
+                                  {t.status==='active'&&<button className="btn btn-red" style={{fontSize:10,padding:'4px 10px'}} onClick={async()=>{if(!confirm(`End "${t.name}" and award prize?`))return;const res=await fetch('/api/tournament',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'end',tournamentId:t.id})});const d=await res.json();setActionMsg({type:res.ok?'success':'error',msg:res.ok?`🏆 Winner: ${d.winner?.name} (${d.winner?.returnPct?.toFixed(1)}%)`:d.error||'Done'});setTimeout(()=>setActionMsg(null),6000);fetch(`/api/tournament?classId=${activeClass?.id}`).then(r=>r.ok?r.json():[]).then(d=>Array.isArray(d)&&setTournaments(d));}}>🏁 End & Award</button>}
+                                </div>
+                              </div>
+                              {t.status==='active'&&t.standings&&(
+                                <div style={{marginTop:8,display:'flex',gap:8,flexWrap:'wrap'}}>
+                                  {t.standings.slice(0,5).map((s,i)=>(
+                                    <div key={s.studentId} style={{fontSize:11,color:i===0?'var(--gold)':i===1?'#94a3b8':i===2?'#a16207':'var(--muted)'}}>
+                                      {i===0?'🥇':i===1?'🥈':i===2?'🥉':`#${i+1}`} {s.name} <span style={{color:s.returnPct>=0?'var(--up)':'var(--down)'}}>{s.returnPct>=0?'+':''}{s.returnPct.toFixed(1)}%</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
                     {/* Award Tokens */}
