@@ -42,6 +42,13 @@ export async function POST(request, { params }) {
     case 'flash-sale/stop':
       await setConfigs({ FLASH_SALE_COIN: '', FLASH_SALE_FACTOR: '', FLASH_SALE_UNTIL: '' });
       return Response.json({ success: true, message: '⏹ Flash sale ended' });
+    case 'announcement/post':
+      if (!body.text) return Response.json({ error: 'text required' }, { status: 400 });
+      await setConfigs({ ANNOUNCEMENT: body.text, ANNOUNCEMENT_COLOR: body.color || 'blue' });
+      return Response.json({ success: true, message: '📢 Announcement posted' });
+    case 'announcement/clear':
+      await setConfigs({ ANNOUNCEMENT: '', ANNOUNCEMENT_COLOR: 'blue' });
+      return Response.json({ success: true, message: '✅ Announcement cleared' });
     case 'flash-sale/schedule': {
       if (!body.scheduledAt || !body.coin) return Response.json({ error: 'scheduledAt and coin required' }, { status: 400 });
       await setConfigs({ FLASH_SALE_SCHEDULED_AT: new Date(body.scheduledAt).toISOString(), FLASH_SALE_SCHEDULED_COIN: body.coin.toUpperCase(), FLASH_SALE_SCHEDULED_FACTOR: String(1 - (body.discountPct || 20) / 100), FLASH_SALE_SCHEDULED_MINS: String(body.minutes || 30) });

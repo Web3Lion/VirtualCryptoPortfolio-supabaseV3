@@ -722,6 +722,21 @@ export default function Dashboard() {
           </div>
         } />
 
+        {marketStatus?.announcement && (() => {
+          const colors = {
+            blue:   { bg:'rgba(96,165,250,.12)',  border:'rgba(96,165,250,.4)',  text:'#93c5fd' },
+            green:  { bg:'rgba(0,229,160,.12)',   border:'rgba(0,229,160,.4)',   text:'#00e5a0' },
+            yellow: { bg:'rgba(245,158,11,.12)',  border:'rgba(245,158,11,.4)',  text:'#fbbf24' },
+            red:    { bg:'rgba(244,63,94,.12)',   border:'rgba(244,63,94,.4)',   text:'#f87171' },
+          };
+          const c = colors[marketStatus.announcementColor] || colors.blue;
+          return (
+            <div style={{background:c.bg,border:`1px solid ${c.border}`,borderRadius:12,padding:'12px 18px',marginBottom:14,display:'flex',alignItems:'center',gap:10}}>
+              <span style={{fontSize:16,flexShrink:0}}>📢</span>
+              <span style={{fontSize:13,color:c.text,fontWeight:600}}>{marketStatus.announcement}</span>
+            </div>
+          );
+        })()}
         {marketStatus?.frozen && (
           <div className="freeze-banner">🚫 {marketStatus.freezeReason}</div>
         )}

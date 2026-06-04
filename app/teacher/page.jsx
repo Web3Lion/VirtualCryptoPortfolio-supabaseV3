@@ -73,6 +73,8 @@ export default function Teacher() {
   const [schedFlashCoin, setSchedFlashCoin] = useState('');
   const [schedFlashPct, setSchedFlashPct]   = useState('20');
   const [schedFlashMins, setSchedFlashMins] = useState('30');
+  const [announcementText, setAnnouncementText] = useState('');
+  const [announcementColor, setAnnouncementColor] = useState('blue');
 
   useEffect(() => { applyTheme(getTheme()); }, []);
   useEffect(()=>{ if(status==='unauthenticated') router.replace('/'); },[status,router]);
@@ -645,6 +647,33 @@ export default function Teacher() {
                         <button className="btn btn-green" style={{width:'100%',marginBottom:8}} onClick={()=>teacherAction('resume')}>▶ Resume</button>
                         <button className="btn btn-red" style={{width:'100%',marginBottom:8}} onClick={()=>{if(confirm('End simulation?'))teacherAction('end')}}>🏁 End Simulation</button>
                         <button className="btn btn-muted" style={{width:'100%'}} onClick={takeSnapshot} title="Saves a daily portfolio snapshot for every student right now — useful for populating history charts">📸 Save Portfolio Snapshot</button>
+                      </div>
+                    </div>
+
+                    {/* Announcement — full width */}
+                    <div className="ctrl-card" style={{gridColumn:'1/-1'}}>
+                      <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:6}}>
+                        <div className="ctrl-title" style={{marginBottom:0}}>📢 Class Announcement</div>
+                        {marketStatus?.announcement && <span style={{fontSize:10,padding:'2px 8px',borderRadius:6,background:'rgba(0,229,160,.15)',color:'var(--accent)',border:'1px solid rgba(0,229,160,.3)'}}>LIVE</span>}
+                      </div>
+                      <div className="ctrl-desc">Pins a message to the top of every student's dashboard.</div>
+                      {marketStatus?.announcement && (
+                        <div style={{background:'rgba(96,165,250,.1)',border:'1px solid rgba(96,165,250,.3)',borderRadius:8,padding:'8px 12px',marginBottom:10,fontSize:12,color:'#93c5fd'}}>
+                          📢 {marketStatus.announcement}
+                        </div>
+                      )}
+                      <div style={{display:'grid',gridTemplateColumns:'1fr auto',gap:8,marginBottom:8}}>
+                        <input className="text-input" style={{marginBottom:0}} placeholder="e.g. Quiz on Friday — portfolio freeze at 3pm" value={announcementText} onChange={e=>setAnnouncementText(e.target.value)} maxLength={200} />
+                        <select className="text-input" style={{marginBottom:0,width:100}} value={announcementColor} onChange={e=>setAnnouncementColor(e.target.value)}>
+                          <option value="blue">🔵 Blue</option>
+                          <option value="green">🟢 Green</option>
+                          <option value="yellow">🟡 Yellow</option>
+                          <option value="red">🔴 Red</option>
+                        </select>
+                      </div>
+                      <div className="btn-row">
+                        <button className="btn btn-accent" onClick={()=>{if(announcementText.trim())teacherAction('announcement/post',{text:announcementText.trim(),color:announcementColor})}}>📢 Post</button>
+                        {marketStatus?.announcement && <button className="btn btn-muted" onClick={()=>teacherAction('announcement/clear')}>✕ Clear</button>}
                       </div>
                     </div>
 
