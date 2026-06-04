@@ -63,7 +63,7 @@ const BADGE_NAMES = {
   omniscient: "🌐 Omniscient",
 };
 
-function LineChart({ data, height = 160 }) {
+function LineChart({ data, benchmarkData, height = 160 }) {
   const ref = useRef(null);
   useEffect(() => {
     const c = ref.current;
@@ -74,34 +74,49 @@ function LineChart({ data, height = 160 }) {
     c.width = W;
     c.height = H;
     ctx.clearRect(0, 0, W, H);
-    const vals = data.map((d) => d.v),
-      mn = Math.min(...vals),
-      mx = Math.max(...vals),
+
+    const hasBench = benchmarkData && benchmarkData.length >= 2;
+    const allVals = [...data.map(d => d.v), ...(hasBench ? benchmarkData.map(d => d.v) : [])];
+    const mn = Math.min(...allVals),
+      mx = Math.max(...allVals),
       rng = mx - mn || 1;
     const pad = { t: 10, b: 24, l: 8, r: 8 },
       iW = W - pad.l - pad.r,
       iH = H - pad.t - pad.b;
-    const xS = (i) => pad.l + (i / (data.length - 1)) * iW,
+    const xS = (i, len) => pad.l + (i / (len - 1)) * iW,
       yS = (v) => pad.t + iH - ((v - mn) / rng) * iH;
+
+    // Benchmark line (dashed, muted)
+    if (hasBench) {
+      ctx.beginPath();
+      benchmarkData.forEach((d, i) => i === 0 ? ctx.moveTo(xS(i, benchmarkData.length), yS(d.v)) : ctx.lineTo(xS(i, benchmarkData.length), yS(d.v)));
+      ctx.strokeStyle = "#475569";
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([4, 4]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    // Portfolio fill
     const g = ctx.createLinearGradient(0, pad.t, 0, H - pad.b);
     g.addColorStop(0, "rgba(0,229,160,.2)");
     g.addColorStop(1, "rgba(0,229,160,0)");
     ctx.beginPath();
-    data.forEach((d, i) =>
-      i === 0 ? ctx.moveTo(xS(i), yS(d.v)) : ctx.lineTo(xS(i), yS(d.v))
-    );
-    ctx.lineTo(xS(data.length - 1), H - pad.b);
-    ctx.lineTo(xS(0), H - pad.b);
+    data.forEach((d, i) => i === 0 ? ctx.moveTo(xS(i, data.length), yS(d.v)) : ctx.lineTo(xS(i, data.length), yS(d.v)));
+    ctx.lineTo(xS(data.length - 1, data.length), H - pad.b);
+    ctx.lineTo(xS(0, data.length), H - pad.b);
     ctx.closePath();
     ctx.fillStyle = g;
     ctx.fill();
+
+    // Portfolio line
     ctx.beginPath();
-    data.forEach((d, i) =>
-      i === 0 ? ctx.moveTo(xS(i), yS(d.v)) : ctx.lineTo(xS(i), yS(d.v))
-    );
+    data.forEach((d, i) => i === 0 ? ctx.moveTo(xS(i, data.length), yS(d.v)) : ctx.lineTo(xS(i, data.length), yS(d.v)));
     ctx.strokeStyle = "var(--accent,#00e5a0)";
     ctx.lineWidth = 2;
     ctx.stroke();
+
+    // X-axis labels
     ctx.fillStyle = "#475569";
     ctx.font = "10px monospace";
     ctx.textAlign = "center";
@@ -110,23 +125,12 @@ function LineChart({ data, height = 160 }) {
       [Math.floor(data.length / 2), data[Math.floor(data.length / 2)]?.t],
       [data.length - 1, data[data.length - 1].t],
     ].forEach(([i, l]) => {
-      if (l) ctx.fillText(String(l).substring(0, 10), xS(i), H - 6);
+      if (l) ctx.fillText(String(l).substring(0, 10), xS(i, data.length), H - 6);
     });
-  }, [data, height]);
+  }, [data, benchmarkData, height]);
   if (!data || data.length < 2)
     return (
-      <div
-        style={{
-          height,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          color: "var(--muted)",
-          fontSize: 12,
-          textAlign: "center",
-          padding: "0 16px",
-        }}
-      >
+      <div style={{ height, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)", fontSize: 12, textAlign: "center", padding: "0 16px" }}>
         No chart data yet — make 2+ trades to see your portfolio value over time
       </div>
     );
@@ -187,7 +191,8 @@ export default function Dashboard() {
   const router = useRouter();
   const [portfolio, setPortfolio] = useState(null);
   const [prices, setPrices] = useState({});
-  const [history, setHistory] = useState({ intraday: [], daily: [] });
+  const [history, setHistory] = useState({ intraday: [], daily: [], intradayAvg: [], dailyAvg: [] });
+  const [showBenchmark, setShowBenchmark] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("holdings");
   const [chartRange, setChartRange] = useState("1W");
@@ -605,9 +610,8 @@ export default function Dashboard() {
       : holdingsWithVal.map((h) => h.ticker);
 
   // Use intraday for short ranges, daily for longer
-  const chartData = ["1D", "3D", "1W"].includes(chartRange)
-    ? history.intraday
-    : history.daily;
+  const chartData = ["1D", "3D", "1W"].includes(chartRange) ? history.intraday : history.daily;
+  const benchmarkData = ["1D", "3D", "1W"].includes(chartRange) ? history.intradayAvg : history.dailyAvg;
 
   const watchlistWithStatus = watchlist.map((w) => {
     const currentPrice = prices[w.coin]?.price
@@ -1358,7 +1362,30 @@ export default function Dashboard() {
                       ))}
                     </div>
                   </div>
-                  <LineChart data={chartData} height={200} />
+                  <LineChart data={chartData} benchmarkData={showBenchmark ? benchmarkData : null} height={200} />
+                  {benchmarkData && benchmarkData.length >= 2 && (
+                    <div style={{display:'flex',alignItems:'center',gap:16,marginTop:10,fontSize:11,flexWrap:'wrap'}}>
+                      <label style={{display:'flex',alignItems:'center',gap:6,cursor:'pointer',color:'var(--muted)'}}>
+                        <input type="checkbox" checked={showBenchmark} onChange={e=>setShowBenchmark(e.target.checked)} style={{accentColor:'#475569'}} />
+                        <span style={{display:'flex',alignItems:'center',gap:5}}>
+                          <span style={{display:'inline-block',width:16,height:2,background:'#475569',borderTop:'1px dashed #475569'}} />
+                          Class avg
+                        </span>
+                      </label>
+                      {showBenchmark && benchmarkData.length >= 2 && (() => {
+                        const start = benchmarkData[0].v, end = benchmarkData[benchmarkData.length - 1].v;
+                        const myStart = chartData[0]?.v, myEnd = chartData[chartData.length - 1]?.v;
+                        const avgRet = ((end - start) / start * 100).toFixed(2);
+                        const myRet  = myStart ? ((myEnd - myStart) / myStart * 100).toFixed(2) : null;
+                        const beating = myRet !== null && parseFloat(myRet) > parseFloat(avgRet);
+                        return (
+                          <span style={{color: beating ? 'var(--up)' : 'var(--down)', fontWeight:600}}>
+                            {beating ? '▲' : '▼'} You're {beating ? '+' : ''}{(parseFloat(myRet) - parseFloat(avgRet)).toFixed(2)}% vs class avg
+                          </span>
+                        );
+                      })()}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
