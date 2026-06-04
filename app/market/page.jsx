@@ -1,10 +1,161 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Nav from "@/components/Nav";
 import { applyTheme, getTheme } from "@/lib/theme";
+
+// ── Technical indicator calculations ────────────────────────────
+function calcSMA(prices, period) {
+  return prices.map((_, i) => i < period - 1 ? null : prices.slice(i - period + 1, i + 1).reduce((a, b) => a + b, 0) / period);
+}
+function calcRSI(prices, period = 14) {
+  if (prices.length < period + 1) return prices.map(() => null);
+  const rsi = new Array(period).fill(null);
+  let avgGain = 0, avgLoss = 0;
+  for (let i = 1; i <= period; i++) {
+    const d = prices[i] - prices[i - 1];
+    if (d > 0) avgGain += d; else avgLoss += Math.abs(d);
+  }
+  avgGain /= period; avgLoss /= period;
+  for (let i = period; i < prices.length; i++) {
+    if (i > period) {
+      const d = prices[i] - prices[i - 1];
+      avgGain = (avgGain * (period - 1) + Math.max(0, d)) / period;
+      avgLoss = (avgLoss * (period - 1) + Math.max(0, -d)) / period;
+    }
+    const rs = avgLoss === 0 ? 100 : avgGain / avgLoss;
+    rsi.push(100 - 100 / (1 + rs));
+  }
+  return rsi;
+}
+
+// ── Indicator chart component ────────────────────────────────────
+function IndicatorChart({ priceData, symbol }) {
+  const priceRef = useRef(null);
+  const rsiRef   = useRef(null);
+  const [showMA7, setShowMA7]   = useState(true);
+  const [showMA21, setShowMA21] = useState(true);
+  const [showRSI, setShowRSI]   = useState(true);
+
+  const prices = priceData.map(d => d.v);
+  const labels = priceData.map(d => new Date(d.ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+  const ma7  = calcSMA(prices, 7);
+  const ma21 = calcSMA(prices, 21);
+  const rsi  = calcRSI(prices, 14);
+
+  useEffect(() => {
+    const drawLine = (ctx, vals, color, dash = []) => {
+      const valid = vals.map((v, i) => v != null ? i : null).filter(i => i !== null);
+      if (!valid.length) return;
+      ctx.beginPath(); ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.setLineDash(dash);
+      valid.forEach((i, j) => j === 0 ? ctx.moveTo(xs(i), ys(vals[i], mn, rng, pH, pad)) : ctx.lineTo(xs(i), ys(vals[i], mn, rng, pH, pad)));
+      ctx.stroke(); ctx.setLineDash([]);
+    };
+
+    const c = priceRef.current;
+    if (!c || prices.length < 2) return;
+    const W = c.offsetWidth || 600, pH = 200;
+    c.width = W; c.height = pH;
+    const ctx = c.getContext('2d');
+    ctx.clearRect(0, 0, W, pH);
+    const pad = { t: 10, b: 20, l: 8, r: 8 };
+    const allVals = [...prices, ...(showMA7 ? ma7.filter(Boolean) : []), ...(showMA21 ? ma21.filter(Boolean) : [])];
+    const mn = Math.min(...allVals), mx = Math.max(...allVals), rng = mx - mn || 1;
+    const iW = W - pad.l - pad.r, iH = pH - pad.t - pad.b;
+    const xs = i => pad.l + (i / (prices.length - 1)) * iW;
+    const ys = (v, mn, rng, H, pad) => pad.t + (H - pad.t - pad.b) - ((v - mn) / rng) * (H - pad.t - pad.b);
+
+    // Price fill
+    const up = prices[prices.length - 1] >= prices[0];
+    const g = ctx.createLinearGradient(0, pad.t, 0, pH - pad.b);
+    g.addColorStop(0, up ? 'rgba(0,229,160,.2)' : 'rgba(244,63,94,.15)');
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.beginPath();
+    prices.forEach((v, i) => i === 0 ? ctx.moveTo(xs(i), ys(v, mn, rng, pH, pad)) : ctx.lineTo(xs(i), ys(v, mn, rng, pH, pad)));
+    ctx.lineTo(xs(prices.length - 1), pH - pad.b); ctx.lineTo(xs(0), pH - pad.b); ctx.closePath();
+    ctx.fillStyle = g; ctx.fill();
+
+    // Price line
+    ctx.beginPath(); ctx.strokeStyle = up ? '#00e5a0' : '#f43f5e'; ctx.lineWidth = 2;
+    prices.forEach((v, i) => i === 0 ? ctx.moveTo(xs(i), ys(v, mn, rng, pH, pad)) : ctx.lineTo(xs(i), ys(v, mn, rng, pH, pad)));
+    ctx.stroke();
+
+    if (showMA7)  drawLine(ctx, ma7,  '#60a5fa', [4, 3]);
+    if (showMA21) drawLine(ctx, ma21, '#f59e0b', [6, 3]);
+
+    // X labels
+    ctx.fillStyle = '#475569'; ctx.font = '9px monospace'; ctx.textAlign = 'center';
+    [0, Math.floor(prices.length / 2), prices.length - 1].forEach(i => {
+      ctx.fillText(labels[i], xs(i), pH - 5);
+    });
+  }, [priceData, showMA7, showMA21]);
+
+  useEffect(() => {
+    const c = rsiRef.current;
+    if (!c || !showRSI || rsi.filter(Boolean).length < 2) return;
+    const W = c.offsetWidth || 600, H = 80;
+    c.width = W; c.height = H;
+    const ctx = c.getContext('2d');
+    ctx.clearRect(0, 0, W, H);
+    const pad = { t: 4, b: 4, l: 8, r: 8 };
+    const iW = W - pad.l - pad.r, iH = H - pad.t - pad.b;
+    const xs = i => pad.l + (i / (rsi.length - 1)) * iW;
+    const ys = v => pad.t + iH - ((v - 0) / 100) * iH;
+
+    // Zones
+    ctx.fillStyle = 'rgba(244,63,94,.07)'; ctx.fillRect(pad.l, pad.t, iW, iH * 0.30);
+    ctx.fillStyle = 'rgba(0,229,160,.07)'; ctx.fillRect(pad.l, pad.t + iH * 0.70, iW, iH * 0.30);
+
+    // Lines at 70 and 30
+    [30, 70].forEach(v => {
+      ctx.beginPath(); ctx.strokeStyle = v === 70 ? 'rgba(244,63,94,.4)' : 'rgba(0,229,160,.4)';
+      ctx.lineWidth = 1; ctx.setLineDash([3, 3]);
+      ctx.moveTo(pad.l, ys(v)); ctx.lineTo(W - pad.r, ys(v)); ctx.stroke(); ctx.setLineDash([]);
+    });
+
+    // RSI line
+    const valid = rsi.map((v, i) => ({ v, i })).filter(d => d.v != null);
+    if (valid.length >= 2) {
+      ctx.beginPath(); ctx.lineWidth = 1.5;
+      valid.forEach((d, j) => {
+        const col = d.v >= 70 ? '#f43f5e' : d.v <= 30 ? '#00e5a0' : '#a78bfa';
+        if (j === 0) { ctx.strokeStyle = col; ctx.moveTo(xs(d.i), ys(d.v)); }
+        else { ctx.strokeStyle = col; ctx.lineTo(xs(d.i), ys(d.v)); ctx.stroke(); ctx.beginPath(); ctx.moveTo(xs(d.i), ys(d.v)); }
+      });
+      ctx.stroke();
+    }
+
+    ctx.fillStyle = '#475569'; ctx.font = '8px monospace'; ctx.textAlign = 'right';
+    ctx.fillText('70', pad.l + 20, ys(70) - 2);
+    ctx.fillText('30', pad.l + 20, ys(30) - 2);
+    const lastRSI = rsi.filter(Boolean).slice(-1)[0];
+    if (lastRSI != null) {
+      ctx.fillStyle = lastRSI >= 70 ? '#f43f5e' : lastRSI <= 30 ? '#00e5a0' : '#a78bfa';
+      ctx.textAlign = 'right';
+      ctx.fillText(`RSI ${lastRSI.toFixed(0)}`, W - pad.r, 12);
+    }
+  }, [priceData, showRSI]);
+
+  const lastRSI = rsi.filter(Boolean).slice(-1)[0];
+  const sentiment = lastRSI >= 70 ? { label: 'Overbought', color: '#f43f5e' } : lastRSI <= 30 ? { label: 'Oversold', color: '#00e5a0' } : { label: 'Neutral', color: '#a78bfa' };
+
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+        {[['MA 7d', showMA7, setShowMA7, '#60a5fa'], ['MA 21d', showMA21, setShowMA21, '#f59e0b'], ['RSI 14', showRSI, setShowRSI, '#a78bfa']].map(([label, on, set, color]) => (
+          <button key={label} onClick={() => set(v => !v)} style={{ fontSize: 10, padding: '3px 10px', borderRadius: 6, border: `1px solid ${on ? color : 'var(--border)'}`, background: on ? `${color}22` : 'transparent', color: on ? color : 'var(--muted)', cursor: 'pointer', fontFamily: "'DM Mono',monospace" }}>
+            {label}
+          </button>
+        ))}
+        {lastRSI != null && <span style={{ fontSize: 10, padding: '3px 10px', borderRadius: 6, background: `${sentiment.color}15`, color: sentiment.color, border: `1px solid ${sentiment.color}40` }}>RSI: {lastRSI.toFixed(0)} — {sentiment.label}</span>}
+      </div>
+      <canvas ref={priceRef} style={{ width: '100%', height: 200, display: 'block' }} />
+      {showRSI && <canvas ref={rsiRef} style={{ width: '100%', height: 80, display: 'block', marginTop: 4 }} />}
+    </div>
+  );
+}
 
 const fmtPrice = p => {
   const n = parseFloat(p);
@@ -94,6 +245,9 @@ export default function Market() {
   const [sortDir, setSortDir] = useState('desc');
   const [heatView, setHeatView] = useState('all'); // 'all' or 'sector'
   const [fearGreed, setFearGreed] = useState(null);
+  const [selectedCoin, setSelectedCoin] = useState(null);
+  const [coinHistory, setCoinHistory] = useState(null);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   useEffect(() => { applyTheme(getTheme()); }, []);
   useEffect(() => { if (status === 'unauthenticated') router.replace('/'); }, [status, router]);
@@ -201,7 +355,7 @@ export default function Market() {
         .mkt-table{width:100%;border-collapse:collapse}
         .mkt-table th{font-size:9px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;padding:12px 16px;text-align:left;border-bottom:1px solid var(--border);background:var(--surface2);cursor:pointer;user-select:none;white-space:nowrap}
         .mkt-table th:hover{color:var(--text)}
-        .mkt-row{border-bottom:1px solid rgba(30,41,59,.4);transition:background .15s}
+        .mkt-row{border-bottom:1px solid rgba(30,41,59,.4);transition:background .15s;cursor:pointer}
         .mkt-row:hover{background:rgba(0,229,160,.03)}
         .mkt-row td{padding:13px 16px;font-size:12px;color:var(--text)}
         .coin-sym{font-family:'Syne',sans-serif;font-weight:700;font-size:14px}
@@ -365,7 +519,15 @@ export default function Market() {
                   </thead>
                   <tbody>
                     {filtered.map(p => (
-                      <tr className="mkt-row" key={p.sym}>
+                      <tr className="mkt-row" key={p.sym} onClick={() => {
+                        setSelectedCoin(p); setCoinHistory(null);
+                        setHistoryLoading(true);
+                        fetch(`/api/market/history?symbol=${p.sym}`)
+                          .then(r => r.ok ? r.json() : null)
+                          .then(d => { if (d?.prices) setCoinHistory(d.prices.map(pt => ({ ts: pt.ts, v: pt.v }))); })
+                          .catch(() => {})
+                          .finally(() => setHistoryLoading(false));
+                      }}>
                         <td>
                           <span className="coin-sym">{p.sym}</span>
                           <span className="sector-tag">{p.sector || getSector(p.sym)}</span>
@@ -385,6 +547,46 @@ export default function Market() {
           </>
         )}
       </div>
+
+      {/* Coin detail modal with technical indicators */}
+      {selectedCoin && (
+        <div style={{ position:'fixed',inset:0,background:'rgba(0,0,0,.7)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:16 }} onClick={() => setSelectedCoin(null)}>
+          <div style={{ background:'var(--surface,#0f172a)',border:'1px solid var(--border,#1e293b)',borderRadius:24,padding:24,width:'100%',maxWidth:680,maxHeight:'90vh',overflowY:'auto' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16 }}>
+              <div>
+                <div style={{ fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:22,letterSpacing:-0.5 }}>{selectedCoin.sym}</div>
+                <div style={{ fontSize:11,color:'var(--muted)' }}>{selectedCoin.name || selectedCoin.sym} · {getSector(selectedCoin.sym)}</div>
+              </div>
+              <div style={{ textAlign:'right' }}>
+                <div style={{ fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:20 }}>{fmtPrice(selectedCoin.price)}</div>
+                <div style={{ fontSize:12,color:chgColor(selectedCoin.change24h),fontWeight:600 }}>{fmtChg(selectedCoin.change24h)} 24h</div>
+              </div>
+            </div>
+
+            <div style={{ display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,marginBottom:16 }}>
+              {[['1H', selectedCoin.change1h], ['24H', selectedCoin.change24h], ['7D', selectedCoin.change7d]].map(([l, v]) => (
+                <div key={l} style={{ background:'var(--surface2,#1a2235)',border:'1px solid var(--border)',borderRadius:10,padding:'10px 14px',textAlign:'center' }}>
+                  <div style={{ fontSize:9,color:'var(--muted)',letterSpacing:2,textTransform:'uppercase',marginBottom:3 }}>{l}</div>
+                  <div style={{ fontSize:14,fontWeight:700,color:chgColor(v) }}>{fmtChg(v)}</div>
+                </div>
+              ))}
+            </div>
+
+            {historyLoading && <div style={{ textAlign:'center',padding:40,color:'var(--muted)',fontSize:12 }}>Loading 60-day history...</div>}
+            {!historyLoading && !coinHistory && <div style={{ textAlign:'center',padding:40,color:'var(--muted)',fontSize:12 }}>Could not load chart data</div>}
+            {!historyLoading && coinHistory && coinHistory.length >= 14 && (
+              <>
+                <div style={{ fontSize:11,color:'var(--muted)',marginBottom:8 }}>60-day price · MA 7d (blue) · MA 21d (orange) · RSI 14</div>
+                <IndicatorChart priceData={coinHistory} symbol={selectedCoin.sym} />
+              </>
+            )}
+
+            <button onClick={() => setSelectedCoin(null)} style={{ marginTop:16,width:'100%',padding:'10px',borderRadius:12,border:'1px solid var(--border)',background:'transparent',color:'var(--muted)',cursor:'pointer',fontFamily:"'DM Mono',monospace",fontSize:12 }}>
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 }
