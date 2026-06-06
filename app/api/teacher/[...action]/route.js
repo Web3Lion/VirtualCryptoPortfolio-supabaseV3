@@ -42,6 +42,13 @@ export async function POST(request, { params }) {
     case 'flash-sale/stop':
       await setConfigs({ FLASH_SALE_COIN: '', FLASH_SALE_FACTOR: '', FLASH_SALE_UNTIL: '' });
       return Response.json({ success: true, message: '⏹ Flash sale ended' });
+    case 'note/save': {
+      if (!body.classId || !body.email) return Response.json({ error: 'classId and email required' }, { status: 400 });
+      const key = `NOTE_${body.classId}_${body.email}`;
+      if (body.note?.trim()) await setConfig(key, body.note.trim());
+      else await db.from('config').delete().eq('key', key);
+      return Response.json({ success: true });
+    }
     case 'announcement/post':
       if (!body.text) return Response.json({ error: 'text required' }, { status: 400 });
       await setConfigs({ ANNOUNCEMENT: body.text, ANNOUNCEMENT_COLOR: body.color || 'blue' });

@@ -88,12 +88,23 @@ export async function GET(request) {
   });
 
   rows.sort((a, b) => parseFloat(b.portfolio) - parseFloat(a.portfolio));
+  const ranked = rows.map((r, i) => ({ ...r, rank: i + 1 }));
+
+  // JSON format for browser gradebook
+  if (searchParams.get('format') === 'json') {
+    // Fetch teacher notes (stored as config keys NOTE_{classId}_{studentId})
+    const { data: notes } = await db.from('config')
+      .select('key, value').like('key', `NOTE_${classId}_%`);
+    const notesMap = {};
+    (notes || []).forEach(n => { notesMap[n.key.replace(`NOTE_${classId}_`, '')] = n.value; });
+    return Response.json({ rows: ranked.map(r => ({ ...r, note: notesMap[r.email] || '' })), className: cls?.name });
+  }
 
   const headers = ['Rank','Name','Email','Portfolio ($)','Cash ($)','Holdings ($)','Staking ($)','Return (%)','P/L ($)','Fees ($)','Trades','Coins','Badges','Sharpe','Sortino','Max Drawdown (%)','Win Rate (%)'];
   const csvRows = [
     headers.join(','),
-    ...rows.map((r, i) => [
-      i + 1, `"${r.name}"`, `"${r.email}"`,
+    ...ranked.map(r => [
+      r.rank, `"${r.name}"`, `"${r.email}"`,
       r.portfolio, r.cash, r.holdingsVal, r.stakingVal, r.returnPct, r.pl, r.fees,
       r.tradeCount, r.coinCount, r.badges, r.sharpe, r.sortino, r.maxDrawdown, r.winRate,
     ].join(',')),

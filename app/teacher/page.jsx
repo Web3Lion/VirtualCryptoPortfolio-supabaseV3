@@ -78,6 +78,11 @@ export default function Teacher() {
   const [scenarioDate, setScenarioDate] = useState('');
   const [scenarioLabel, setScenarioLabel] = useState('');
   const [scenarioLoading, setScenarioLoading] = useState(false);
+  const [gradesData, setGradesData] = useState(null);
+  const [gradesLoading, setGradesLoading] = useState(false);
+  const [gradesSortCol, setGradesSortCol] = useState('rank');
+  const [gradesSortDir, setGradesSortDir] = useState('asc');
+  const [editingNote, setEditingNote] = useState(null); // { email, value }
   const [tournamentName, setTournamentName] = useState('');
   const [tournamentStart, setTournamentStart] = useState('');
   const [tournamentEnd, setTournamentEnd] = useState('');
@@ -500,8 +505,12 @@ export default function Teacher() {
         {activeClass && (
           <>
             <div className="tabs">
-              {['overview','controls','students','analytics','coins','news'].map(s=>(
-                <button key={s} className={`stab${activeSection===s?' active':''}`} onClick={()=>{ setActiveSection(s); if(s==='analytics') fetchAnalytics(activeClass?.id); }}>{s.charAt(0).toUpperCase()+s.slice(1)}</button>
+              {['overview','controls','students','analytics','grades','coins','news'].map(s=>(
+                <button key={s} className={`stab${activeSection===s?' active':''}`} onClick={()=>{
+                  setActiveSection(s);
+                  if(s==='analytics') fetchAnalytics(activeClass?.id);
+                  if(s==='grades'){ setGradesData(null); setGradesLoading(true); fetch(`/api/teacher/export?classId=${activeClass?.id}&format=json`).then(r=>r.ok?r.json():null).then(d=>{if(d)setGradesData(d);setGradesLoading(false);}).catch(()=>setGradesLoading(false)); }
+                }}>{s.charAt(0).toUpperCase()+s.slice(1)}</button>
               ))}
             </div>
 
@@ -1293,6 +1302,90 @@ export default function Teacher() {
                         <div style={{fontSize:10,color:'var(--muted)',marginTop:8,textAlign:'right'}}>Inactive = no trade in 3+ days</div>
                       </>
                     )}
+                  </div>
+                )}
+
+                {activeSection==='grades' && (
+                  <div>
+                    {gradesLoading ? (
+                      <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                        {[1,2,3,4,5].map(i=><div key={i} className="skeleton" style={{height:52}}/>)}
+                      </div>
+                    ) : !gradesData ? (
+                      <div style={{textAlign:'center',padding:48,color:'var(--muted)'}}>No data</div>
+                    ) : (() => {
+                      const cols = [
+                        {key:'rank',      label:'#',         fmt: r=>r.rank},
+                        {key:'name',      label:'Student',   fmt: r=>r.name},
+                        {key:'portfolio', label:'Portfolio', fmt: r=>`$${parseFloat(r.portfolio).toLocaleString('en-US',{maximumFractionDigits:0})}`},
+                        {key:'returnPct', label:'Return',    fmt: r=>{const v=parseFloat(r.returnPct);return <span style={{color:v>=0?'var(--up)':'var(--down)',fontWeight:600}}>{v>=0?'+':''}{v.toFixed(2)}%</span>;}},
+                        {key:'pl',        label:'P&L',       fmt: r=>{const v=parseFloat(r.pl);return <span style={{color:v>=0?'var(--up)':'var(--down)'}}>${v>=0?'+':''}${Math.abs(v).toLocaleString('en-US',{maximumFractionDigits:0})}</span>;}},
+                        {key:'tradeCount',label:'Trades',    fmt: r=>r.tradeCount},
+                        {key:'badges',    label:'Badges',    fmt: r=><span style={{color:'var(--gold)',fontWeight:600}}>{r.badges}</span>},
+                        {key:'sharpe',    label:'Sharpe',    fmt: r=>r.sharpe||'—'},
+                        {key:'winRate',   label:'Win %',     fmt: r=>r.winRate?`${parseFloat(r.winRate).toFixed(0)}%`:'—'},
+                        {key:'note',      label:'Note',      fmt: ()=>null},
+                      ];
+                      const sorted = [...gradesData.rows].sort((a,b)=>{
+                        if(gradesSortCol==='name') return gradesSortDir==='asc'?a.name.localeCompare(b.name):b.name.localeCompare(a.name);
+                        const av=parseFloat(a[gradesSortCol])||0, bv=parseFloat(b[gradesSortCol])||0;
+                        return gradesSortDir==='asc'?av-bv:bv-av;
+                      });
+                      return (
+                        <>
+                          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12,flexWrap:'wrap',gap:8}}>
+                            <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:15}}>{gradesData.className} — {gradesData.rows.length} students</div>
+                            <div style={{display:'flex',gap:8}}>
+                              <button className="btn btn-muted" style={{fontSize:11}} onClick={()=>{setGradesLoading(true);fetch(`/api/teacher/export?classId=${activeClass?.id}&format=json`).then(r=>r.ok?r.json():null).then(d=>{if(d)setGradesData(d);setGradesLoading(false);}).catch(()=>setGradesLoading(false));}}>↻ Refresh</button>
+                              <button className="btn btn-green" style={{fontSize:11}} onClick={exportCSV}>⬇ CSV</button>
+                            </div>
+                          </div>
+                          <div style={{overflowX:'auto',borderRadius:16,border:'1px solid var(--border)'}}>
+                            <table className="student-table" style={{minWidth:900}}>
+                              <thead>
+                                <tr>
+                                  {cols.map(c=>(
+                                    <th key={c.key} style={{cursor:c.key!=='note'?'pointer':undefined,userSelect:'none',whiteSpace:'nowrap'}} onClick={()=>{if(c.key==='note')return;if(gradesSortCol===c.key)setGradesSortDir(d=>d==='asc'?'desc':'asc');else{setGradesSortCol(c.key);setGradesSortDir('desc');}}}>
+                                      {c.label} {c.key!=='note'&&<span style={{opacity:.5,fontSize:9}}>{gradesSortCol===c.key?(gradesSortDir==='asc'?'↑':'↓'):'↕'}</span>}
+                                    </th>
+                                  ))}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {sorted.map(r=>(
+                                  <tr key={r.email} className="srow">
+                                    {cols.map(c=>(
+                                      <td key={c.key} style={{padding:'10px 14px',fontSize:12}}>
+                                        {c.key==='note' ? (
+                                          editingNote?.email===r.email ? (
+                                            <input
+                                              autoFocus
+                                              style={{width:'100%',background:'var(--surface2)',border:'1px solid var(--accent)',borderRadius:6,padding:'4px 8px',color:'var(--text)',fontFamily:"'DM Mono',monospace",fontSize:11}}
+                                              value={editingNote.value}
+                                              onChange={e=>setEditingNote(n=>({...n,value:e.target.value}))}
+                                              onBlur={async()=>{
+                                                await fetch(`/api/teacher/note/save`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({classId:activeClass?.id,email:r.email,note:editingNote.value})});
+                                                setGradesData(d=>({...d,rows:d.rows.map(x=>x.email===r.email?{...x,note:editingNote.value}:x)}));
+                                                setEditingNote(null);
+                                              }}
+                                              onKeyDown={e=>{if(e.key==='Enter')e.target.blur();if(e.key==='Escape')setEditingNote(null);}}
+                                            />
+                                          ) : (
+                                            <span style={{cursor:'pointer',color:r.note?'var(--text)':'var(--muted)',fontSize:11,display:'block',minWidth:120,padding:'2px 4px',borderRadius:4,border:'1px solid transparent'}} title="Click to add note" onClick={()=>setEditingNote({email:r.email,value:r.note||''})}>
+                                              {r.note || <span style={{opacity:.4}}>+ add note</span>}
+                                            </span>
+                                          )
+                                        ) : c.fmt(r)}
+                                      </td>
+                                    ))}
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </>
+                      );
+                    })()}
                   </div>
                 )}
 
