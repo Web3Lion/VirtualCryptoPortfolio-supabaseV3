@@ -730,6 +730,12 @@ export default function Teacher() {
                           }}>
                             {scenarioLoading?'Loading…':'⏩ Advance to Date'}
                           </button>
+                          <button className="btn btn-gold" onClick={async()=>{
+                            const res=await fetch('/api/news/scenario',{method:'POST'});
+                            const d=await res.json();
+                            setActionMsg({type:res.ok?'success':'error',msg:res.ok?`✅ ${d.headlines?.length||0} headlines generated`:d.error||'Failed'});
+                            setTimeout(()=>setActionMsg(null),4000);
+                          }}>✨ Generate News</button>
                           <button className="btn btn-red" onClick={async()=>{
                             await fetch('/api/teacher/scenario',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'end'})});
                             setActionMsg({type:'success',msg:'✅ Scenario ended'});
