@@ -911,6 +911,18 @@ export default function Dashboard() {
               </div>
             )}
 
+            {(portfolio?.tradingStreak || 0) >= 3 && (
+              <div style={{background:'rgba(249,115,22,.08)',border:'1px solid rgba(249,115,22,.3)',borderRadius:12,padding:'10px 18px',marginBottom:12,display:'flex',alignItems:'center',gap:12}}>
+                <span style={{fontSize:28}}>🔥</span>
+                <div>
+                  <span style={{fontSize:13,fontWeight:700,color:'#f97316'}}>{portfolio.tradingStreak}-Day Trading Streak!</span>
+                  <span style={{fontSize:12,color:'#fdba74',marginLeft:8}}>
+                    {portfolio.tradingStreak >= 25 ? "Legendary consistency 🏆" : portfolio.tradingStreak >= 10 ? "Keep the momentum going!" : "You're on a roll — trade today to keep it alive."}
+                  </span>
+                </div>
+              </div>
+            )}
+
             {activeTournament && (() => {
               const my = activeTournament.standings?.find(s => s.name === session?.user?.name);
               const top3 = activeTournament.standings?.slice(0, 3) || [];
@@ -1014,6 +1026,14 @@ export default function Dashboard() {
                     <div className="stat-label">Win Rate</div>
                     <div className={`stat-value ${portfolio.winRate >= 50 ? "up" : "down"}`}>
                       {portfolio.winRate.toFixed(1)}%
+                    </div>
+                  </div>
+                )}
+                {(portfolio?.tradingStreak || 0) > 0 && (
+                  <div className="stat" title="Trading Streak — consecutive days with at least one trade">
+                    <div className="stat-label">Streak</div>
+                    <div className="stat-value" style={{color:'#f97316'}}>
+                      🔥 {portfolio.tradingStreak}d
                     </div>
                   </div>
                 )}

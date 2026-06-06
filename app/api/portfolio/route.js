@@ -95,6 +95,22 @@ export async function GET(request) {
     newMilestone = await checkMilestones({ studentId: student.id, classId, returnPct });
   } catch {}
 
+  // Compute trading streak (consecutive days with at least one trade)
+  const tradingStreak = (() => {
+    const days = [...new Set(trades.map(t => t.created_at.slice(0, 10)))].sort().reverse();
+    if (!days.length) return 0;
+    const todayStr     = new Date().toISOString().slice(0, 10);
+    const yesterdayStr = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    if (days[0] !== todayStr && days[0] !== yesterdayStr) return 0;
+    let streak = 1, prev = new Date(days[0]);
+    for (let i = 1; i < days.length; i++) {
+      const expected = new Date(prev); expected.setDate(expected.getDate() - 1);
+      if (days[i] === expected.toISOString().slice(0, 10)) { streak++; prev = expected; }
+      else break;
+    }
+    return streak;
+  })();
+
   return Response.json({
     classId,
     summary: { startCash: seedMoney, cash: cash.toFixed(2), holdingsVal: holdingsValue.toFixed(2), stakingVal: stakingValue.toFixed(2), totalVal: totalValue.toFixed(2), pl: pl.toFixed(2), returnPct: returnPct.toFixed(2), fees: feesPaid.toFixed(2) },
@@ -106,6 +122,6 @@ export async function GET(request) {
     classRewardEnabled: rewardCfg?.enabled || false,
     badgeRewardTokens: rewardCfg?.badge_reward_tokens || 50,
     sharpeRatio, sortinoRatio, maxDrawdown, winRate,
-    newMilestone,
+    newMilestone, tradingStreak,
   });
 }
