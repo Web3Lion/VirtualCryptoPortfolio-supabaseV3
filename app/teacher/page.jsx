@@ -22,6 +22,7 @@ export default function Teacher() {
   const [marketStatus, setMarketStatus] = useState(null);
   const [actionMsg, setActionMsg] = useState(null);
   const [activeSection, setActiveSection] = useState('overview');
+  const [controlsTab, setControlsTab] = useState('market');
   const [freezeMsg, setFreezeMsg] = useState('');
   const [flashCoin, setFlashCoin] = useState('');
   const [flashPct, setFlashPct]   = useState('20');
@@ -579,7 +580,28 @@ export default function Teacher() {
                 )}
 
                 {activeSection==='controls' && (
+                  <>
+                  {/* ── Controls sub-nav ── */}
+                  <div style={{display:'flex',gap:3,marginBottom:8,background:'var(--surface)',border:'1px solid var(--border)',borderRadius:12,padding:4}}>
+                    {[
+                      ['market',  '🏪','Market',  'Freeze · Bull Run · Flash Sale · Simulation'],
+                      ['events',  '🎭','Events',  'Scenarios · Announcements · Tournaments'],
+                      ['trading', '📊','Trading', 'Leverage · Short Selling · Staking · Margin Call'],
+                      ['rewards', '🎁','Rewards', 'ClassReward config · Grant tokens'],
+                      ['bot',     '🤖','Bot',     'Satoshi Botomoto AI competitor'],
+                    ].map(([k,emoji,label,desc])=>(
+                      <button key={k} title={desc} onClick={()=>setControlsTab(k)} style={{flex:1,padding:'8px 6px',borderRadius:8,border:'none',fontFamily:"'DM Mono',monospace",fontSize:11,cursor:'pointer',transition:'all .15s',background:controlsTab===k?'var(--surface2)':'transparent',color:controlsTab===k?'var(--gold)':'var(--muted)',fontWeight:controlsTab===k?700:400,whiteSpace:'nowrap'}}>
+                        {emoji} {label}
+                      </button>
+                    ))}
+                  </div>
+                  <div style={{fontSize:10,color:'var(--muted)',marginBottom:16,paddingLeft:4}}>
+                    {{'market':'Control the live simulation — freeze trading, trigger market events, manage simulation state.','events':'Special classroom events — historical scenarios, class announcements, and tournaments.','trading':'Advanced trading features — leverage, short selling, staking, and risk controls.','rewards':'ClassReward token system — configure earnings and manually award tokens.','bot':'Satoshi Botomoto — an AI trading bot that competes alongside your students.'}[controlsTab]}
+                  </div>
                   <div className="controls-grid">
+
+                    {/* ══ MARKET ══ */}
+                    {controlsTab==='market' && <>
                     <div className="ctrl-card">
                       <div className="ctrl-title">🚫 Market Freeze</div>
                       <div className="ctrl-desc">Suspend all trading instantly.</div>
@@ -667,7 +689,10 @@ export default function Teacher() {
                         <button className="btn btn-muted" style={{width:'100%'}} onClick={takeSnapshot} title="Saves a daily portfolio snapshot for every student right now — useful for populating history charts">📸 Save Portfolio Snapshot</button>
                       </div>
                     </div>
+                    </>}
 
+                    {/* ══ EVENTS ══ */}
+                    {controlsTab==='events' && <>
                     {/* Historical Scenario — full width */}
                     <div className="ctrl-card" style={{gridColumn:'1/-1',border: marketStatus?.scenarioActive ? '1px solid rgba(167,139,250,.4)' : undefined, background: marketStatus?.scenarioActive ? 'rgba(167,139,250,.05)' : undefined}}>
                       <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:6}}>
@@ -767,6 +792,8 @@ export default function Teacher() {
                       </div>
                     </div>
 
+                    </>}
+                    {controlsTab==='rewards' && <>
                     {/* ClassReward — full width */}
                     <div className="ctrl-card" style={{gridColumn:'1/-1'}}>
                       <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:6}}>
@@ -847,6 +874,8 @@ export default function Teacher() {
                       </div>
                     </div>
 
+                    </>}
+                    {controlsTab==='events' && <>
                     {/* Tournament Mode — full width */}
                     <div className="ctrl-card" style={{gridColumn:'1/-1',border:'1px solid rgba(245,158,11,.25)',background:'rgba(245,158,11,.04)'}}>
                       <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:6}}>
@@ -901,7 +930,9 @@ export default function Teacher() {
                         </div>
                       )}
                     </div>
+                    </>}
 
+                    {controlsTab==='rewards' && <>
                     {/* Award Tokens */}
                     <div className="ctrl-card" style={{gridColumn:'1/-1',border:'1px solid rgba(0,229,160,.2)',background:'rgba(0,229,160,.03)'}}>
                       <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:6}}>
@@ -957,7 +988,10 @@ export default function Teacher() {
                         Each token = $1.00 in the student wallet • To award yourself, add your email in the Students tab first
                       </div>
                     </div>
+                    </>}
 
+                    {/* ══ TRADING ══ */}
+                    {controlsTab==='trading' && <>
                     {/* Staking */}
                     <div className="ctrl-card" style={{gridColumn:'1/-1'}}>
                       <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:6}}>
@@ -1082,7 +1116,9 @@ export default function Teacher() {
                       </div>
                     )}
 
-                    {/* Short Selling */}
+                    {/* ══ BOT ══ */}
+                    </>}
+                    {controlsTab==='bot' && <>
                     {/* ── Satoshi Botomoto ── */}
                     <div className="ctrl-card" style={{gridColumn:'1/-1',border:'1px solid rgba(139,92,246,.4)',background:'rgba(139,92,246,.05)'}}>
                       <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:16,flexWrap:'wrap'}}>
@@ -1165,7 +1201,8 @@ export default function Teacher() {
                         {botStats && <button className="btn btn-muted" style={{fontSize:11}} onClick={resetBot}>🔄 Reset Bot</button>}
                       </div>
                     </div>
-
+                    </>}
+                    {controlsTab==='trading' && <>
                     <div className="ctrl-card">
                       <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:6}}>
                         <div className="ctrl-title" style={{marginBottom:0}}>📉 Short Selling</div>
@@ -1181,7 +1218,10 @@ export default function Teacher() {
                         </button>
                       </div>
                     </div>
+                    </>}
+
                   </div>
+                  </>
                 )}
 
                 {activeSection==='students' && (
