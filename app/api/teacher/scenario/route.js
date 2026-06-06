@@ -31,7 +31,7 @@ export async function POST(request) {
   const { action, date, label } = await request.json();
 
   if (action === 'end') {
-    await setConfigs({ SCENARIO_ACTIVE: '0', SCENARIO_DATE: '', SCENARIO_LABEL: '', SCENARIO_HEADLINES: '' });
+    await setConfigs({ SCENARIO_ACTIVE: '0', SCENARIO_DATE: '', SCENARIO_LABEL: '' });
     return Response.json({ success: true, message: '✅ Scenario ended — live prices restored on next refresh' });
   }
 
