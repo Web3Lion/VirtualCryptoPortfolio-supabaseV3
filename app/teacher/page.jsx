@@ -76,6 +76,11 @@ export default function Teacher() {
   const [schedFlashMins, setSchedFlashMins] = useState('30');
   const [announcementText, setAnnouncementText] = useState('');
   const [announcementColor, setAnnouncementColor] = useState('blue');
+  const [assignments, setAssignments] = useState([]);
+  const [assignmentTitle, setAssignmentTitle] = useState('');
+  const [assignmentDesc, setAssignmentDesc] = useState('');
+  const [assignmentDue, setAssignmentDue] = useState('');
+  const [assignmentLoading, setAssignmentLoading] = useState(false);
   const [scenarioDate, setScenarioDate] = useState('');
   const [scenarioLabel, setScenarioLabel] = useState('');
   const [scenarioLoading, setScenarioLoading] = useState(false);
@@ -590,7 +595,7 @@ export default function Teacher() {
                       ['rewards', '🎁','Rewards', 'ClassReward config · Grant tokens'],
                       ['bot',     '🤖','Bot',     'Satoshi Botomoto AI competitor'],
                     ].map(([k,emoji,label,desc])=>(
-                      <button key={k} title={desc} onClick={()=>setControlsTab(k)} style={{flex:1,padding:'8px 6px',borderRadius:8,border:'none',fontFamily:"'DM Mono',monospace",fontSize:11,cursor:'pointer',transition:'all .15s',background:controlsTab===k?'var(--surface2)':'transparent',color:controlsTab===k?'var(--gold)':'var(--muted)',fontWeight:controlsTab===k?700:400,whiteSpace:'nowrap'}}>
+                      <button key={k} title={desc} onClick={()=>{ setControlsTab(k); if(k==='events'&&activeClass?.id) fetch(`/api/assignments?classId=${activeClass.id}`).then(r=>r.ok?r.json():[]).then(d=>Array.isArray(d)&&setAssignments(d)).catch(()=>{}); }} style={{flex:1,padding:'8px 6px',borderRadius:8,border:'none',fontFamily:"'DM Mono',monospace",fontSize:11,cursor:'pointer',transition:'all .15s',background:controlsTab===k?'var(--surface2)':'transparent',color:controlsTab===k?'var(--gold)':'var(--muted)',fontWeight:controlsTab===k?700:400,whiteSpace:'nowrap'}}>
                         {emoji} {label}
                       </button>
                     ))}
@@ -693,6 +698,76 @@ export default function Teacher() {
 
                     {/* ══ EVENTS ══ */}
                     {controlsTab==='events' && <>
+                    {/* Assignments — full width */}
+                    <div className="ctrl-card" style={{gridColumn:'1/-1',border:'1px solid rgba(96,165,250,.25)',background:'rgba(96,165,250,.04)'}}>
+                      <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:6}}>
+                        <div className="ctrl-title" style={{marginBottom:0}}>📋 Assignments</div>
+                        <span style={{fontSize:10,color:'var(--muted)'}}>Set tasks with due dates — visible on every student's dashboard</span>
+                      </div>
+                      <div style={{display:'grid',gridTemplateColumns:'2fr 1fr auto',gap:8,marginBottom:8}}>
+                        <div>
+                          <div className="form-label">Title</div>
+                          <input className="text-input" style={{marginBottom:0}} placeholder="e.g. Build a diversified portfolio across 3 sectors" value={assignmentTitle} onChange={e=>setAssignmentTitle(e.target.value)} maxLength={120} />
+                        </div>
+                        <div>
+                          <div className="form-label">Due Date (optional)</div>
+                          <input type="datetime-local" className="text-input" style={{marginBottom:0}} value={assignmentDue} onChange={e=>setAssignmentDue(e.target.value)} />
+                        </div>
+                        <button className="btn btn-accent" style={{alignSelf:'flex-end',fontSize:11}} disabled={!assignmentTitle.trim()||assignmentLoading} onClick={async()=>{
+                          setAssignmentLoading(true);
+                          const res=await fetch('/api/assignments',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'create',classId:activeClass?.id,title:assignmentTitle.trim(),description:assignmentDesc.trim()||null,dueAt:assignmentDue||null})});
+                          const d=await res.json();
+                          if(res.ok){setActionMsg({type:'success',msg:'✅ Assignment posted'});setAssignmentTitle('');setAssignmentDesc('');setAssignmentDue('');fetch(`/api/assignments?classId=${activeClass?.id}`).then(r=>r.ok?r.json():[]).then(d=>Array.isArray(d)&&setAssignments(d));}
+                          else setActionMsg({type:'error',msg:d.error||'Failed'});
+                          setTimeout(()=>setActionMsg(null),3000);
+                          setAssignmentLoading(false);
+                        }}>+ Post</button>
+                      </div>
+                      <input className="text-input" placeholder="Description (optional)" value={assignmentDesc} onChange={e=>setAssignmentDesc(e.target.value)} maxLength={300} />
+                      {assignments.length > 0 && (
+                        <div style={{marginTop:12,display:'flex',flexDirection:'column',gap:8}}>
+                          {assignments.map(a=>(
+                            <div key={a.id} style={{background:'rgba(96,165,250,.08)',border:'1px solid rgba(96,165,250,.2)',borderRadius:10,padding:'10px 14px'}}>
+                              <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
+                                <div style={{flex:1}}>
+                                  <div style={{fontSize:13,fontWeight:600,color:'var(--text)',marginBottom:2}}>{a.title}</div>
+                                  {a.description && <div style={{fontSize:11,color:'var(--muted)',marginBottom:4}}>{a.description}</div>}
+                                  {a.due_at && <div style={{fontSize:11,color:'#f59e0b'}}>Due: {new Date(a.due_at).toLocaleString()}</div>}
+                                </div>
+                                <div style={{display:'flex',alignItems:'center',gap:10,flexShrink:0}}>
+                                  {a.totalStudents > 0 && (
+                                    <span style={{fontSize:12,color:(a.completions||[]).length===a.totalStudents?'var(--up)':'var(--muted)',fontWeight:600}}>
+                                      ✓ {(a.completions||[]).length}/{a.totalStudents}
+                                    </span>
+                                  )}
+                                  <button onClick={async()=>{await fetch('/api/assignments',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'archive',id:a.id})});setAssignments(prev=>prev.filter(x=>x.id!==a.id));}} style={{background:'none',border:'none',color:'var(--muted)',cursor:'pointer',fontSize:16,lineHeight:1}} title="Archive">✕</button>
+                                </div>
+                              </div>
+                              {(a.completions||[]).length > 0 && (
+                                <div style={{marginTop:6,display:'flex',gap:6,flexWrap:'wrap'}}>
+                                  {a.completions.map(c=>(
+                                    <span key={c.studentId} style={{fontSize:10,padding:'2px 8px',borderRadius:6,background:'rgba(0,229,160,.12)',color:'var(--up)',border:'1px solid rgba(0,229,160,.2)',display:'flex',alignItems:'center',gap:4}}>
+                                      ✓ {c.name}
+                                      <button onClick={async()=>{await fetch('/api/assignments',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'unmark-complete',assignmentId:a.id,studentId:c.studentId})});fetch(`/api/assignments?classId=${activeClass?.id}`).then(r=>r.ok?r.json():[]).then(d=>Array.isArray(d)&&setAssignments(d));}} style={{background:'none',border:'none',cursor:'pointer',color:'var(--muted)',fontSize:11,lineHeight:1,padding:0}}>✕</button>
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                              {a.totalStudents > 0 && (a.completions||[]).length < a.totalStudents && (
+                                <div style={{marginTop:6,display:'flex',gap:6,flexWrap:'wrap'}}>
+                                  {students.filter(s=>!s.isBot&&!(a.completions||[]).find(c=>c.studentId===s.id)).map(s=>(
+                                    <button key={s.id} onClick={async()=>{await fetch('/api/assignments',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'mark-complete',assignmentId:a.id,studentId:s.id,classId:activeClass?.id})});fetch(`/api/assignments?classId=${activeClass?.id}`).then(r=>r.ok?r.json():[]).then(d=>Array.isArray(d)&&setAssignments(d));}} style={{fontSize:10,padding:'2px 8px',borderRadius:6,background:'rgba(71,85,105,.2)',color:'var(--muted)',border:'1px solid rgba(71,85,105,.3)',cursor:'pointer',fontFamily:"'DM Mono',monospace"}}>
+                                      ✓ {s.name}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
                     {/* Historical Scenario — full width */}
                     <div className="ctrl-card" style={{gridColumn:'1/-1',border: marketStatus?.scenarioActive ? '1px solid rgba(167,139,250,.4)' : undefined, background: marketStatus?.scenarioActive ? 'rgba(167,139,250,.05)' : undefined}}>
                       <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:6}}>

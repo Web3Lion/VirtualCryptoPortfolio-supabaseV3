@@ -330,6 +330,26 @@ CREATE TABLE IF NOT EXISTS learn_attempts (
 );
 CREATE INDEX IF NOT EXISTS learn_attempts_student_idx ON learn_attempts(student_id, class_id);
 
+CREATE TABLE IF NOT EXISTS assignments (
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  class_id    uuid NOT NULL,
+  title       text NOT NULL,
+  description text,
+  due_at      timestamptz,
+  active      boolean NOT NULL DEFAULT true,
+  created_at  timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS assignments_class ON assignments(class_id) WHERE active = true;
+
+CREATE TABLE IF NOT EXISTS assignment_completions (
+  id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  assignment_id  uuid NOT NULL REFERENCES assignments(id) ON DELETE CASCADE,
+  student_id     uuid NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+  class_id       uuid NOT NULL,
+  completed_at   timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (assignment_id, student_id)
+);
+
 CREATE TABLE IF NOT EXISTS trade_reactions (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   trade_id    uuid NOT NULL,

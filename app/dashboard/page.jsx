@@ -250,6 +250,7 @@ export default function Dashboard() {
   const [feedLoading, setFeedLoading] = useState(false);
   const [feedReactions, setFeedReactions] = useState({});
   const [activeTournament, setActiveTournament] = useState(null);
+  const [activeAssignments, setActiveAssignments] = useState([]);
   const [optionsPositions, setOptionsPositions] = useState([]);
   const [optionsForm, setOptionsForm] = useState({ coin: '', type: 'call', strikeMode: 'atm', customStrike: '', expiryDays: 7 });
   const [optionsStatus, setOptionsStatus] = useState(null);
@@ -397,6 +398,7 @@ export default function Dashboard() {
       fetchRefreshStatus();
       fetch('/api/dca').then(r => r.ok ? r.json() : []).then(d => { if (Array.isArray(d)) setDcaOrders(d); });
       fetch('/api/tournament').then(r => r.ok ? r.json() : []).then(d => { if (Array.isArray(d)) { const active = d.find(t => t.status === 'active'); setActiveTournament(active || null); } }).catch(() => {});
+      fetch('/api/assignments').then(r => r.ok ? r.json() : []).then(d => { if (Array.isArray(d)) setActiveAssignments(d.filter(a => !a.completed && !a.tableNotReady)); }).catch(() => {});
       const iv = setInterval(fetchData, 60000);
       return () => clearInterval(iv);
     }
@@ -919,6 +921,30 @@ export default function Dashboard() {
                   <span style={{fontSize:12,color:'#fdba74',marginLeft:8}}>
                     {portfolio.tradingStreak >= 25 ? "Legendary consistency 🏆" : portfolio.tradingStreak >= 10 ? "Keep the momentum going!" : "You're on a roll — trade today to keep it alive."}
                   </span>
+                </div>
+              </div>
+            )}
+
+            {activeAssignments.length > 0 && (
+              <div style={{background:'rgba(96,165,250,.08)',border:'1px solid rgba(96,165,250,.3)',borderRadius:12,padding:'12px 18px',marginBottom:12}}>
+                <div style={{fontSize:9,color:'#60a5fa',letterSpacing:2,textTransform:'uppercase',fontWeight:700,marginBottom:8}}>📋 Active Assignments</div>
+                <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                  {activeAssignments.map(a => {
+                    const overdue = a.due_at && new Date(a.due_at) < new Date();
+                    return (
+                      <div key={a.id} style={{display:'flex',alignItems:'center',gap:10,justifyContent:'space-between',flexWrap:'wrap'}}>
+                        <div>
+                          <span style={{fontSize:12,fontWeight:600,color:'var(--text)'}}>{a.title}</span>
+                          {a.description && <span style={{fontSize:11,color:'var(--muted)',marginLeft:8}}>{a.description}</span>}
+                        </div>
+                        {a.due_at && (
+                          <span style={{fontSize:10,fontWeight:600,color:overdue?'var(--down)':'#f59e0b',flexShrink:0}}>
+                            {overdue ? '⚠ Overdue' : `Due ${new Date(a.due_at).toLocaleDateString()}`}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
