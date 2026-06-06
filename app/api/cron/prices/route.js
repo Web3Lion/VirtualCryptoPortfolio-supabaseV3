@@ -141,7 +141,49 @@ export async function GET(request) {
     report.errors.push(`snapshots: ${e.message}`);
   }
 
-  // ── 3. Execute pending limit orders ──────────────────────────
+  // ── 3. Margin call liquidations ──────────────────────────────
+  try {
+    const mktGlobal = await getMarketStatus(null);
+    if (mktGlobal.marginCallEnabled && !mktGlobal.frozen && !mktGlobal.paused) {
+      const threshold = mktGlobal.marginCallThreshold;
+
+      // Get all leveraged holdings (margin_borrowed > 0)
+      const { data: leveraged } = await db.from('holdings')
+        .select('student_id, class_id, coin, quantity, avg_buy_price, margin_borrowed')
+        .gt('margin_borrowed', 0).gt('quantity', 0);
+
+      report.marginCalls = 0;
+      for (const h of leveraged || []) {
+        const currentPrice = freshPriceMap[h.coin]
+          || (await db.from('price_cache').select('price').eq('symbol', h.coin).single()).data?.price;
+        if (!currentPrice) continue;
+
+        const price = parseFloat(currentPrice);
+        const qty   = parseFloat(h.quantity);
+        const borrowed = parseFloat(h.margin_borrowed);
+        const equity = qty * price - borrowed;
+        const originalEquity = qty * parseFloat(h.avg_buy_price) - borrowed;
+
+        // Trigger if equity has fallen below threshold % of original
+        if (originalEquity > 0 && equity / originalEquity < threshold) {
+          try {
+            const result = await executeTrade({
+              studentId: h.student_id, classId: h.class_id,
+              action: 'SELL', coin: h.coin,
+              amountType: 'Coin Amount', amount: qty,
+              leverageMultiplier: 1,
+              reasoning: `⚠️ Margin call — position auto-liquidated (equity < ${Math.round(threshold * 100)}% of original)`,
+            });
+            if (result.success) report.marginCalls++;
+          } catch {}
+        }
+      }
+    }
+  } catch (e) {
+    report.errors.push(`margin calls: ${e.message}`);
+  }
+
+  // ── 4. Execute pending limit orders ──────────────────────────
   try {
     const { data: pendingOrders, error: ordersErr } = await db.from('pending_orders')
       .select('*').eq('status', 'pending');

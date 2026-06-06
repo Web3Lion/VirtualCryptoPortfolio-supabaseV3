@@ -785,6 +785,20 @@ export default function Dashboard() {
             </div>
           </div>
         )}
+        {marketStatus?.marginCallEnabled && holdingsWithVal.some(h => {
+          if (!(h.marginBorrowed > 0)) return false;
+          const equity = h.curVal - h.marginBorrowed;
+          const originalEquity = h.qty * h.avgBuy - h.marginBorrowed;
+          return originalEquity > 0 && equity / originalEquity < (marketStatus.marginCallThreshold || 0.25) + 0.15;
+        }) && (
+          <div style={{background:'rgba(251,146,60,.12)',border:'1px solid rgba(251,146,60,.5)',borderRadius:12,padding:'10px 16px',marginBottom:12,display:'flex',alignItems:'center',gap:10}}>
+            <span style={{fontSize:18}}>⚠️</span>
+            <div>
+              <span style={{fontSize:13,fontWeight:700,color:'#fb923c'}}>MARGIN WARNING</span>
+              <span style={{fontSize:12,color:'#fdba74',marginLeft:8}}>One or more leveraged positions are near the margin call threshold. Consider reducing exposure.</span>
+            </div>
+          </div>
+        )}
         {marketStatus?.scenarioActive && (
           <div style={{background:'rgba(167,139,250,.12)',border:'1px solid rgba(167,139,250,.4)',borderRadius:12,padding:'10px 16px',marginBottom:12,display:'flex',alignItems:'center',gap:10}}>
             <span style={{fontSize:18}}>📅</span>

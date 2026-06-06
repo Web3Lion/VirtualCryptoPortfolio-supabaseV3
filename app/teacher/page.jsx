@@ -1046,6 +1046,42 @@ export default function Teacher() {
                       </div>
                     </div>
 
+                    {/* Margin Call */}
+                    {tradeSettings.marginEnabled && (
+                      <div className="ctrl-card" style={{border:'1px solid rgba(251,146,60,.25)',background:'rgba(251,146,60,.04)'}}>
+                        <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:6}}>
+                          <div className="ctrl-title" style={{marginBottom:0}}>⚠️ Margin Call</div>
+                          <div className={`status-pill ${marketStatus?.marginCallEnabled!==false?'warn':'off'}`} style={{margin:0}}>
+                            {marketStatus?.marginCallEnabled!==false?'🟡 ACTIVE':'⚪ OFF'}
+                          </div>
+                        </div>
+                        <div className="ctrl-desc">Auto-liquidate leveraged positions when equity falls below a threshold. Runs every cron cycle.</div>
+                        <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:10}}>
+                          <div className="form-label" style={{marginBottom:0,whiteSpace:'nowrap'}}>Trigger at</div>
+                          <input type="number" className="text-input" style={{marginBottom:0,width:80}} min={5} max={75} step={5}
+                            defaultValue={25} id="mcThreshold"
+                            onChange={e=>document.getElementById('mcThresholdLabel').textContent=`${e.target.value}%`}
+                          />
+                          <span id="mcThresholdLabel" style={{fontSize:12,color:'var(--muted)',whiteSpace:'nowrap'}}>25% equity remaining</span>
+                        </div>
+                        <div className="btn-row">
+                          <button className="btn btn-gold" onClick={async()=>{
+                            const t = parseFloat(document.getElementById('mcThreshold')?.value||25)/100;
+                            await fetch('/api/teacher/margin-call',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:true,threshold:t})});
+                            setActionMsg({type:'success',msg:`✅ Margin call set at ${Math.round(t*100)}% equity`});
+                            setTimeout(()=>setActionMsg(null),3000);
+                            fetchData(activeClass?.id);
+                          }}>💾 Save</button>
+                          <button className="btn btn-muted" onClick={async()=>{
+                            await fetch('/api/teacher/margin-call',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:false})});
+                            setActionMsg({type:'success',msg:'✅ Margin calls disabled'});
+                            setTimeout(()=>setActionMsg(null),3000);
+                            fetchData(activeClass?.id);
+                          }}>Disable</button>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Short Selling */}
                     {/* ── Satoshi Botomoto ── */}
                     <div className="ctrl-card" style={{gridColumn:'1/-1',border:'1px solid rgba(139,92,246,.4)',background:'rgba(139,92,246,.05)'}}>
