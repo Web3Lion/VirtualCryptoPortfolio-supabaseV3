@@ -19,7 +19,7 @@ export async function GET(request) {
   const students = (classStudents || []).map(r => r.students).filter(s => s && !s.is_bot);
   const studentIds = students.map(s => s.id);
 
-  const [portfoliosRes, holdingsRes, tradesRes, pricesRes, snapshotsRes, stakingRes, badgesRes] = await Promise.all([
+  const [portfoliosRes, holdingsRes, tradesRes, pricesRes, snapshotsRes, stakingRes, badgesRes, modulesRes, attemptsRes] = await Promise.all([
     db.from('portfolios').select('student_id, cash, fees_paid').in('student_id', studentIds).eq('class_id', classId),
     db.from('holdings').select('student_id, coin, quantity, avg_buy_price').in('student_id', studentIds).eq('class_id', classId),
     db.from('trades').select('student_id, action, coin, gross_value, fee').in('student_id', studentIds).eq('class_id', classId),
@@ -27,6 +27,8 @@ export async function GET(request) {
     db.from('snapshots').select('student_id, total_value, created_at').in('student_id', studentIds).eq('class_id', classId).order('created_at', { ascending: true }),
     db.from('staking_positions').select('student_id, coin, quantity').in('student_id', studentIds).eq('class_id', classId).in('status', ['active', 'claimable']).catch(() => ({ data: null })),
     db.from('badges').select('student_id').in('student_id', studentIds).eq('class_id', classId).catch(() => ({ data: null })),
+    db.from('learn_modules').select('id, title, emoji, order_index, learn_lessons(id, title, order_index, pass_threshold)').eq('class_id', classId).eq('is_published', true).order('order_index'),
+    db.from('learn_attempts').select('student_id, lesson_id, score, passed').in('student_id', studentIds).eq('class_id', classId),
   ]);
 
   const pm = {};
@@ -56,6 +58,23 @@ export async function GET(request) {
   const badgesCountMap = {};
   (badgesRes.data || []).forEach(b => { badgesCountMap[b.student_id] = (badgesCountMap[b.student_id] || 0) + 1; });
 
+  // Build ordered lesson list from modules
+  const lessons = (modulesRes.data || [])
+    .sort((a, b) => a.order_index - b.order_index)
+    .flatMap(m => (m.learn_lessons || [])
+      .sort((a, b) => a.order_index - b.order_index)
+      .map(l => ({ ...l, moduleTitle: m.title, moduleEmoji: m.emoji })));
+
+  // Best attempt per student per lesson
+  const bestAttempt = {}; // { studentId: { lessonId: { score, passed } } }
+  (attemptsRes.data || []).forEach(a => {
+    if (!bestAttempt[a.student_id]) bestAttempt[a.student_id] = {};
+    const prev = bestAttempt[a.student_id][a.lesson_id];
+    if (!prev || (a.score || 0) > (prev.score || 0)) {
+      bestAttempt[a.student_id][a.lesson_id] = { score: a.score, passed: a.passed };
+    }
+  });
+
   const rows = students.map(student => {
     const port = portfolioMap[student.id] || { cash: seedMoney, fees_paid: 0 };
     const cash = parseFloat(port.cash);
@@ -79,7 +98,18 @@ export async function GET(request) {
       fees:        parseFloat(port.fees_paid).toFixed(2),
       tradeCount:  trades.length,
       coinCount:   holdings.length,
-      badges:      badgesCountMap[student.id] || 0,
+      badges:        badgesCountMap[student.id] || 0,
+      lessonsTotal:  lessons.length,
+      lessonsPassed: lessons.filter(l => bestAttempt[student.id]?.[l.id]?.passed).length,
+      lessonsAvgScore: lessons.length ? (() => {
+        const attempted = lessons.filter(l => bestAttempt[student.id]?.[l.id]?.score != null);
+        return attempted.length ? Math.round(attempted.reduce((s, l) => s + (bestAttempt[student.id][l.id].score || 0), 0) / attempted.length) : null;
+      })() : null,
+      lessonScores: lessons.reduce((acc, l) => {
+        const a = bestAttempt[student.id]?.[l.id];
+        acc[l.id] = a ? { score: a.score, passed: a.passed } : null;
+        return acc;
+      }, {}),
       sharpe:      calculateSharpe(snaps) ?? '',
       sortino:     calculateSortino(snaps) ?? '',
       maxDrawdown: calculateMaxDrawdown(snaps) ?? '',
@@ -97,16 +127,19 @@ export async function GET(request) {
       .select('key, value').like('key', `NOTE_${classId}_%`);
     const notesMap = {};
     (notes || []).forEach(n => { notesMap[n.key.replace(`NOTE_${classId}_`, '')] = n.value; });
-    return Response.json({ rows: ranked.map(r => ({ ...r, note: notesMap[r.email] || '' })), className: cls?.name });
+    return Response.json({ rows: ranked.map(r => ({ ...r, note: notesMap[r.email] || '' })), className: cls?.name, lessons });
   }
 
-  const headers = ['Rank','Name','Email','Portfolio ($)','Cash ($)','Holdings ($)','Staking ($)','Return (%)','P/L ($)','Fees ($)','Trades','Coins','Badges','Sharpe','Sortino','Max Drawdown (%)','Win Rate (%)'];
+  const lessonHeaders = lessons.map(l => `"${l.moduleEmoji} ${l.title} (%)"`);
+  const headers = ['Rank','Name','Email','Portfolio ($)','Return (%)','P/L ($)','Trades','Badges','Lessons Passed','Avg Quiz Score (%)', ...lessonHeaders,'Sharpe','Win Rate (%)'];
   const csvRows = [
     headers.join(','),
     ...ranked.map(r => [
       r.rank, `"${r.name}"`, `"${r.email}"`,
-      r.portfolio, r.cash, r.holdingsVal, r.stakingVal, r.returnPct, r.pl, r.fees,
-      r.tradeCount, r.coinCount, r.badges, r.sharpe, r.sortino, r.maxDrawdown, r.winRate,
+      r.portfolio, r.returnPct, r.pl, r.tradeCount, r.badges,
+      `${r.lessonsPassed}/${r.lessonsTotal}`, r.lessonsAvgScore ?? '',
+      ...lessons.map(l => r.lessonScores[l.id] ? r.lessonScores[l.id].score ?? '' : ''),
+      r.sharpe, r.winRate,
     ].join(',')),
   ];
 

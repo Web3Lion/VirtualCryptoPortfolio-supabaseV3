@@ -1350,17 +1350,28 @@ export default function Teacher() {
                     ) : !gradesData ? (
                       <div style={{textAlign:'center',padding:48,color:'var(--muted)'}}>No data</div>
                     ) : (() => {
+                      const lessons = gradesData.lessons || [];
                       const cols = [
-                        {key:'rank',      label:'#',         fmt: r=>r.rank},
-                        {key:'name',      label:'Student',   fmt: r=>r.name},
-                        {key:'portfolio', label:'Portfolio', fmt: r=>`$${parseFloat(r.portfolio).toLocaleString('en-US',{maximumFractionDigits:0})}`},
-                        {key:'returnPct', label:'Return',    fmt: r=>{const v=parseFloat(r.returnPct);return <span style={{color:v>=0?'var(--up)':'var(--down)',fontWeight:600}}>{v>=0?'+':''}{v.toFixed(2)}%</span>;}},
-                        {key:'pl',        label:'P&L',       fmt: r=>{const v=parseFloat(r.pl);return <span style={{color:v>=0?'var(--up)':'var(--down)'}}>${v>=0?'+':''}${Math.abs(v).toLocaleString('en-US',{maximumFractionDigits:0})}</span>;}},
-                        {key:'tradeCount',label:'Trades',    fmt: r=>r.tradeCount},
-                        {key:'badges',    label:'Badges',    fmt: r=><span style={{color:'var(--gold)',fontWeight:600}}>{r.badges}</span>},
-                        {key:'sharpe',    label:'Sharpe',    fmt: r=>r.sharpe||'—'},
-                        {key:'winRate',   label:'Win %',     fmt: r=>r.winRate?`${parseFloat(r.winRate).toFixed(0)}%`:'—'},
-                        {key:'note',      label:'Note',      fmt: ()=>null},
+                        {key:'rank',            label:'#',           fmt: r=>r.rank},
+                        {key:'name',            label:'Student',     fmt: r=>r.name},
+                        {key:'portfolio',       label:'Portfolio',   fmt: r=>`$${parseFloat(r.portfolio).toLocaleString('en-US',{maximumFractionDigits:0})}`},
+                        {key:'returnPct',       label:'Return',      fmt: r=>{const v=parseFloat(r.returnPct);return <span style={{color:v>=0?'var(--up)':'var(--down)',fontWeight:600}}>{v>=0?'+':''}{v.toFixed(2)}%</span>;}},
+                        {key:'tradeCount',      label:'Trades',      fmt: r=>r.tradeCount},
+                        {key:'badges',          label:'Badges',      fmt: r=><span style={{color:'var(--gold)',fontWeight:600}}>{r.badges}</span>},
+                        {key:'lessonsPassed',   label:'Lessons',     fmt: r=>r.lessonsTotal>0?<span style={{color:r.lessonsPassed===r.lessonsTotal?'var(--up)':'var(--text)',fontWeight:600}}>{r.lessonsPassed}/{r.lessonsTotal}</span>:'—'},
+                        {key:'lessonsAvgScore', label:'Avg Quiz',    fmt: r=>r.lessonsAvgScore!=null?<span style={{color:r.lessonsAvgScore>=75?'var(--up)':r.lessonsAvgScore>=50?'var(--gold)':'var(--down)',fontWeight:600}}>{r.lessonsAvgScore}%</span>:'—'},
+                        ...lessons.map(l=>({
+                          key: `lesson_${l.id}`,
+                          label: `${l.moduleEmoji||'📚'} ${l.title}`,
+                          sortable: false,
+                          fmt: r=>{
+                            const a=r.lessonScores?.[l.id];
+                            if(!a) return <span style={{color:'var(--muted)',fontSize:10}}>—</span>;
+                            return <span style={{color:a.passed?'var(--up)':a.score!=null?'var(--down)':'var(--muted)',fontWeight:600,fontSize:11}}>{a.score!=null?`${a.score}%`:'—'}{a.passed?' ✓':''}</span>;
+                          }
+                        })),
+                        {key:'winRate',         label:'Win %',       fmt: r=>r.winRate?`${parseFloat(r.winRate).toFixed(0)}%`:'—'},
+                        {key:'note',            label:'Note',        fmt: ()=>null},
                       ];
                       const sorted = [...gradesData.rows].sort((a,b)=>{
                         if(gradesSortCol==='name') return gradesSortDir==='asc'?a.name.localeCompare(b.name):b.name.localeCompare(a.name);
@@ -1381,8 +1392,8 @@ export default function Teacher() {
                               <thead>
                                 <tr>
                                   {cols.map(c=>(
-                                    <th key={c.key} style={{cursor:c.key!=='note'?'pointer':undefined,userSelect:'none',whiteSpace:'nowrap'}} onClick={()=>{if(c.key==='note')return;if(gradesSortCol===c.key)setGradesSortDir(d=>d==='asc'?'desc':'asc');else{setGradesSortCol(c.key);setGradesSortDir('desc');}}}>
-                                      {c.label} {c.key!=='note'&&<span style={{opacity:.5,fontSize:9}}>{gradesSortCol===c.key?(gradesSortDir==='asc'?'↑':'↓'):'↕'}</span>}
+                                    <th key={c.key} style={{cursor:(c.sortable!==false&&c.key!=='note')?'pointer':undefined,userSelect:'none',whiteSpace:'nowrap'}} onClick={()=>{if(c.sortable===false||c.key==='note')return;if(gradesSortCol===c.key)setGradesSortDir(d=>d==='asc'?'desc':'asc');else{setGradesSortCol(c.key);setGradesSortDir('desc');}}}>
+                                      {c.label} {c.sortable!==false&&c.key!=='note'&&<span style={{opacity:.5,fontSize:9}}>{gradesSortCol===c.key?(gradesSortDir==='asc'?'↑':'↓'):'↕'}</span>}
                                     </th>
                                   ))}
                                 </tr>
