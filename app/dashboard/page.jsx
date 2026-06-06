@@ -2457,8 +2457,48 @@ export default function Dashboard() {
                 createdAt: e.created_at,
               }));
               const combined = [...(tradeHistory || []), ...rewardEntries];
+
+              // ── Tax simulation ────────────────────────────────────────
+              const ST_RATE = 0.22, LT_RATE = 0.15; // US federal approximations
+              const taxYearStart = new Date(new Date().getFullYear(), 0, 1).toISOString();
+              let stGains = 0, ltGains = 0;
+              const sellTrades = (tradeHistory || []).filter(t => t.action === 'SELL' && t.createdAt >= taxYearStart);
+              sellTrades.forEach(sell => {
+                const buysBefore = (tradeHistory || []).filter(t => t.action === 'BUY' && t.coin === sell.coin && t.createdAt < sell.createdAt);
+                const firstBuy = buysBefore[buysBefore.length - 1]; // oldest
+                const gain = (sell.price - (firstBuy?.price || sell.price)) * sell.quantity;
+                if (gain <= 0) return;
+                const daysHeld = firstBuy ? (new Date(sell.createdAt) - new Date(firstBuy.createdAt)) / (1000 * 86400) : 0;
+                if (daysHeld >= 365) ltGains += gain; else stGains += gain;
+              });
+              const totalTax = stGains * ST_RATE + ltGains * LT_RATE;
               return (
               <div className="panel">
+                {/* Tax summary card */}
+                {totalTax > 0 && (
+                  <div style={{background:'rgba(245,158,11,.07)',border:'1px solid rgba(245,158,11,.3)',borderRadius:14,padding:'14px 18px',marginBottom:14}}>
+                    <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10}}>
+                      <span style={{fontSize:16}}>🧾</span>
+                      <span style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:13,color:'var(--gold)'}}>Estimated Tax — {new Date().getFullYear()}</span>
+                      <span style={{fontSize:10,color:'var(--muted)'}}>US federal approximation · educational only</span>
+                    </div>
+                    <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:10}}>
+                      {[
+                        ['Short-term gains', stGains, `${(ST_RATE*100).toFixed(0)}% rate`, stGains * ST_RATE],
+                        ['Long-term gains',  ltGains, `${(LT_RATE*100).toFixed(0)}% rate`, ltGains * LT_RATE],
+                        ['Est. total tax',   null,     'owed this year',                    totalTax],
+                      ].map(([label, gains, note, tax]) => (
+                        <div key={label} style={{background:'rgba(245,158,11,.06)',border:'1px solid rgba(245,158,11,.15)',borderRadius:10,padding:'10px 14px'}}>
+                          <div style={{fontSize:9,color:'var(--muted)',letterSpacing:2,textTransform:'uppercase',marginBottom:4}}>{label}</div>
+                          {gains !== null && <div style={{fontSize:11,color:'var(--text)',marginBottom:2}}>{fmtUSD(gains)} gains</div>}
+                          <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:15,color:'#f59e0b'}}>{fmtUSD(tax)}</div>
+                          <div style={{fontSize:10,color:'var(--muted)',marginTop:2}}>{note}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{fontSize:10,color:'var(--muted)',marginTop:8}}>Based on realized gains from BUY→SELL pairs this calendar year. Short-term = held &lt;1 year (22%). Long-term = held ≥1 year (15%). This is a simulation — not tax advice.</div>
+                  </div>
+                )}
                 {combined.length === 0 ? (
                   <div className="empty">No trades yet.</div>
                 ) : (
@@ -2687,6 +2727,22 @@ export default function Dashboard() {
                                   >
                                     Fee: {fmtUSD(t.fee || 0)}
                                   </div>
+                                  {/* Tax estimate on SELL trades */}
+                                  {!isBuy && !isShortTx && (() => {
+                                    const buysBefore = (tradeHistory || []).filter(b => b.action === 'BUY' && b.coin === t.coin && b.createdAt < t.createdAt);
+                                    const firstBuy = buysBefore[buysBefore.length - 1];
+                                    if (!firstBuy) return null;
+                                    const gain = (t.price - firstBuy.price) * t.quantity;
+                                    if (gain <= 0) return null;
+                                    const daysHeld = (new Date(t.createdAt) - new Date(firstBuy.createdAt)) / (1000 * 86400);
+                                    const rate = daysHeld >= 365 ? LT_RATE : ST_RATE;
+                                    const tax = gain * rate;
+                                    return (
+                                      <div style={{fontSize:10,marginTop:3,color:'#f59e0b'}} title={`Estimated ${daysHeld >= 365 ? 'long-term' : 'short-term'} capital gains tax`}>
+                                        🧾 Est. tax: {fmtUSD(tax)} ({daysHeld >= 365 ? 'LT' : 'ST'} · {Math.round(daysHeld)}d held)
+                                      </div>
+                                    );
+                                  })()}
                                   {/* "Since sold" hint for SELL trades on coins no longer held */}
                                   {!isBuy && !isShortTx && prices[t.coin] && !holdingsArr.find(h => h.coin === t.coin) && (() => {
                                     const soldAt = t.price || 0;
