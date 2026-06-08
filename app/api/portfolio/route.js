@@ -28,7 +28,7 @@ export async function GET(request) {
     let stakingPositions = null;
     try {
       const { data } = await db.from('staking_positions')
-        .select('coin, quantity')
+        .select('coin, quantity, status, total_rewards_earned, claimable_rewards')
         .eq('student_id', student.id)
         .eq('class_id', classId)
         .in('status', ['active', 'claimable']);
@@ -79,7 +79,14 @@ export async function GET(request) {
 
     const holdingsValue  = holdingsWithPrices.reduce((s, h) => s + h.curVal, 0);
     const totalBorrowed  = holdingsWithPrices.reduce((s, h) => s + h.marginBorrowed, 0);
-    const stakingValue   = (stakingPositions || []).reduce((s, p) => s + parseFloat(p.quantity) * (priceMap[p.coin] || 0), 0);
+    const stakingValue   = (stakingPositions || []).reduce((s, p) => {
+      const price = priceMap[p.coin] || 0;
+      const principal = parseFloat(p.quantity) * price;
+      const rewardCoins = p.status === 'claimable'
+        ? parseFloat(p.claimable_rewards || 0)
+        : parseFloat(p.total_rewards_earned || 0);
+      return s + principal + rewardCoins * price;
+    }, 0);
     const totalValue    = cash + holdingsValue + stakingValue - totalBorrowed;
     const pl            = totalValue - seedMoney;
     const returnPct     = ((totalValue / seedMoney) - 1) * 100;

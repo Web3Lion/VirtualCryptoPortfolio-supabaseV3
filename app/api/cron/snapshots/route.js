@@ -51,10 +51,18 @@ export async function POST(request) {
       }
       if (!targets.length) continue;
 
-      const [portfoliosRes, holdingsRes, stakingRes] = await Promise.all([
+      let stakingRes = { data: null };
+      try {
+        const { data } = await db.from('staking_positions')
+          .select('student_id, coin, quantity, status, total_rewards_earned, claimable_rewards')
+          .in('student_id', targets).eq('class_id', cls.id)
+          .in('status', ['active', 'claimable']);
+        stakingRes = { data };
+      } catch {}
+
+      const [portfoliosRes, holdingsRes] = await Promise.all([
         db.from('portfolios').select('student_id, cash').in('student_id', targets).eq('class_id', cls.id),
         db.from('holdings').select('student_id, coin, quantity, margin_borrowed').in('student_id', targets).eq('class_id', cls.id),
-        db.from('staking_positions').select('student_id, coin, quantity').in('student_id', targets).eq('class_id', cls.id).in('status', ['active', 'claimable']).catch(() => ({ data: null })),
       ]);
 
       const pMap = {};
@@ -79,7 +87,15 @@ export async function POST(request) {
           holdingsVal += parseFloat(h.quantity) * (priceMap[h.coin] || 0);
           borrowed    += parseFloat(h.margin_borrowed || 0);
         });
-        const stakingVal = (sMap[sid] || []).reduce((s, p) => s + parseFloat(p.quantity) * (priceMap[p.coin] || 0), 0);
+        const stakingVal = (sMap[sid] || []).reduce((s, p) => {
+          const price = priceMap[p.coin] || 0;
+          const principal = parseFloat(p.quantity) * price;
+          // Include accrued reward coins in portfolio value
+          const rewardCoins = p.status === 'claimable'
+            ? parseFloat(p.claimable_rewards || 0)
+            : parseFloat(p.total_rewards_earned || 0);
+          return s + principal + rewardCoins * price;
+        }, 0);
         return { student_id: sid, class_id: cls.id, total_value: cash + holdingsVal + stakingVal - borrowed, cash, snapshot_type: 'daily' };
       });
 
