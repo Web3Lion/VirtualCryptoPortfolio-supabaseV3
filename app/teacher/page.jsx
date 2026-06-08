@@ -81,6 +81,15 @@ export default function Teacher() {
   const [assignmentDesc, setAssignmentDesc] = useState('');
   const [assignmentDue, setAssignmentDue] = useState('');
   const [assignmentLoading, setAssignmentLoading] = useState(false);
+  const [weeklyChallenges, setWeeklyChallenges] = useState([]);
+  const [wcTitle, setWcTitle] = useState('');
+  const [wcDesc, setWcDesc] = useState('');
+  const [wcType, setWcType] = useState('min_trades');
+  const [wcTarget, setWcTarget] = useState('3');
+  const [wcTokens, setWcTokens] = useState('100');
+  const [wcStartsAt, setWcStartsAt] = useState('');
+  const [wcEndsAt, setWcEndsAt] = useState('');
+  const [wcLoading, setWcLoading] = useState(false);
   const [scenarioDate, setScenarioDate] = useState('');
   const [scenarioLabel, setScenarioLabel] = useState('');
   const [scenarioLoading, setScenarioLoading] = useState(false);
@@ -590,18 +599,23 @@ export default function Teacher() {
                   <div style={{display:'flex',gap:3,marginBottom:8,background:'var(--surface)',border:'1px solid var(--border)',borderRadius:12,padding:4}}>
                     {[
                       ['market',  '🏪','Market',  'Freeze · Bull Run · Flash Sale · Simulation'],
-                      ['events',  '🎭','Events',  'Scenarios · Announcements · Tournaments'],
-                      ['trading', '📊','Trading', 'Leverage · Short Selling · Staking · Margin Call'],
-                      ['rewards', '🎁','Rewards', 'ClassReward config · Grant tokens'],
-                      ['bot',     '🤖','Bot',     'Satoshi Botomoto AI competitor'],
+                      ['events',     '🎭','Events',     'Scenarios · Announcements · Tournaments'],
+                      ['trading',    '📊','Trading',    'Leverage · Short Selling · Staking · Margin Call'],
+                      ['rewards',    '🎁','Rewards',    'ClassReward config · Grant tokens'],
+                      ['challenges', '🏆','Challenges', 'Weekly challenges for students'],
+                      ['bot',        '🤖','Bot',        'Satoshi Botomoto AI competitor'],
                     ].map(([k,emoji,label,desc])=>(
-                      <button key={k} title={desc} onClick={()=>{ setControlsTab(k); if(k==='events'&&activeClass?.id) fetch(`/api/assignments?classId=${activeClass.id}`).then(r=>r.ok?r.json():[]).then(d=>Array.isArray(d)&&setAssignments(d)).catch(()=>{}); }} style={{flex:1,padding:'8px 6px',borderRadius:8,border:'none',fontFamily:"'DM Mono',monospace",fontSize:11,cursor:'pointer',transition:'all .15s',background:controlsTab===k?'var(--surface2)':'transparent',color:controlsTab===k?'var(--gold)':'var(--muted)',fontWeight:controlsTab===k?700:400,whiteSpace:'nowrap'}}>
+                      <button key={k} title={desc} onClick={()=>{
+                        setControlsTab(k);
+                        if(k==='events'&&activeClass?.id) fetch(`/api/assignments?classId=${activeClass.id}`).then(r=>r.ok?r.json():[]).then(d=>Array.isArray(d)&&setAssignments(d)).catch(()=>{});
+                        if(k==='challenges'&&activeClass?.id) fetch(`/api/teacher/weekly-challenge?classId=${activeClass.id}`).then(r=>r.ok?r.json():{challenges:[]}).then(d=>setWeeklyChallenges(d.challenges||[])).catch(()=>{});
+                      }} style={{flex:1,padding:'8px 6px',borderRadius:8,border:'none',fontFamily:"'DM Mono',monospace",fontSize:11,cursor:'pointer',transition:'all .15s',background:controlsTab===k?'var(--surface2)':'transparent',color:controlsTab===k?'var(--gold)':'var(--muted)',fontWeight:controlsTab===k?700:400,whiteSpace:'nowrap'}}>
                         {emoji} {label}
                       </button>
                     ))}
                   </div>
                   <div style={{fontSize:10,color:'var(--muted)',marginBottom:16,paddingLeft:4}}>
-                    {{'market':'Control the live simulation — freeze trading, trigger market events, manage simulation state.','events':'Special classroom events — historical scenarios, class announcements, and tournaments.','trading':'Advanced trading features — leverage, short selling, staking, and risk controls.','rewards':'ClassReward token system — configure earnings and manually award tokens.','bot':'Satoshi Botomoto — an AI trading bot that competes alongside your students.'}[controlsTab]}
+                    {{'market':'Control the live simulation — freeze trading, trigger market events, manage simulation state.','events':'Special classroom events — historical scenarios, class announcements, and tournaments.','trading':'Advanced trading features — leverage, short selling, staking, and risk controls.','rewards':'ClassReward token system — configure earnings and manually award tokens.','challenges':'Weekly challenges — set a themed goal for your class and award tokens on completion.','bot':'Satoshi Botomoto — an AI trading bot that competes alongside your students.'}[controlsTab]}
                   </div>
                   <div className="controls-grid">
 
@@ -1191,8 +1205,83 @@ export default function Teacher() {
                       </div>
                     )}
 
-                    {/* ══ BOT ══ */}
+                    {/* ══ CHALLENGES ══ */}
                     </>}
+                    {controlsTab==='challenges' && <>
+                    <div className="ctrl-card" style={{gridColumn:'1/-1',border:'1px solid rgba(245,158,11,.3)',background:'rgba(245,158,11,.04)'}}>
+                      <div className="ctrl-title" style={{color:'#f59e0b'}}>🏆 Weekly Challenge</div>
+                      <div className="ctrl-desc" style={{marginBottom:16}}>Set a weekly goal for your class. Students see it on their dashboard and earn tokens when they complete it.</div>
+                      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))',gap:12,marginBottom:12}}>
+                        <div style={{gridColumn:'1/-1'}}>
+                          <div className="form-label">Challenge Title</div>
+                          <input className="text-input" style={{marginBottom:0}} placeholder="e.g. Trade at least 3 times this week" value={wcTitle} onChange={e=>setWcTitle(e.target.value)} maxLength={100} />
+                        </div>
+                        <div style={{gridColumn:'1/-1'}}>
+                          <div className="form-label">Description (optional)</div>
+                          <input className="text-input" style={{marginBottom:0}} placeholder="Additional context or hints for students" value={wcDesc} onChange={e=>setWcDesc(e.target.value)} maxLength={200} />
+                        </div>
+                        <div>
+                          <div className="form-label">Challenge Type</div>
+                          <select className="text-input" style={{marginBottom:0}} value={wcType} onChange={e=>{setWcType(e.target.value);setWcTarget(e.target.value==='profit'?'1':'3');}}>
+                            <option value="min_trades">📊 Min Trades — make N trades this week</option>
+                            <option value="hold_coins">🌈 Hold Coins — hold at least N different coins</option>
+                            <option value="learn">📚 Learn — pass N lessons this week</option>
+                            <option value="write_notes">✍️ Trade Notes — write N notes (50+ chars)</option>
+                            <option value="profit">📈 Profit — be up at least N% by end of week</option>
+                          </select>
+                        </div>
+                        <div>
+                          <div className="form-label">{wcType==='profit'?'Min % Gain Required':'Target Count'}</div>
+                          <input className="text-input" style={{marginBottom:0}} type="number" min="1" step={wcType==='profit'?'0.1':'1'} value={wcTarget} onChange={e=>setWcTarget(e.target.value)} />
+                        </div>
+                        <div>
+                          <div className="form-label">Token Reward</div>
+                          <input className="text-input" style={{marginBottom:0}} type="number" min="0" step="25" value={wcTokens} onChange={e=>setWcTokens(e.target.value)} />
+                        </div>
+                        <div>
+                          <div className="form-label">Starts At</div>
+                          <input className="text-input" style={{marginBottom:0}} type="datetime-local" value={wcStartsAt} onChange={e=>setWcStartsAt(e.target.value)} />
+                        </div>
+                        <div>
+                          <div className="form-label">Ends At</div>
+                          <input className="text-input" style={{marginBottom:0}} type="datetime-local" value={wcEndsAt} onChange={e=>setWcEndsAt(e.target.value)} />
+                        </div>
+                      </div>
+                      <div className="btn-row">
+                        <button className="btn btn-gold" style={{fontSize:11}} disabled={!wcTitle.trim()||!wcStartsAt||!wcEndsAt||wcLoading} onClick={async()=>{
+                          setWcLoading(true);
+                          const res=await fetch('/api/teacher/weekly-challenge',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({classId:activeClass?.id,title:wcTitle.trim(),description:wcDesc.trim()||null,challengeType:wcType,targetValue:parseFloat(wcTarget)||1,tokensReward:parseInt(wcTokens)||0,startsAt:new Date(wcStartsAt).toISOString(),endsAt:new Date(wcEndsAt).toISOString()})});
+                          if(res.ok){setActionMsg({type:'success',msg:'✅ Weekly challenge posted!'});setWcTitle('');setWcDesc('');setWcTarget('3');setWcTokens('100');setWcStartsAt('');setWcEndsAt('');fetch(`/api/teacher/weekly-challenge?classId=${activeClass?.id}`).then(r=>r.ok?r.json():{challenges:[]}).then(d=>setWeeklyChallenges(d.challenges||[]));}
+                          else{const d=await res.json();setActionMsg({type:'error',msg:`❌ ${d.error||'Failed'}`});}
+                          setWcLoading(false);
+                        }}>{wcLoading?'Posting...':'📢 Post Challenge'}</button>
+                      </div>
+                      {weeklyChallenges.length>0 && (
+                        <div style={{marginTop:20}}>
+                          <div style={{fontSize:11,fontWeight:700,color:'var(--muted)',letterSpacing:1,textTransform:'uppercase',marginBottom:8}}>Active & Past Challenges</div>
+                          {weeklyChallenges.map(c=>{
+                            const now=new Date();
+                            const isLive=c.active&&new Date(c.starts_at)<=now&&new Date(c.ends_at)>=now;
+                            const isPast=new Date(c.ends_at)<now;
+                            return(
+                              <div key={c.id} style={{display:'flex',alignItems:'center',gap:12,padding:'10px 14px',background:'var(--surface2)',borderRadius:10,marginBottom:8,flexWrap:'wrap'}}>
+                                <div style={{flex:1,minWidth:0}}>
+                                  <div style={{fontSize:12,fontWeight:700,color:'var(--text)',marginBottom:2}}>{c.title}</div>
+                                  <div style={{fontSize:10,color:'var(--muted)'}}>{c.challenge_type.replace('_',' ')} · target: {c.target_value} · {c.tokens_reward} tokens · ends {new Date(c.ends_at).toLocaleDateString()}</div>
+                                </div>
+                                <span style={{fontSize:10,padding:'2px 8px',borderRadius:5,fontWeight:700,background:isLive?'rgba(0,229,160,.15)':isPast?'rgba(71,85,105,.2)':'rgba(245,158,11,.15)',color:isLive?'var(--accent)':isPast?'var(--muted)':'#f59e0b'}}>
+                                  {isLive?'🟢 LIVE':isPast?'ended':'upcoming'}
+                                </span>
+                                {!isPast&&<button onClick={async()=>{await fetch('/api/teacher/weekly-challenge',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:c.id})});setWeeklyChallenges(prev=>prev.filter(x=>x.id!==c.id));}} style={{background:'none',border:'none',color:'var(--muted)',cursor:'pointer',fontSize:16}} title="Archive">✕</button>}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                    </>}
+
+                    {/* ══ BOT ══ */}
                     {controlsTab==='bot' && <>
                     {/* ── Satoshi Botomoto ── */}
                     <div className="ctrl-card" style={{gridColumn:'1/-1',border:'1px solid rgba(139,92,246,.4)',background:'rgba(139,92,246,.05)'}}>

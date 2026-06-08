@@ -4,6 +4,7 @@ import { executeTrade } from '@/lib/trade';
 import { checkBadgesAfterOrderExecution } from '@/app/api/orders/badge-check';
 import { checkMilestones } from '@/app/api/trade/badge-check';
 import { runBot } from '@/lib/bot';
+import { sendWatchlistAlertEmail } from '@/lib/email';
 
 export async function GET(request) {
   const authHeader = request.headers.get('authorization');
@@ -346,6 +347,54 @@ export async function GET(request) {
     }
   } catch (e) {
     // DCA table may not exist yet — skip silently
+  }
+
+  // ── 7. Watchlist price alerts ─────────────────────────────────
+  try {
+    const { data: alerts } = await db.from('watchlist')
+      .select('id, student_id, coin, target_price, direction')
+      .not('target_price', 'is', null);
+
+    if (alerts?.length) {
+      const triggered = [];
+      for (const alert of alerts) {
+        const price = freshPriceMap[alert.coin];
+        if (!price) continue;
+        const target = parseFloat(alert.target_price);
+        const dir = alert.direction || 'above';
+        const hit = dir === 'above' ? price >= target : price <= target;
+        if (hit) triggered.push(alert);
+      }
+
+      if (triggered.length) {
+        const studentIds = [...new Set(triggered.map(a => a.student_id))];
+        const { data: studentRows } = await db.from('students')
+          .select('id, name, email').in('id', studentIds);
+        const studentMap = {};
+        (studentRows || []).forEach(s => { studentMap[s.id] = s; });
+
+        for (const alert of triggered) {
+          const student = studentMap[alert.student_id];
+          if (!student?.email) continue;
+          try {
+            await sendWatchlistAlertEmail({
+              to:           student.email,
+              name:         student.name,
+              coin:         alert.coin,
+              targetPrice:  parseFloat(alert.target_price),
+              currentPrice: freshPriceMap[alert.coin],
+              direction:    alert.direction || 'above',
+            });
+            await db.from('watchlist').delete().eq('id', alert.id);
+            report.watchlistAlerts = (report.watchlistAlerts || 0) + 1;
+          } catch (e) {
+            report.errors.push(`watchlist[${alert.id}]: ${e.message}`);
+          }
+        }
+      }
+    }
+  } catch (e) {
+    report.errors.push(`watchlist alerts: ${e.message}`);
   }
 
   return Response.json({ success: true, ...report });

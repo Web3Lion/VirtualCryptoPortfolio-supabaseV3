@@ -211,6 +211,7 @@ export default function Dashboard() {
   const [activeMarketEvent, setActiveMarketEvent] = useState(null);
   const [classId, setClassId] = useState(null);
   const [dailyChallenge, setDailyChallenge] = useState(null);
+  const [weeklyChallenge, setWeeklyChallenge] = useState(null);
   const [pieView, setPieView] = useState('coin');
   const [watchlist, setWatchlist] = useState([]);
   const [watchForm, setWatchForm] = useState({
@@ -289,7 +290,10 @@ export default function Dashboard() {
       if (meRes.ok) {
         const me = await meRes.json();
         setClassId(me?.classes?.[0]?.id);
-        if (me?.classes?.[0]?.id) fetchDailyChallenge(me.classes[0].id);
+        if (me?.classes?.[0]?.id) {
+        fetchDailyChallenge(me.classes[0].id);
+        fetchWeeklyChallenge(me.classes[0].id);
+      }
       }
       if (stRes.ok) setStakingData(await stRes.json());
     } catch (e) {
@@ -333,6 +337,13 @@ export default function Dashboard() {
     if (!id) return;
     const res = await fetch(`/api/daily-challenge?classId=${id}`);
     if (res.ok) setDailyChallenge(await res.json());
+  }, [classId]);
+
+  const fetchWeeklyChallenge = useCallback(async (cid) => {
+    const id = cid || classId;
+    if (!id) return;
+    const res = await fetch(`/api/weekly-challenge?classId=${id}`);
+    if (res.ok) setWeeklyChallenge(await res.json());
   }, [classId]);
 
   const fetchRefreshStatus = useCallback(async () => {
@@ -913,6 +924,54 @@ export default function Dashboard() {
               </div>
             )}
 
+            {/* Weekly Challenge */}
+            {weeklyChallenge?.challenge && (
+              <div style={{
+                background: weeklyChallenge.claimed ? 'rgba(251,191,36,.07)' : 'var(--surface)',
+                border: `1px solid ${weeklyChallenge.claimed ? 'rgba(251,191,36,.4)' : 'rgba(251,191,36,.25)'}`,
+                borderRadius: 16, padding: '14px 20px', marginBottom: 16,
+                display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap',
+              }}>
+                <span style={{ fontSize: 28, flexShrink: 0 }}>🏆</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 9, color: '#f59e0b', letterSpacing: 2, textTransform: 'uppercase', fontWeight: 700 }}>Weekly Challenge</span>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text)' }}>{weeklyChallenge.challenge.title}</span>
+                  </div>
+                  {weeklyChallenge.challenge.description && (
+                    <div style={{ fontSize: 12, color: '#94a3b8' }}>{weeklyChallenge.challenge.description}</div>
+                  )}
+                  {!weeklyChallenge.claimed && weeklyChallenge.completion && (
+                    <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div style={{ width: 80, height: 4, background: 'var(--surface2)', borderRadius: 2, overflow: 'hidden' }}>
+                        <div style={{ width: `${Math.min(weeklyChallenge.completion.progress / weeklyChallenge.completion.target, 1) * 100}%`, height: '100%', background: '#f59e0b', borderRadius: 2, transition: 'width .5s' }} />
+                      </div>
+                      <span style={{ fontSize: 11, color: '#94a3b8' }}>
+                        {weeklyChallenge.challenge.challenge_type === 'profit'
+                          ? `${weeklyChallenge.completion.progress}% / +${weeklyChallenge.completion.target}%`
+                          : `${weeklyChallenge.completion.progress}/${weeklyChallenge.completion.target}`}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <div style={{ flexShrink: 0, textAlign: 'right' }}>
+                  <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 4 }}>
+                    {weeklyChallenge.daysLeft > 0 ? `${weeklyChallenge.daysLeft}d ${weeklyChallenge.hoursLeft}h left` : `${weeklyChallenge.hoursLeft}h left`}
+                  </div>
+                  {weeklyChallenge.claimed ? (
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: '#f59e0b' }}>✓ Complete!</div>
+                      <div style={{ fontSize: 11, color: '#94a3b8' }}>+{weeklyChallenge.challenge.tokens_reward} tokens</div>
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: 12, color: '#f59e0b', fontWeight: 600, background: 'rgba(245,158,11,.1)', padding: '4px 12px', borderRadius: 8, border: '1px solid rgba(245,158,11,.25)' }}>
+                      +{weeklyChallenge.challenge.tokens_reward} tokens
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {(portfolio?.tradingStreak || 0) >= 3 && (
               <div style={{background:'rgba(249,115,22,.08)',border:'1px solid rgba(249,115,22,.3)',borderRadius:12,padding:'10px 18px',marginBottom:12,display:'flex',alignItems:'center',gap:12}}>
                 <span style={{fontSize:28}}>🔥</span>
@@ -1383,7 +1442,8 @@ export default function Dashboard() {
                                 if (r.startsWith('store_refund:'))  return ['🔄', `Refund: ${r.replace('store_refund:','')}`];
                                 if (r.startsWith('store:'))         return ['🛒', `Store: ${r.replace('store:','')}`];
                                 if (r.startsWith('crush:'))         return ['🎮', `Crypto Crush (${r.replace('crush:','')})`];
-                                if (r.startsWith('daily_challenge:')) return ['📅', `Daily challenge: ${r.replace('daily_challenge:','')}`];
+                                if (r.startsWith('daily_challenge:'))   return ['📅', `Daily challenge: ${r.replace('daily_challenge:','')}`];
+                                if (r.startsWith('weekly_challenge:')) return ['🏆', 'Weekly challenge completed'];
                                 if (r === 'redeemed')               return ['💵', 'Redeemed for cash'];
                                 return ['🎁', r || 'Reward'];
                               };

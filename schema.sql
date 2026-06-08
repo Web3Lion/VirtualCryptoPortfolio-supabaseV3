@@ -384,3 +384,29 @@ CREATE TABLE IF NOT EXISTS tournament_snapshots (
   rank           integer,
   created_at     timestamptz NOT NULL DEFAULT now()
 );
+
+-- ── Weekly Challenges ─────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS weekly_challenges (
+  id             uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  class_id       uuid REFERENCES classes(id) ON DELETE CASCADE,
+  title          text NOT NULL,
+  description    text,
+  challenge_type text NOT NULL,
+  target_value   numeric DEFAULT 1,
+  tokens_reward  integer DEFAULT 100,
+  starts_at      timestamptz NOT NULL,
+  ends_at        timestamptz NOT NULL,
+  active         boolean DEFAULT true,
+  created_at     timestamptz DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS weekly_challenges_class ON weekly_challenges(class_id, active);
+
+CREATE TABLE IF NOT EXISTS weekly_challenge_completions (
+  id           uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  challenge_id uuid REFERENCES weekly_challenges(id) ON DELETE CASCADE,
+  student_id   uuid REFERENCES students(id) ON DELETE CASCADE,
+  class_id     uuid NOT NULL,
+  completed_at timestamptz DEFAULT now(),
+  UNIQUE (challenge_id, student_id)
+);
