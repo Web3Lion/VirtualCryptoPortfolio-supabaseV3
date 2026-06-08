@@ -2,8 +2,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { getStudentByEmail, getStudentPortfolio, getClassCoins } from '@/lib/students';
 import { db } from '@/lib/db';
-import { calculateSharpe, calculateSortino, calculateMaxDrawdown, calculateWinRate, calculateBeta, calculateVolatility, calculateCalmar } from '@/lib/metrics';
-import { fetchBtcMarketChart } from '@/lib/prices';
+import { calculateSharpe, calculateSortino, calculateMaxDrawdown, calculateWinRate } from '@/lib/metrics';
 import { checkMilestones } from '@/app/api/trade/badge-check';
 
 export async function GET(request) {
@@ -89,10 +88,6 @@ export async function GET(request) {
   const sortinoRatio   = calculateSortino(snapshots);
   const maxDrawdown    = calculateMaxDrawdown(snapshots);
   const winRate        = calculateWinRate(trades);
-  const volatility     = calculateVolatility(snapshots);
-  const calmarRatio    = calculateCalmar(snapshots);
-  const btcChart       = await fetchBtcMarketChart(db, 90).catch(() => null);
-  const beta           = calculateBeta(snapshots, btcChart);
 
   // Check portfolio milestones — awards badge + returns it for dashboard toast
   let newMilestone = null;
@@ -127,7 +122,6 @@ export async function GET(request) {
     classRewardEnabled: rewardCfg?.enabled || false,
     badgeRewardTokens: rewardCfg?.badge_reward_tokens || 50,
     sharpeRatio, sortinoRatio, maxDrawdown, winRate,
-    volatility, calmarRatio, beta,
     newMilestone, tradingStreak,
   });
 }

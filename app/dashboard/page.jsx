@@ -212,6 +212,7 @@ export default function Dashboard() {
   const [classId, setClassId] = useState(null);
   const [dailyChallenge, setDailyChallenge] = useState(null);
   const [weeklyChallenge, setWeeklyChallenge] = useState(null);
+  const [analyticsData, setAnalyticsData] = useState(null);
   const [pieView, setPieView] = useState('coin');
   const [watchlist, setWatchlist] = useState([]);
   const [watchForm, setWatchForm] = useState({
@@ -1115,19 +1116,19 @@ export default function Dashboard() {
                     </div>
                   </div>
                 )}
-                {portfolio?.volatility != null && (
+                {analyticsData?.volatility != null && (
                   <div className="stat" title="Annualized Volatility — how wildly your portfolio swings (lower is more stable)">
                     <div className="stat-label">Volatility</div>
-                    <div className={`stat-value ${portfolio.volatility > 80 ? "down" : portfolio.volatility > 40 ? "" : "up"}`}>
-                      {portfolio.volatility.toFixed(1)}%
+                    <div className={`stat-value ${analyticsData.volatility > 80 ? "down" : analyticsData.volatility > 40 ? "" : "up"}`}>
+                      {analyticsData.volatility.toFixed(1)}%
                     </div>
                   </div>
                 )}
-                {portfolio?.beta != null && (
+                {analyticsData?.beta != null && (
                   <div className="stat" title="Beta vs BTC — how your portfolio moves relative to Bitcoin (1 = moves with BTC, >1 = amplified, <1 = less sensitive)">
                     <div className="stat-label">Beta</div>
-                    <div className={`stat-value ${Math.abs(portfolio.beta) > 1.5 ? "down" : Math.abs(portfolio.beta) < 0.5 ? "up" : ""}`}>
-                      {portfolio.beta.toFixed(2)}
+                    <div className={`stat-value ${Math.abs(analyticsData.beta) > 1.5 ? "down" : Math.abs(analyticsData.beta) < 0.5 ? "up" : ""}`}>
+                      {analyticsData.beta.toFixed(2)}
                     </div>
                   </div>
                 )}
@@ -1198,6 +1199,7 @@ export default function Dashboard() {
                         }).catch(()=>setFeedLoading(false));
                     }
                     if (t === 'options') { fetch('/api/options').then(r=>r.ok?r.json():r.json().then(d=>{if(d.tableNotReady)setOptionsTableReady(false);return[];})).then(d=>Array.isArray(d)&&setOptionsPositions(d)).catch(()=>{}); }
+                    if (t === 'analytics') { fetch(`/api/analytics${classId ? `?classId=${classId}` : ''}`).then(r=>r.ok?r.json():null).then(d=>d&&setAnalyticsData(d)).catch(()=>{}); }
                   }}
                 >
                   {t.charAt(0).toUpperCase() + t.slice(1)}
@@ -1618,43 +1620,40 @@ export default function Dashboard() {
               <div className="panel">
                 <div className="card">
                   <div style={{fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:16,marginBottom:20}}>Portfolio Analytics</div>
-                  {[
-                    { key:'sharpeRatio',  label:'Sharpe Ratio',  fmt: v=>v.toFixed(2), good: v=>v>=1, bad: v=>v<0,    desc:'Annualized risk-adjusted return. >1 is good, >2 is great.' },
-                    { key:'sortinoRatio', label:'Sortino Ratio', fmt: v=>v.toFixed(2), good: v=>v>=1, bad: v=>v<0,    desc:'Like Sharpe but only penalizes downside volatility.' },
-                    { key:'maxDrawdown',  label:'Max Drawdown',  fmt: v=>`-${v.toFixed(1)}%`, good: v=>v<10, bad: v=>v>20, desc:'Largest peak-to-trough drop in portfolio value.' },
-                    { key:'winRate',      label:'Win Rate',      fmt: v=>`${v.toFixed(1)}%`,  good: v=>v>=50, bad: v=>v<40,  desc:'% of fully-closed coin positions that were profitable.' },
-                    { key:'volatility',   label:'Volatility (ann.)', fmt: v=>`${v.toFixed(1)}%`, good: v=>v<30, bad: v=>v>80, desc:'Annualized standard deviation of daily returns. Lower = more stable.' },
-                    { key:'calmarRatio',  label:'Calmar Ratio',  fmt: v=>v.toFixed(2), good: v=>v>1, bad: v=>v<0,    desc:'Total return divided by max drawdown. Higher = better risk efficiency.' },
-                    { key:'beta',         label:'Beta vs BTC',   fmt: v=>v.toFixed(2), good: v=>Math.abs(v)<0.8, bad: v=>Math.abs(v)>2, desc:'Sensitivity to BTC price moves. 1 = moves with BTC, >1 = amplified.' },
-                  ].filter(m => portfolio?.[m.key] != null).map(m => {
-                    const val = portfolio[m.key];
-                    const color = m.good(val) ? 'var(--up)' : m.bad(val) ? 'var(--down)' : 'var(--text)';
-                    return (
-                      <div key={m.key} style={{display:'flex',alignItems:'center',gap:16,padding:'14px 0',borderBottom:'1px solid var(--border)'}}>
-                        <div style={{flex:1}}>
-                          <div style={{fontSize:13,fontWeight:700,color:'var(--text)',marginBottom:3}}>{m.label}</div>
-                          <div style={{fontSize:11,color:'#94a3b8',lineHeight:1.5}}>{m.desc}</div>
+                  {analyticsData === null && <div className="empty" style={{padding:'20px 0'}}>Loading analytics…</div>}
+                  {analyticsData !== null && (() => {
+                    const combined = { ...portfolio, ...analyticsData };
+                    const metrics = [
+                      { key:'sharpeRatio',  label:'Sharpe Ratio',       fmt: v=>v.toFixed(2),       good: v=>v>=1,              bad: v=>v<0,        desc:'Annualized risk-adjusted return. >1 is good, >2 is great.' },
+                      { key:'sortinoRatio', label:'Sortino Ratio',      fmt: v=>v.toFixed(2),       good: v=>v>=1,              bad: v=>v<0,        desc:'Like Sharpe but only penalizes downside volatility.' },
+                      { key:'maxDrawdown',  label:'Max Drawdown',       fmt: v=>`-${v.toFixed(1)}%`, good: v=>v<10,             bad: v=>v>20,       desc:'Largest peak-to-trough drop in portfolio value.' },
+                      { key:'winRate',      label:'Win Rate',           fmt: v=>`${v.toFixed(1)}%`,  good: v=>v>=50,            bad: v=>v<40,       desc:'% of fully-closed coin positions that were profitable.' },
+                      { key:'volatility',   label:'Volatility (ann.)',  fmt: v=>`${v.toFixed(1)}%`,  good: v=>v<30,             bad: v=>v>80,       desc:'Annualized standard deviation of daily returns. Lower = more stable.' },
+                      { key:'calmarRatio',  label:'Calmar Ratio',       fmt: v=>v.toFixed(2),       good: v=>v>1,               bad: v=>v<0,        desc:'Total return divided by max drawdown. Higher = better risk efficiency.' },
+                      { key:'beta',         label:'Beta vs BTC',        fmt: v=>v.toFixed(2),       good: v=>Math.abs(v)<0.8,   bad: v=>Math.abs(v)>2, desc:'Sensitivity to BTC moves. 1 = moves with BTC, >1 = amplified, <0 = inverse.' },
+                    ].filter(m => combined[m.key] != null);
+                    if (!metrics.length) return <div className="empty">Need at least 5 days of portfolio history to compute analytics.</div>;
+                    return metrics.map(m => {
+                      const val = combined[m.key];
+                      const color = m.good(val) ? 'var(--up)' : m.bad(val) ? 'var(--down)' : 'var(--text)';
+                      return (
+                        <div key={m.key} style={{display:'flex',alignItems:'center',gap:16,padding:'14px 0',borderBottom:'1px solid var(--border)'}}>
+                          <div style={{flex:1}}>
+                            <div style={{fontSize:13,fontWeight:700,color:'var(--text)',marginBottom:3}}>{m.label}</div>
+                            <div style={{fontSize:11,color:'#94a3b8',lineHeight:1.5}}>{m.desc}</div>
+                          </div>
+                          <div style={{fontSize:22,fontWeight:800,color,fontFamily:"'Syne',sans-serif",minWidth:70,textAlign:'right'}}>{m.fmt(val)}</div>
                         </div>
-                        <div style={{fontSize:22,fontWeight:800,color,fontFamily:"'Syne',sans-serif",minWidth:70,textAlign:'right'}}>{m.fmt(val)}</div>
-                      </div>
-                    );
-                  })}
-                  {!portfolio?.sharpeRatio && (
-                    <div className="empty">Need at least 5 days of portfolio history to compute analytics.</div>
-                  )}
+                      );
+                    });
+                  })()}
                 </div>
 
-                {/* Sector breakdown */}
-                {portfolio?.holdings?.length > 0 && (() => {
-                  const sectorTotals = {};
-                  portfolio.holdings.filter(h => h.qty > 0).forEach(h => {
-                    const coin = portfolio.availableCoins?.find?.(c => c.symbol === h.coin);
-                    const sector = coin?.sector || 'Other';
-                    sectorTotals[sector] = (sectorTotals[sector] || 0) + Math.abs(h.curVal);
-                  });
-                  const entries = Object.entries(sectorTotals).sort((a,b)=>b[1]-a[1]);
+                {/* Sector breakdown from analytics API */}
+                {analyticsData?.sectorTotals && (() => {
+                  const entries = Object.entries(analyticsData.sectorTotals).sort((a,b)=>b[1]-a[1]);
                   const total = entries.reduce((s,[,v])=>s+v,0);
-                  if (!entries.length) return null;
+                  if (!entries.length || total === 0) return null;
                   const colors = ['#00e5a0','#6366f1','#f59e0b','#f43f5e','#3b82f6','#8b5cf6','#ec4899','#14b8a6'];
                   return (
                     <div className="card" style={{marginTop:16}}>
@@ -1663,10 +1662,10 @@ export default function Dashboard() {
                         <div key={sector} style={{marginBottom:10}}>
                           <div style={{display:'flex',justifyContent:'space-between',fontSize:12,marginBottom:4}}>
                             <span style={{color:'var(--text)',fontWeight:600}}>{sector}</span>
-                            <span style={{color:'#94a3b8'}}>{total>0?((val/total)*100).toFixed(1):0}%</span>
+                            <span style={{color:'#94a3b8'}}>{((val/total)*100).toFixed(1)}%</span>
                           </div>
                           <div style={{height:6,background:'var(--surface2)',borderRadius:3,overflow:'hidden'}}>
-                            <div style={{height:'100%',width:`${total>0?(val/total)*100:0}%`,background:colors[i%colors.length],borderRadius:3,transition:'width .5s'}} />
+                            <div style={{height:'100%',width:`${(val/total)*100}%`,background:colors[i%colors.length],borderRadius:3,transition:'width .5s'}} />
                           </div>
                         </div>
                       ))}
