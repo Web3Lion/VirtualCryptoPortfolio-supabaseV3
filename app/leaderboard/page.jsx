@@ -322,6 +322,11 @@ export default function Leaderboard() {
                         <tr className="lb-row" key={i} onClick={()=>openStudentProfile(s)} style={{cursor:'pointer'}} title={`View ${s.name}'s portfolio`}>
                           <td style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:16,color:'var(--muted)',width:40,paddingLeft:16}}>
                             {i<3?medals[i]:i+1}
+                            {s.rankChange != null && (
+                              <div style={{fontSize:9,fontWeight:700,marginTop:2,color:s.rankChange>0?'#00e5a0':s.rankChange<0?'#f43f5e':'var(--border)'}}>
+                                {s.rankChange>0?`↑${s.rankChange}`:s.rankChange<0?`↓${Math.abs(s.rankChange)}`:'—'}
+                              </div>
+                            )}
                           </td>
                           <td>
                             <div style={{display:'flex',alignItems:'center',gap:8}}>

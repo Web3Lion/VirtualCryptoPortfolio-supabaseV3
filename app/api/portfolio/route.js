@@ -41,9 +41,15 @@ export async function GET(request) {
       ...(stakingPositions || []).map(p => p.coin),
     ])];
     const priceMap = {};
+    let priceUpdatedAt = null;
     if (heldSymbols.length > 0) {
-      const { data: cached } = await db.from('price_cache').select('symbol, price').in('symbol', heldSymbols);
+      const { data: cached } = await db.from('price_cache').select('symbol, price, updated_at').in('symbol', heldSymbols);
       (cached || []).forEach(r => { priceMap[r.symbol] = parseFloat(r.price); });
+      const oldest = (cached || []).reduce((min, r) => {
+        const t = new Date(r.updated_at).getTime();
+        return (!min || t < min) ? t : min;
+      }, null);
+      if (oldest) priceUpdatedAt = new Date(oldest).toISOString();
     }
 
     // Merge held coins into availableCoins so deactivated coins still show in the trade dropdown
@@ -135,7 +141,7 @@ export async function GET(request) {
       classRewardEnabled: rewardCfg?.enabled || false,
       badgeRewardTokens: rewardCfg?.badge_reward_tokens || 50,
       sharpeRatio, sortinoRatio, maxDrawdown, winRate,
-      newMilestone, tradingStreak,
+      newMilestone, tradingStreak, priceUpdatedAt,
     });
   } catch (err) {
     console.error('[portfolio] unhandled error:', err);

@@ -93,13 +93,17 @@ export async function GET(request) {
   const stakingMap = {};
   try {
     const { data: staked } = await db.from('staking_positions')
-      .select('student_id, coin, quantity')
+      .select('student_id, coin, quantity, status, total_rewards_earned, claimable_rewards')
       .in('student_id', studentIds)
       .eq('class_id', classId)
       .in('status', ['active', 'claimable']);
     (staked || []).forEach(s => {
       const price = priceMap[s.coin] || 0;
-      stakingMap[s.student_id] = (stakingMap[s.student_id] || 0) + parseFloat(s.quantity) * price;
+      const principal = parseFloat(s.quantity) * price;
+      const rewardCoins = s.status === 'claimable'
+        ? parseFloat(s.claimable_rewards || 0)
+        : parseFloat(s.total_rewards_earned || 0);
+      stakingMap[s.student_id] = (stakingMap[s.student_id] || 0) + principal + rewardCoins * price;
     });
   } catch (_) {}
 
@@ -152,6 +156,21 @@ export async function GET(request) {
 
   // Sort by total value descending
   rows.sort((a, b) => b.total - a.total);
+
+  // Rank change vs yesterday (most recent snapshot before today UTC midnight)
+  const todayMidnight = new Date();
+  todayMidnight.setUTCHours(0, 0, 0, 0);
+  const prevValueMap = {};
+  Object.entries(snapshotsByStudent).forEach(([sid, snaps]) => {
+    const prev = [...snaps].reverse().find(s => new Date(s.created_at) < todayMidnight);
+    if (prev) prevValueMap[sid] = parseFloat(prev.total_value);
+  });
+  const prevRankMap = {};
+  Object.entries(prevValueMap).sort((a, b) => b[1] - a[1]).forEach(([sid], i) => { prevRankMap[sid] = i + 1; });
+  rows.forEach((row, i) => {
+    const prev = prevRankMap[row.id];
+    row.rankChange = prev != null ? prev - (i + 1) : null;
+  });
 
   return Response.json(rows);
 }

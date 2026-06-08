@@ -861,12 +861,23 @@ export default function Dashboard() {
               fontSize: 10,
               color: "var(--muted)",
               textAlign: "right",
-              marginBottom: 16,
+              marginBottom: 8,
             }}
           >
             Updated {lastUpdated.toLocaleTimeString()}
           </div>
         )}
+        {(() => {
+          const updatedAt = portfolio?.priceUpdatedAt;
+          if (!updatedAt) return null;
+          const ageMin = (Date.now() - new Date(updatedAt).getTime()) / 60000;
+          if (ageMin < 30) return null;
+          return (
+            <div style={{ background: 'rgba(245,158,11,.1)', border: '1px solid rgba(245,158,11,.35)', borderRadius: 10, padding: '8px 14px', marginBottom: 16, fontSize: 11, color: '#f59e0b', display: 'flex', alignItems: 'center', gap: 8 }}>
+              ⚠ Price data is {Math.floor(ageMin)} minutes old — live quotes may be unavailable
+            </div>
+          );
+        })()}
 
         {loading ? (
           <>
