@@ -15,7 +15,7 @@ export async function GET(request) {
 
   // Teacher fetching with completions
   const isTeacher = TEACHER_EMAIL && session.user.email?.toLowerCase() === TEACHER_EMAIL.toLowerCase();
-  if (isTeacher && !classId) return Response.json({ error: 'classId required' }, { status: 400 });
+  if (isTeacher && !classId) return Response.json([]);
 
   if (!classId) {
     const student = await getStudentByEmail(session.user.email);

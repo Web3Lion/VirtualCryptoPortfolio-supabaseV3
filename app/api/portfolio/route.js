@@ -25,12 +25,15 @@ export async function GET(request) {
     const activeCoins = await getClassCoins(classId);
 
     // Fetch staking positions alongside portfolio data
-    const { data: stakingPositions } = await db.from('staking_positions')
-      .select('coin, quantity')
-      .eq('student_id', student.id)
-      .eq('class_id', classId)
-      .in('status', ['active', 'claimable'])
-      .catch(() => ({ data: null }));
+    let stakingPositions = null;
+    try {
+      const { data } = await db.from('staking_positions')
+        .select('coin, quantity')
+        .eq('student_id', student.id)
+        .eq('class_id', classId)
+        .in('status', ['active', 'claimable']);
+      stakingPositions = data;
+    } catch {}
 
     // Get cached prices for held + staked coins
     const heldSymbols = [...new Set([
