@@ -1,7 +1,7 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { getStudentByEmail } from '@/lib/students';
-import { STAKEABLE_COINS, calcDailyReward } from '@/lib/staking';
+import { STAKEABLE_COINS, calcDailyRewardCoins } from '@/lib/staking';
 import { db } from '@/lib/db';
 
 async function resolveClassId(studentId, bodyClassId) {
@@ -69,18 +69,19 @@ export async function GET(request) {
       const price = priceMap[p.coin] || 0;
       // Restaked positions: coins are in the new position, not here
       const currentValue = p.status === 'restaked' ? 0 : parseFloat(p.quantity) * price;
-      // Real-time reward accrual for active positions only
+      // Real-time reward accrual for active positions only (in native coin units)
       const daysElapsed = (now - new Date(p.last_reward_at)) / (1000 * 86400);
       const accruedRewards = p.status === 'active'
-        ? calcDailyReward(parseFloat(p.quantity), price, parseFloat(p.apy)) * Math.max(0, daysElapsed)
+        ? calcDailyRewardCoins(parseFloat(p.quantity), parseFloat(p.apy)) * Math.max(0, daysElapsed)
         : 0;
+      const accruedRewardsUsd = accruedRewards * price;
       const isMature = p.unlocks_at ? now >= new Date(p.unlocks_at) : false;
       // For claimable: when will cron auto-restake it?
       const autoRestakeAt = p.status === 'claimable' && p.unlocks_at
         ? new Date(new Date(p.unlocks_at).getTime() + RESTAKE_GRACE_MS)
         : null;
 
-      return { ...p, currentValue, accruedRewards, isMature, price, autoRestakeAt };
+      return { ...p, currentValue, accruedRewards, accruedRewardsUsd, isMature, price, autoRestakeAt };
     });
 
   // Holdings eligible for staking (cross-ref STAKEABLE_COINS)
@@ -168,21 +169,21 @@ export async function POST(request) {
 
     const { data: priceData } = await db.from('price_cache').select('price').eq('symbol', position.coin).single();
     const price = parseFloat(priceData?.price || 0);
-    const rewardAmount = parseFloat(position.claimable_rewards || 0);
+    const rewardCoins = parseFloat(position.claimable_rewards || 0);
 
     if (position.status === 'claimable') {
-      // Return coins to holdings
       await returnCoinsToHoldings(student.id, classId, position.coin, parseFloat(position.quantity), price);
     }
-    // Credit rewards to cash (both claimable and restaked)
-    if (rewardAmount > 0) await creditCash(student.id, classId, rewardAmount);
+    // Reward is in native coin tokens — add to holdings, not cash
+    if (rewardCoins > 0) await returnCoinsToHoldings(student.id, classId, position.coin, rewardCoins, price);
 
     await db.from('staking_positions').update({ status: 'completed' }).eq('id', positionId);
 
     return Response.json({
       success: true,
       coinsReturned: position.status === 'claimable',
-      rewardCredited: rewardAmount,
+      rewardCredited: rewardCoins,
+      rewardCoin: position.coin,
     });
   }
 
@@ -206,11 +207,11 @@ export async function POST(request) {
 
     let paidOut = 0;
     if (isFlexible) {
-      // Pay out everything accumulated
+      // Pay out everything accumulated as native coin tokens
       const daysElapsed = (now - new Date(position.last_reward_at)) / (1000 * 86400);
-      const pending = calcDailyReward(parseFloat(position.quantity), price, parseFloat(position.apy)) * daysElapsed;
-      paidOut = parseFloat(position.total_rewards_earned) + pending;
-      if (paidOut > 0) await creditCash(student.id, classId, paidOut);
+      const pendingCoins = calcDailyRewardCoins(parseFloat(position.quantity), parseFloat(position.apy)) * daysElapsed;
+      paidOut = parseFloat(position.total_rewards_earned) + pendingCoins;
+      if (paidOut > 0) await returnCoinsToHoldings(student.id, classId, position.coin, paidOut, price);
     }
     // Early exit from a locked position: forfeits all accumulated rewards
 
@@ -232,26 +233,28 @@ export async function POST(request) {
 
     if (!positions?.length) return Response.json({ error: 'Nothing to claim' }, { status: 400 });
 
-    let totalRewards = 0;
-    let coinsReturned = [];
+    const coinsReturned = [];
+    const rewardsByCoin = {};
 
     for (const position of positions) {
       const { data: priceData } = await db.from('price_cache').select('price').eq('symbol', position.coin).single();
       const price = parseFloat(priceData?.price || 0);
-      const reward = parseFloat(position.claimable_rewards || 0);
-      totalRewards += reward;
+      const rewardCoins = parseFloat(position.claimable_rewards || 0);
 
       if (position.status === 'claimable') {
         await returnCoinsToHoldings(student.id, classId, position.coin, parseFloat(position.quantity), price);
         coinsReturned.push({ coin: position.coin, quantity: parseFloat(position.quantity) });
       }
+      if (rewardCoins > 0) {
+        await returnCoinsToHoldings(student.id, classId, position.coin, rewardCoins, price);
+        rewardsByCoin[position.coin] = (rewardsByCoin[position.coin] || 0) + rewardCoins;
+      }
 
       await db.from('staking_positions').update({ status: 'completed' }).eq('id', position.id);
     }
 
-    if (totalRewards > 0) await creditCash(student.id, classId, totalRewards);
-
-    return Response.json({ success: true, totalRewards, coinsReturned, count: positions.length });
+    const rewardSummary = Object.entries(rewardsByCoin).map(([coin, quantity]) => ({ coin, quantity }));
+    return Response.json({ success: true, rewardSummary, coinsReturned, count: positions.length });
   }
 
   return Response.json({ error: 'Unknown action' }, { status: 400 });

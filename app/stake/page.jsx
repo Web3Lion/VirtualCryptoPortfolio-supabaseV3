@@ -62,7 +62,7 @@ function ClaimableCard({ pos, onClaim, claiming }) {
         </div>
         <div style={{ background: 'rgba(0,229,160,.08)', borderRadius: 10, padding: '10px 12px', border: '1px solid rgba(0,229,160,.2)' }}>
           <div style={{ fontSize: 9, color: 'var(--muted)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 3 }}>Rewards Earned</div>
-          <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 16, color: '#00e5a0' }}>{fmtUSD(rewards)}</div>
+          <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 16, color: '#00e5a0' }}>{fmt(rewards, 6)} {pos.coin}</div>
         </div>
       </div>
 
@@ -71,7 +71,7 @@ function ClaimableCard({ pos, onClaim, claiming }) {
         disabled={claiming === pos.id}
         style={{ padding: '12px 0', borderRadius: 12, border: 'none', background: tier.color, color: '#000', fontFamily: "'DM Mono',monospace", fontSize: 13, fontWeight: 800, cursor: 'pointer', letterSpacing: 0.5, opacity: claiming === pos.id ? 0.7 : 1, transition: 'all .2s' }}
       >
-        {claiming === pos.id ? 'Claiming…' : `⚡ Claim ${fmtUSD(rewards)} + ${fmt(pos.quantity, 4)} ${pos.coin}`}
+        {claiming === pos.id ? 'Claiming…' : `⚡ Claim ${fmt(pos.quantity, 4)} ${pos.coin} + ${fmt(rewards, 6)} rewards`}
       </button>
 
       {autoRestakeIn && (
@@ -89,7 +89,8 @@ function ActiveCard({ pos, onUnstake, unstaking }) {
   const tier = TIER_META[info.tier || 'flexible'];
   const isFlexible = pos.lock_days === 0;
   const remaining = timeLeft(pos.unlocks_at);
-  const totalShown = parseFloat(pos.total_rewards_earned) + pos.accruedRewards;
+  const totalShown = parseFloat(pos.total_rewards_earned) + pos.accruedRewards; // in coins
+  const totalShownUsd = totalShown * (pos.price || 0);
 
   return (
     <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 20, padding: 20, display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -113,8 +114,8 @@ function ActiveCard({ pos, onUnstake, unstaking }) {
         </div>
         <div style={{ background: 'var(--surface2)', borderRadius: 10, padding: '9px 12px' }}>
           <div style={{ fontSize: 9, color: 'var(--muted)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 3 }}>Accruing</div>
-          <div style={{ fontWeight: 700, fontSize: 13, color: '#00e5a0' }}>{fmtUSD(totalShown)}</div>
-          <div style={{ fontSize: 11, color: 'var(--muted)' }}>+{fmtUSD(pos.accruedRewards)} today</div>
+          <div style={{ fontWeight: 700, fontSize: 13, color: '#00e5a0' }}>{fmt(totalShown, 6)} {pos.coin}</div>
+          <div style={{ fontSize: 11, color: 'var(--muted)' }}>≈ {fmtUSD(totalShownUsd)}</div>
         </div>
       </div>
 
@@ -142,7 +143,7 @@ function ActiveCard({ pos, onUnstake, unstaking }) {
 
       {!isFlexible && (
         <div style={{ fontSize: 10, color: '#f43f5e', textAlign: 'center', marginTop: -6 }}>
-          Early unstaking forfeits {fmtUSD(totalShown)} in accumulated rewards
+          Early unstaking forfeits {fmt(totalShown, 6)} {pos.coin} in accumulated rewards
         </div>
       )}
     </div>
@@ -164,7 +165,7 @@ function UnclaimedRewardCard({ pos, onClaim, claiming }) {
           Period ending {new Date(pos.unlocks_at || pos.staked_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · auto-restaked
         </div>
       </div>
-      <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 18, color: '#00e5a0' }}>{fmtUSD(rewards)}</div>
+      <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 18, color: '#00e5a0' }}>{fmt(rewards, 6)} {pos.coin}</div>
       <button
         onClick={() => onClaim(pos)}
         disabled={claiming === pos.id}
@@ -218,7 +219,7 @@ function StakeCard({ item, onStake, staking }) {
       {qtyNum > 0 && (
         <div style={{ fontSize: 10, color: 'var(--muted)', display: 'flex', justifyContent: 'space-between' }}>
           <span>≈ {fmtUSD(qtyNum * item.price)}</span>
-          <span style={{ color: tier.color }}>Est. annual: {fmtUSD(qtyNum * item.price * item.apy)}</span>
+          <span style={{ color: tier.color }}>Est. annual: {fmt(qtyNum * item.apy, 6)} {item.coin}</span>
         </div>
       )}
       <button
@@ -276,8 +277,8 @@ export default function StakePage() {
     if (res.error) showFlash('error', res.error);
     else {
       const parts = [];
-      if (res.coinsReturned) parts.push(`${fmt(pos.quantity, 4)} ${pos.coin} returned to wallet`);
-      if (res.rewardCredited > 0) parts.push(`${fmtUSD(res.rewardCredited)} rewards added to cash`);
+      if (res.coinsReturned) parts.push(`${fmt(pos.quantity, 4)} ${pos.coin} returned`);
+      if (res.rewardCredited > 0) parts.push(`+${fmt(res.rewardCredited, 6)} ${res.rewardCoin || pos.coin} rewards`);
       showFlash('success', `⚡ Claimed! ${parts.join(' · ')}`);
       load();
     }
@@ -292,10 +293,9 @@ export default function StakePage() {
     setClaimingAll(false);
     if (res.error) showFlash('error', res.error);
     else {
-      const coinSummary = res.coinsReturned?.map(c => `${fmt(c.quantity, 4)} ${c.coin}`).join(', ');
       const parts = [];
-      if (coinSummary) parts.push(coinSummary + ' returned');
-      if (res.totalRewards > 0) parts.push(fmtUSD(res.totalRewards) + ' rewards claimed');
+      if (res.coinsReturned?.length) parts.push(res.coinsReturned.map(c => `${fmt(c.quantity, 4)} ${c.coin}`).join(', ') + ' returned');
+      if (res.rewardSummary?.length) parts.push(res.rewardSummary.map(r => `+${fmt(r.quantity, 6)} ${r.coin}`).join(', ') + ' rewards');
       showFlash('success', `⚡ Claimed all! ${parts.join(' · ')}`);
       load();
     }
@@ -304,7 +304,7 @@ export default function StakePage() {
   const handleUnstake = async (pos) => {
     const isFlexible = pos.lock_days === 0;
     const totalShown = parseFloat(pos.total_rewards_earned) + pos.accruedRewards;
-    if (!isFlexible && !confirm(`Early unstake? You'll forfeit ${fmtUSD(totalShown)} in accumulated rewards. Your ${fmt(pos.quantity, 4)} ${pos.coin} will be returned.`)) return;
+    if (!isFlexible && !confirm(`Early unstake? You'll forfeit ${fmt(totalShown, 6)} ${pos.coin} in accumulated rewards. Your ${fmt(pos.quantity, 4)} ${pos.coin} will be returned.`)) return;
     setUnstaking(pos.id);
     const res = await fetch('/api/staking', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -314,7 +314,7 @@ export default function StakePage() {
     if (res.error) showFlash('error', res.error);
     else {
       const msg = isFlexible
-        ? `✅ Unstaked! ${fmtUSD(res.paidOut)} rewards added to your cash.`
+        ? `✅ Unstaked! +${fmt(res.paidOut, 6)} ${pos.coin} rewards added to your wallet.`
         : `↩ Unstaked early. ${fmt(pos.quantity, 4)} ${pos.coin} returned.`;
       showFlash('success', msg);
       load();
@@ -334,9 +334,9 @@ export default function StakePage() {
 
   const totalStaked   = active.reduce((s, p) => s + p.currentValue, 0)
                       + claimable.reduce((s, p) => s + p.currentValue, 0);
-  const totalAccruing = active.reduce((s, p) => s + parseFloat(p.total_rewards_earned) + p.accruedRewards, 0);
-  const totalClaimable = claimable.reduce((s, p) => s + parseFloat(p.claimable_rewards || 0), 0)
-                       + restaked.reduce((s, p) => s + parseFloat(p.claimable_rewards || 0), 0);
+  // Rewards are now in native coin tokens — convert to USD for aggregate display
+  const totalAccruing = active.reduce((s, p) => s + (parseFloat(p.total_rewards_earned) + p.accruedRewards) * (p.price || 0), 0);
+  const totalClaimable = [...claimable, ...restaked].reduce((s, p) => s + parseFloat(p.claimable_rewards || 0) * (p.price || 0), 0);
 
   const TIERS = ['all', 'flexible', 'short', 'standard', 'long'];
   const filteredStakeable = activeTab === 'all' ? stakeable : stakeable.filter(s => s.tier === activeTab);

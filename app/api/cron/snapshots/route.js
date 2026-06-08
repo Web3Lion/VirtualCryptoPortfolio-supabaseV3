@@ -1,5 +1,5 @@
 import { db } from '@/lib/db';
-import { calcDailyReward } from '@/lib/staking';
+import { calcDailyRewardCoins } from '@/lib/staking';
 
 const TEACHER_EMAIL = process.env.TEACHER_EMAIL;
 
@@ -106,7 +106,7 @@ export async function POST(request) {
         const daysElapsed = (now - new Date(pos.last_reward_at)) / (1000 * 86400);
         if (daysElapsed < 0.01) continue;
 
-        const reward = calcDailyReward(parseFloat(pos.quantity), price, parseFloat(pos.apy)) * daysElapsed;
+        const reward = calcDailyRewardCoins(parseFloat(pos.quantity), parseFloat(pos.apy)) * daysElapsed;
         const newTotal = parseFloat(pos.total_rewards_earned) + reward;
         const isMature = pos.unlocks_at && now >= new Date(pos.unlocks_at);
 
