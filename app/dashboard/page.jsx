@@ -190,6 +190,7 @@ export default function Dashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [portfolio, setPortfolio] = useState(null);
+  const [portfolioError, setPortfolioError] = useState(null);
   const [prices, setPrices] = useState({});
   const [history, setHistory] = useState({ intraday: [], daily: [], intradayAvg: [], dailyAvg: [] });
   const [showBenchmark, setShowBenchmark] = useState(false);
@@ -275,11 +276,16 @@ export default function Dashboard() {
       if (pRes.ok) {
         const pData = await pRes.json();
         setPortfolio(pData);
+        setPortfolioError(null);
         setLastUpdated(new Date());
         if (pData.newMilestone) {
           setMilestoneToast(pData.newMilestone);
           setTimeout(() => setMilestoneToast(null), 6000);
         }
+      } else {
+        const errBody = await pRes.json().catch(() => ({}));
+        console.error('[portfolio] API error:', pRes.status, errBody);
+        setPortfolioError({ status: pRes.status, message: errBody.error || 'Unknown error' });
       }
       if (prRes.ok) {
         const prData = await prRes.json();
@@ -1215,11 +1221,18 @@ export default function Dashboard() {
 
             {activeTab === "holdings" && (
               <div className="panel">
-                {holdingsWithVal.length === 0 ? (
+                {portfolioError && (
+                  <div style={{background:'rgba(244,63,94,.1)',border:'1px solid rgba(244,63,94,.4)',borderRadius:12,padding:'14px 18px',marginBottom:12}}>
+                    <div style={{fontSize:12,fontWeight:700,color:'#f43f5e',marginBottom:4}}>⚠ Portfolio failed to load (HTTP {portfolioError.status})</div>
+                    <div style={{fontSize:11,color:'#fca5a5'}}>{portfolioError.message}</div>
+                    <div style={{fontSize:10,color:'var(--muted)',marginTop:6}}>Check the browser console for details, or contact your teacher if this persists.</div>
+                  </div>
+                )}
+                {holdingsWithVal.length === 0 && !portfolioError ? (
                   <div className="empty">
                     No holdings yet — make a trade to get started!
                   </div>
-                ) : (
+                ) : holdingsWithVal.length === 0 ? null : (
                   <>
                     {holdingsWithVal.map((h, i) => (
                       <div className="holding-row" key={i} style={h.isShort ? {borderLeft:'2px solid rgba(251,146,60,.4)',background:'rgba(251,146,60,.04)'} : h.marginBorrowed>0 ? {borderLeft:'2px solid rgba(96,165,250,.4)',background:'rgba(96,165,250,.04)'} : {}}>
