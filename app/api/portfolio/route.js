@@ -6,122 +6,129 @@ import { calculateSharpe, calculateSortino, calculateMaxDrawdown, calculateWinRa
 import { checkMilestones } from '@/app/api/trade/badge-check';
 
 export async function GET(request) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) return Response.json({ error: 'Not authenticated' }, { status: 401 });
-  const student = await getStudentByEmail(session.user.email);
-  if (!student) return Response.json({ error: 'Not registered' }, { status: 403 });
-
-  const { searchParams } = new URL(request.url);
-  let classId = searchParams.get('classId');
-
-  if (!classId) {
-    const { data: cs } = await db.from('class_students').select('class_id').eq('student_id', student.id).order('joined_at', { ascending: false }).limit(1).single();
-    classId = cs?.class_id;
-  }
-  if (!classId) return Response.json({ error: 'No class found' }, { status: 404 });
-
-  const { portfolio, holdings, trades } = await getStudentPortfolio(student.id, classId);
-  const activeCoins = await getClassCoins(classId);
-
-  // Fetch staking positions alongside portfolio data
-  const { data: stakingPositions } = await db.from('staking_positions')
-    .select('coin, quantity')
-    .eq('student_id', student.id)
-    .eq('class_id', classId)
-    .in('status', ['active', 'claimable'])
-    .catch(() => ({ data: null }));
-
-  // Get cached prices for held + staked coins
-  const heldSymbols = [...new Set([
-    ...holdings.map(h => h.coin),
-    ...(stakingPositions || []).map(p => p.coin),
-  ])];
-  const priceMap = {};
-  if (heldSymbols.length > 0) {
-    const { data: cached } = await db.from('price_cache').select('symbol, price').in('symbol', heldSymbols);
-    (cached || []).forEach(r => { priceMap[r.symbol] = parseFloat(r.price); });
-  }
-
-  // Merge held coins into availableCoins so deactivated coins still show in the trade dropdown
-  const activeSymbols = new Set(activeCoins.map(c => c.symbol));
-  const heldButInactive = holdings
-    .filter(h => !activeSymbols.has(h.coin))
-    .map(h => ({ symbol: h.coin, gecko_id: null, name: h.coin, sector: 'Other', deactivated: true }));
-  const coins = [...activeCoins, ...heldButInactive];
-
-  const [{ data: cls }, { data: rewardCfg }, { data: rewardLedger }, { data: snapshots }] = await Promise.all([
-    db.from('classes').select('seed_money').eq('id', classId).single(),
-    db.from('class_reward_config').select('enabled, badge_reward_tokens').eq('class_id', classId).single(),
-    db.from('class_reward_ledger').select('tokens').eq('student_id', student.id).eq('class_id', classId),
-    db.from('snapshots').select('total_value, created_at').eq('student_id', student.id).eq('class_id', classId).order('created_at', { ascending: true }),
-  ]);
-  const seedMoney = parseFloat(cls?.seed_money || 10000);
-  const cash      = parseFloat(portfolio.cash);
-  const feesPaid  = parseFloat(portfolio.fees_paid);
-
-  const holdingsWithPrices = holdings.map(h => {
-    const curPrice      = priceMap[h.coin] || parseFloat(h.avg_buy_price);
-    const qty           = parseFloat(h.quantity);
-    const avgBuy        = parseFloat(h.avg_buy_price);
-    const marginBorrowed = parseFloat(h.margin_borrowed || 0);
-    const isShort       = qty < 0;
-    const curVal        = qty * curPrice;
-    // Short P&L: profit when price falls — invert the ratio
-    const plPct = isShort
-      ? (avgBuy > 0 ? ((avgBuy - curPrice) / avgBuy) * 100 : 0)
-      : (avgBuy > 0 ? ((curPrice / avgBuy) - 1) * 100 : 0);
-    // plTotal works for both: (curPrice - avgBuy) * negative_qty = (avgBuy - curPrice) * abs(qty)
-    const plTotal = (curPrice - avgBuy) * qty;
-    return { coin: h.coin, qty, avgBuy, curPrice, curVal, plPct, plTotal, marginBorrowed, isShort };
-  });
-
-  const holdingsValue  = holdingsWithPrices.reduce((s, h) => s + h.curVal, 0);
-  const totalBorrowed  = holdingsWithPrices.reduce((s, h) => s + h.marginBorrowed, 0);
-  const stakingValue   = (stakingPositions || []).reduce((s, p) => s + parseFloat(p.quantity) * (priceMap[p.coin] || 0), 0);
-  // Include staked coins in total — they leave holdings when staked but still belong to the student
-  const totalValue    = cash + holdingsValue + stakingValue - totalBorrowed;
-  const pl            = totalValue - seedMoney;
-  const returnPct     = ((totalValue / seedMoney) - 1) * 100;
-
-  const classRewardTokens = (rewardLedger || []).reduce((sum, r) => sum + r.tokens, 0);
-  const sharpeRatio    = calculateSharpe(snapshots);
-  const sortinoRatio   = calculateSortino(snapshots);
-  const maxDrawdown    = calculateMaxDrawdown(snapshots);
-  const winRate        = calculateWinRate(trades);
-
-  // Check portfolio milestones — awards badge + returns it for dashboard toast
-  let newMilestone = null;
   try {
-    newMilestone = await checkMilestones({ studentId: student.id, classId, returnPct });
-  } catch {}
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) return Response.json({ error: 'Not authenticated' }, { status: 401 });
+    const student = await getStudentByEmail(session.user.email);
+    if (!student) return Response.json({ error: 'Not registered' }, { status: 403 });
 
-  // Compute trading streak (consecutive days with at least one trade)
-  const tradingStreak = (() => {
-    const days = [...new Set(trades.map(t => t.created_at.slice(0, 10)))].sort().reverse();
-    if (!days.length) return 0;
-    const todayStr     = new Date().toISOString().slice(0, 10);
-    const yesterdayStr = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-    if (days[0] !== todayStr && days[0] !== yesterdayStr) return 0;
-    let streak = 1, prev = new Date(days[0]);
-    for (let i = 1; i < days.length; i++) {
-      const expected = new Date(prev); expected.setDate(expected.getDate() - 1);
-      if (days[i] === expected.toISOString().slice(0, 10)) { streak++; prev = expected; }
-      else break;
+    const { searchParams } = new URL(request.url);
+    let classId = searchParams.get('classId');
+
+    if (!classId) {
+      const { data: cs } = await db.from('class_students').select('class_id').eq('student_id', student.id).order('joined_at', { ascending: false }).limit(1).single();
+      classId = cs?.class_id;
     }
-    return streak;
-  })();
+    if (!classId) return Response.json({ error: 'No class found' }, { status: 404 });
 
-  return Response.json({
-    classId,
-    summary: { startCash: seedMoney, cash: cash.toFixed(2), holdingsVal: holdingsValue.toFixed(2), stakingVal: stakingValue.toFixed(2), totalVal: totalValue.toFixed(2), pl: pl.toFixed(2), returnPct: returnPct.toFixed(2), fees: feesPaid.toFixed(2) },
-    holdings: holdingsWithPrices,
-    history:  trades.map(t => ({ id: t.id, action: t.action, coin: t.coin, quantity: parseFloat(t.quantity), price: parseFloat(t.price), grossValue: parseFloat(t.gross_value), fee: parseFloat(t.fee), cashAfter: parseFloat(t.cash_after), reasoning: t.reasoning, createdAt: t.created_at })),
-    availableCoins: coins,
-    prices: priceMap,
-    classRewardTokens,
-    classRewardEnabled: rewardCfg?.enabled || false,
-    badgeRewardTokens: rewardCfg?.badge_reward_tokens || 50,
-    sharpeRatio, sortinoRatio, maxDrawdown, winRate,
-    newMilestone, tradingStreak,
-  });
+    const { portfolio, holdings, trades } = await getStudentPortfolio(student.id, classId);
+    const activeCoins = await getClassCoins(classId);
+
+    // Fetch staking positions alongside portfolio data
+    const { data: stakingPositions } = await db.from('staking_positions')
+      .select('coin, quantity')
+      .eq('student_id', student.id)
+      .eq('class_id', classId)
+      .in('status', ['active', 'claimable'])
+      .catch(() => ({ data: null }));
+
+    // Get cached prices for held + staked coins
+    const heldSymbols = [...new Set([
+      ...holdings.map(h => h.coin),
+      ...(stakingPositions || []).map(p => p.coin),
+    ])];
+    const priceMap = {};
+    if (heldSymbols.length > 0) {
+      const { data: cached } = await db.from('price_cache').select('symbol, price').in('symbol', heldSymbols);
+      (cached || []).forEach(r => { priceMap[r.symbol] = parseFloat(r.price); });
+    }
+
+    // Merge held coins into availableCoins so deactivated coins still show in the trade dropdown
+    const activeSymbols = new Set(activeCoins.map(c => c.symbol));
+    const heldButInactive = holdings
+      .filter(h => !activeSymbols.has(h.coin))
+      .map(h => ({ symbol: h.coin, gecko_id: null, name: h.coin, sector: 'Other', deactivated: true }));
+    const coins = [...activeCoins, ...heldButInactive];
+
+    const [{ data: cls }, { data: rewardCfg }, { data: rewardLedger }, { data: snapshots }] = await Promise.all([
+      db.from('classes').select('seed_money').eq('id', classId).single(),
+      db.from('class_reward_config').select('enabled, badge_reward_tokens').eq('class_id', classId).single(),
+      db.from('class_reward_ledger').select('tokens').eq('student_id', student.id).eq('class_id', classId),
+      db.from('snapshots').select('total_value, created_at').eq('student_id', student.id).eq('class_id', classId).order('created_at', { ascending: true }),
+    ]);
+    const seedMoney = parseFloat(cls?.seed_money || 10000);
+    const cash      = parseFloat(portfolio.cash);
+    const feesPaid  = parseFloat(portfolio.fees_paid);
+
+    const holdingsWithPrices = holdings.map(h => {
+      const curPrice      = priceMap[h.coin] || parseFloat(h.avg_buy_price);
+      const qty           = parseFloat(h.quantity);
+      const avgBuy        = parseFloat(h.avg_buy_price);
+      const marginBorrowed = parseFloat(h.margin_borrowed || 0);
+      const isShort       = qty < 0;
+      const curVal        = qty * curPrice;
+      const plPct = isShort
+        ? (avgBuy > 0 ? ((avgBuy - curPrice) / avgBuy) * 100 : 0)
+        : (avgBuy > 0 ? ((curPrice / avgBuy) - 1) * 100 : 0);
+      const plTotal = (curPrice - avgBuy) * qty;
+      return { coin: h.coin, qty, avgBuy, curPrice, curVal, plPct, plTotal, marginBorrowed, isShort };
+    });
+
+    const holdingsValue  = holdingsWithPrices.reduce((s, h) => s + h.curVal, 0);
+    const totalBorrowed  = holdingsWithPrices.reduce((s, h) => s + h.marginBorrowed, 0);
+    const stakingValue   = (stakingPositions || []).reduce((s, p) => s + parseFloat(p.quantity) * (priceMap[p.coin] || 0), 0);
+    const totalValue    = cash + holdingsValue + stakingValue - totalBorrowed;
+    const pl            = totalValue - seedMoney;
+    const returnPct     = ((totalValue / seedMoney) - 1) * 100;
+
+    const classRewardTokens = (rewardLedger || []).reduce((sum, r) => sum + r.tokens, 0);
+
+    let sharpeRatio = null, sortinoRatio = null, maxDrawdown = null, winRate = null;
+    try { sharpeRatio  = calculateSharpe(snapshots);  } catch {}
+    try { sortinoRatio = calculateSortino(snapshots); } catch {}
+    try { maxDrawdown  = calculateMaxDrawdown(snapshots); } catch {}
+    try { winRate      = calculateWinRate(trades);    } catch {}
+
+    // Check portfolio milestones — awards badge + returns it for dashboard toast
+    let newMilestone = null;
+    try {
+      newMilestone = await checkMilestones({ studentId: student.id, classId, returnPct });
+    } catch {}
+
+    // Compute trading streak (consecutive days with at least one trade)
+    let tradingStreak = 0;
+    try {
+      const days = [...new Set(trades.map(t => t.created_at?.slice(0, 10)).filter(Boolean))].sort().reverse();
+      if (days.length) {
+        const todayStr     = new Date().toISOString().slice(0, 10);
+        const yesterdayStr = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+        if (days[0] === todayStr || days[0] === yesterdayStr) {
+          let streak = 1, prev = new Date(days[0]);
+          for (let i = 1; i < days.length; i++) {
+            const expected = new Date(prev); expected.setDate(expected.getDate() - 1);
+            if (days[i] === expected.toISOString().slice(0, 10)) { streak++; prev = expected; }
+            else break;
+          }
+          tradingStreak = streak;
+        }
+      }
+    } catch {}
+
+    return Response.json({
+      classId,
+      summary: { startCash: seedMoney, cash: cash.toFixed(2), holdingsVal: holdingsValue.toFixed(2), stakingVal: stakingValue.toFixed(2), totalVal: totalValue.toFixed(2), pl: pl.toFixed(2), returnPct: returnPct.toFixed(2), fees: feesPaid.toFixed(2) },
+      holdings: holdingsWithPrices,
+      history:  trades.map(t => ({ id: t.id, action: t.action, coin: t.coin, quantity: parseFloat(t.quantity), price: parseFloat(t.price), grossValue: parseFloat(t.gross_value), fee: parseFloat(t.fee), cashAfter: parseFloat(t.cash_after), reasoning: t.reasoning, createdAt: t.created_at })),
+      availableCoins: coins,
+      prices: priceMap,
+      classRewardTokens,
+      classRewardEnabled: rewardCfg?.enabled || false,
+      badgeRewardTokens: rewardCfg?.badge_reward_tokens || 50,
+      sharpeRatio, sortinoRatio, maxDrawdown, winRate,
+      newMilestone, tradingStreak,
+    });
+  } catch (err) {
+    console.error('[portfolio] unhandled error:', err);
+    return Response.json({ error: err?.message || String(err) }, { status: 500 });
+  }
 }
