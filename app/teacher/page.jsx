@@ -36,7 +36,7 @@ export default function Teacher() {
   const [pickerCoins, setPickerCoins] = useState([]);
   const [pickerLoading, setPickerLoading] = useState(false);
   const [pickerSelected, setPickerSelected] = useState([]);
-  const [rewardConfig, setRewardConfig] = useState({ enabled: false, badge_reward_tokens: 50, lesson_reward_tokens: 25, crush_points_per_token: 100, crush_max_tokens_per_day: 50 });
+  const [rewardConfig, setRewardConfig] = useState({ enabled: false, badge_reward_tokens: 50, lesson_reward_tokens: 25, crush_points_per_token: 100, crush_max_tokens_per_day: 50, higher_lower_tokens_per_correct: 10 });
   const [rewardSaving, setRewardSaving] = useState(false);
   const [tradeSettings, setTradeSettings] = useState({ marginEnabled: false, marginMult: 2, shortEnabled: false });
   const [tradeSettingsSaving, setTradeSettingsSaving] = useState(false);
@@ -44,6 +44,8 @@ export default function Teacher() {
   const [migrating, setMigrating] = useState(false);
   const [ordersTableReady, setOrdersTableReady] = useState(true);
   const [migratingOrders, setMigratingOrders] = useState(false);
+  const [higherLowerTableReady, setHigherLowerTableReady] = useState(true);
+  const [migratingHigherLower, setMigratingHigherLower] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [refreshCooldown, setRefreshCooldown] = useState(null);
   const [refreshCountdown, setRefreshCountdown] = useState('');
@@ -152,6 +154,7 @@ export default function Teacher() {
             setClassCoins(Array.isArray(coins) ? coins : []);
           }
           if(rewardRes.ok) setRewardConfig(await rewardRes.json());
+          fetch('/api/admin/migrate-higher-lower').then(r=>r.ok?r.json():null).then(d=>{ if(d && !d.tableExists) setHigherLowerTableReady(false); }).catch(()=>{});
           fetch(`/api/teacher/bot?classId=${active.id}`).then(r=>r.ok?r.json():null).then(d=>{ if(d){ setBotConfig({...d.config, seedMoney: d.config.seedMoney || d.stats?.seedMoney || 10000}); setBotStats(d.stats); } }).catch(()=>{});
         }
       }
@@ -262,7 +265,7 @@ export default function Teacher() {
 
   const saveRewardConfig = async () => {
     setRewardSaving(true);
-    const res = await fetch('/api/teacher/rewards',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({classId:activeClass.id,enabled:rewardConfig.enabled,badgeRewardTokens:rewardConfig.badge_reward_tokens,lessonRewardTokens:rewardConfig.lesson_reward_tokens,crushPointsPerToken:rewardConfig.crush_points_per_token,crushMaxTokensPerDay:rewardConfig.crush_max_tokens_per_day})});
+    const res = await fetch('/api/teacher/rewards',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({classId:activeClass.id,enabled:rewardConfig.enabled,badgeRewardTokens:rewardConfig.badge_reward_tokens,lessonRewardTokens:rewardConfig.lesson_reward_tokens,crushPointsPerToken:rewardConfig.crush_points_per_token,crushMaxTokensPerDay:rewardConfig.crush_max_tokens_per_day,higherLowerTokens:rewardConfig.higher_lower_tokens_per_correct})});
     if(res.ok) setActionMsg({type:'success',msg:'✅ ClassReward settings saved'});
     else setActionMsg({type:'error',msg:'Failed to save'});
     setRewardSaving(false);
@@ -335,6 +338,16 @@ export default function Teacher() {
     if(res.ok) { setOrdersTableReady(true); setActionMsg({type:'success',msg:'✅ Limit orders table created'}); }
     else setActionMsg({type:'error',msg:data.sql ? `Run this SQL in Supabase dashboard:\n${data.sql}` : data.error||'Migration failed'});
     setMigratingOrders(false);
+    setTimeout(()=>setActionMsg(null),8000);
+  };
+
+  const runHigherLowerMigration = async () => {
+    setMigratingHigherLower(true);
+    const res = await fetch('/api/admin/migrate-higher-lower',{method:'POST'});
+    const data = await res.json();
+    if(res.ok) { setHigherLowerTableReady(true); setActionMsg({type:'success',msg:'✅ Higher / Lower game table created'}); }
+    else setActionMsg({type:'error',msg:data.sql ? `Run this SQL in Supabase dashboard:\n${data.sql}` : data.error||'Migration failed'});
+    setMigratingHigherLower(false);
     setTimeout(()=>setActionMsg(null),8000);
   };
 
@@ -926,7 +939,7 @@ export default function Teacher() {
 
                         {/* Crypto Crush settings */}
                         <div style={{marginTop:16,paddingTop:16,borderTop:'1px solid var(--border)'}}>
-                          <div style={{fontSize:11,color:'var(--accent)',fontWeight:700,marginBottom:12,display:'flex',alignItems:'center',gap:6}}>🎮 Crypto Crush Game</div>
+                          <div style={{fontSize:11,color:'var(--accent)',fontWeight:700,marginBottom:12,display:'flex',alignItems:'center',gap:6}}>🍬 Crypto Crush Game</div>
                           <div style={{display:'grid',gap:10}}>
                             <div>
                               <div style={{fontSize:11,color:'var(--muted)',marginBottom:6}}>Points per Class Reward Token</div>
@@ -951,6 +964,33 @@ export default function Teacher() {
                               <div style={{fontSize:10,color:'var(--muted)',marginTop:4}}>Maximum tokens a student can earn from Crypto Crush per day</div>
                             </div>
                           </div>
+                        </div>
+
+                        {/* Higher / Lower settings */}
+                        <div style={{marginTop:16,paddingTop:16,borderTop:'1px solid var(--border)',gridColumn:'1/-1'}}>
+                          <div style={{fontSize:11,color:'var(--accent)',fontWeight:700,marginBottom:12,display:'flex',alignItems:'center',gap:6}}>📈 Higher / Lower Game</div>
+                          <div style={{display:'grid',gap:10}}>
+                            <div>
+                              <div style={{fontSize:11,color:'var(--muted)',marginBottom:6}}>Tokens per Correct Prediction</div>
+                              <div style={{display:'flex',alignItems:'center',gap:10}}>
+                                <input type="number" min={1} max={500} className="text-input" style={{width:90,marginBottom:0}}
+                                  value={rewardConfig.higher_lower_tokens_per_correct}
+                                  onChange={e=>setRewardConfig(c=>({...c,higher_lower_tokens_per_correct:Math.max(1,parseInt(e.target.value)||10)}))}
+                                  disabled={!rewardConfig.enabled} />
+                                <span style={{fontSize:11,color:'var(--muted)'}}>tokens = {fmtUSD(rewardConfig.higher_lower_tokens_per_correct)}</span>
+                              </div>
+                              <div style={{fontSize:10,color:'var(--muted)',marginTop:4}}>Awarded when a student correctly predicts a coin&apos;s next-day direction (BTC, ETH, HBAR, SUI)</div>
+                            </div>
+                          </div>
+                          {!higherLowerTableReady && (
+                            <div style={{marginTop:12,background:'rgba(96,165,250,.06)',border:'1px solid rgba(96,165,250,.3)',borderRadius:10,padding:'10px 14px'}}>
+                              <div style={{fontSize:12,color:'#60a5fa',fontWeight:700,marginBottom:6}}>📈 Higher / Lower — Setup Required</div>
+                              <div style={{fontSize:11,color:'var(--muted)',marginBottom:8}}>Create the predictions table to enable this game.</div>
+                              <button className="btn" style={{background:'rgba(96,165,250,.2)',color:'#60a5fa',border:'1px solid rgba(96,165,250,.4)',fontSize:12}} onClick={runHigherLowerMigration} disabled={migratingHigherLower}>
+                                {migratingHigherLower?'Creating table…':'🔧 Create Predictions Table'}
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </div>
                       <div className="btn-row">

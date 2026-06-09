@@ -15,7 +15,8 @@ const ROW2 = [
   { href: '/learn',              label: 'Learn',   key: 'learn' },
   { href: '/badges',             label: 'Badges',  key: 'badges' },
   { href: '/news',               label: 'News',    key: 'news' },
-  { href: '/games/crypto-crush', label: 'Crush',   key: 'crush' },
+  { href: '/games/crypto-crush',   label: 'Crush',   key: 'crush' },
+  { href: '/games/higher-lower',   label: 'Predict', key: 'higher-lower' },
   { href: '/rewards',            label: 'Store',   key: 'store' },
 ];
 
