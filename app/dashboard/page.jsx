@@ -2395,10 +2395,13 @@ export default function Dashboard() {
                   <>
                     <div className="card" style={{marginBottom:16}}>
                       <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:15,marginBottom:4}}>📊 Buy Option Contract</div>
-                      <div style={{fontSize:11,color:'var(--muted)',marginBottom:16}}>
+                      <div style={{fontSize:11,color:'var(--muted)',marginBottom:12}}>
                         <strong>Call</strong> = right to BUY at strike price (profit if price rises) ·
                         <strong> Put</strong> = right to SELL at strike price (profit if price falls).
                         You pay a premium upfront. Auto-exercises at expiry if in-the-money.
+                      </div>
+                      <div style={{fontSize:11,color:'var(--gold)',background:'rgba(245,158,11,.08)',border:'1px solid rgba(245,158,11,.2)',borderRadius:8,padding:'7px 12px',marginBottom:16}}>
+                        ⏰ Expired contracts are settled the following morning. You can also close any open position early at its current market value.
                       </div>
                       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:10,marginBottom:12}}>
                         <div>
