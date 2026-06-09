@@ -169,13 +169,14 @@ CREATE TABLE IF NOT EXISTS pushed_articles (
 -- ── ClassReward Tokens ────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS class_reward_config (
-  class_id                uuid REFERENCES classes(id) ON DELETE CASCADE PRIMARY KEY,
-  enabled                 boolean DEFAULT false,
-  badge_reward_tokens     integer DEFAULT 50,
-  lesson_reward_tokens    integer DEFAULT 25,
-  crush_points_per_token  integer DEFAULT 100,
-  crush_max_tokens_per_day integer DEFAULT 50,
-  updated_at              timestamptz DEFAULT now()
+  class_id                         uuid REFERENCES classes(id) ON DELETE CASCADE PRIMARY KEY,
+  enabled                          boolean DEFAULT false,
+  badge_reward_tokens              integer DEFAULT 50,
+  lesson_reward_tokens             integer DEFAULT 25,
+  crush_points_per_token           integer DEFAULT 100,
+  crush_max_tokens_per_day         integer DEFAULT 50,
+  higher_lower_tokens_per_correct  integer DEFAULT 10,
+  updated_at                       timestamptz DEFAULT now()
 );
 
 CREATE TABLE IF NOT EXISTS class_reward_ledger (
@@ -410,3 +411,21 @@ CREATE TABLE IF NOT EXISTS weekly_challenge_completions (
   completed_at timestamptz DEFAULT now(),
   UNIQUE (challenge_id, student_id)
 );
+
+-- ── Higher / Lower Predictions (price direction game) ─────────
+
+CREATE TABLE IF NOT EXISTS higher_lower_predictions (
+  id                   uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  student_id           uuid REFERENCES students(id) ON DELETE CASCADE,
+  class_id             uuid REFERENCES classes(id)  ON DELETE CASCADE,
+  coin_id              text NOT NULL,
+  direction            text NOT NULL CHECK (direction IN ('higher', 'lower')),
+  price_at_prediction  numeric(20,8) NOT NULL,
+  predicted_at         timestamptz DEFAULT now(),
+  resolved_at          timestamptz,
+  resolution_price     numeric(20,8),
+  correct              boolean,
+  tokens_awarded       integer DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS hl_pred_student_class_idx
+  ON higher_lower_predictions(student_id, class_id, predicted_at DESC);

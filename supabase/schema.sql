@@ -172,11 +172,14 @@ create table if not exists pending_orders (
 
 -- ── ClassReward Config (per class, teacher-controlled) ────────
 create table if not exists class_reward_config (
-  class_id             uuid primary key references classes(id) on delete cascade,
-  enabled              boolean not null default false,
-  badge_reward_tokens  integer not null default 50,
-  lesson_reward_tokens integer not null default 25,
-  updated_at           timestamptz default now()
+  class_id                        uuid primary key references classes(id) on delete cascade,
+  enabled                         boolean not null default false,
+  badge_reward_tokens             integer not null default 50,
+  lesson_reward_tokens            integer not null default 25,
+  crush_points_per_token          integer not null default 100,
+  crush_max_tokens_per_day        integer not null default 50,
+  higher_lower_tokens_per_correct integer not null default 10,
+  updated_at                      timestamptz default now()
 );
 
 -- ── ClassReward Ledger (immutable transaction log) ────────────
@@ -332,6 +335,33 @@ create index if not exists idx_learn_attempts_student    on learn_attempts(stude
 -- Add lesson_reward_tokens to class_reward_config if missing
 alter table class_reward_config
   add column if not exists lesson_reward_tokens integer not null default 25;
+
+-- Add Crypto Crush columns if missing (older deployments)
+alter table class_reward_config
+  add column if not exists crush_points_per_token integer not null default 100;
+alter table class_reward_config
+  add column if not exists crush_max_tokens_per_day integer not null default 50;
+
+-- Add Higher / Lower columns if missing
+alter table class_reward_config
+  add column if not exists higher_lower_tokens_per_correct integer not null default 10;
+
+-- ── Higher / Lower Predictions ────────────────────────────────
+create table if not exists higher_lower_predictions (
+  id                  uuid primary key default gen_random_uuid(),
+  student_id          uuid not null references students(id) on delete cascade,
+  class_id            uuid not null references classes(id)  on delete cascade,
+  coin_id             text not null,
+  direction           text not null check (direction in ('higher', 'lower')),
+  price_at_prediction numeric(20,8) not null,
+  predicted_at        timestamptz not null default now(),
+  resolved_at         timestamptz,
+  resolution_price    numeric(20,8),
+  correct             boolean,
+  tokens_awarded      integer not null default 0
+);
+create index if not exists hl_pred_student_class_idx
+  on higher_lower_predictions(student_id, class_id, predicted_at desc);
 
 -- Add margin_borrowed to holdings if missing (older deployments)
 alter table holdings
