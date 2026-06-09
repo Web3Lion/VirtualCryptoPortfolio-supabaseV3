@@ -677,6 +677,21 @@ export default function Teacher() {
                         </div>
                       )}
                     </div>
+                    <div className="ctrl-card" style={{border:marketStatus?.flashCrash?'1px solid rgba(244,63,94,.4)':undefined,background:marketStatus?.flashCrash?'rgba(244,63,94,.04)':undefined}}>
+                      <div className="ctrl-title">📉 Flash Crash</div>
+                      <div className="ctrl-desc">All prices drop to a fraction — simulates a market crash.</div>
+                      <div className={`status-pill ${marketStatus?.flashCrash?'warn':'off'}`} style={marketStatus?.flashCrash?{background:'rgba(244,63,94,.15)',color:'var(--down)',borderColor:'rgba(244,63,94,.3)'}:{}}>{marketStatus?.flashCrash?`🔴 CRASH — prices at ${Math.round((marketStatus.flashCrashMult||0.5)*100)}%`:'⚪ INACTIVE'}</div>
+                      <div className="btn-row">
+                        {marketStatus?.flashCrash
+                          ? <button className="btn btn-green" onClick={()=>teacherAction('flash-crash/stop')}>⏹ End Crash</button>
+                          : <>
+                              <button className="btn btn-red" onClick={()=>teacherAction('flash-crash/start',{multiplier:0.5})}>📉 −50%</button>
+                              <button className="btn btn-red" onClick={()=>teacherAction('flash-crash/start',{multiplier:0.75})}>📉 −25%</button>
+                              <button className="btn btn-red" onClick={()=>teacherAction('flash-crash/start',{multiplier:0.9})}>📉 −10%</button>
+                            </>
+                        }
+                      </div>
+                    </div>
                     <div className="ctrl-card">
                       <div className="ctrl-title">⚡ Flash Sale</div>
                       <div className="ctrl-desc">Discount one coin temporarily.</div>
@@ -1540,8 +1555,9 @@ export default function Teacher() {
                             <thead>
                               <tr>
                                 <th>Student</th>
-                                <th>Trades Today</th>
-                                <th>Total Trades</th>
+                                <th>7-Day Activity</th>
+                                <th>Today</th>
+                                <th>Total</th>
                                 <th>Badges</th>
                                 <th>Last Active</th>
                                 <th>Status</th>
@@ -1551,11 +1567,30 @@ export default function Teacher() {
                               {[...analyticsData].sort((a,b)=>b.tradesToday-a.tradesToday||b.tradeCount-a.tradeCount).map(s=>{
                                 const lastDate = s.lastTradeAt ? new Date(s.lastTradeAt) : null;
                                 const daysAgo = lastDate ? Math.floor((Date.now()-lastDate.getTime())/(1000*86400)) : null;
+                                const days = s.tradesByDay || Array(7).fill(0);
+                                const labels = s.dayLabels || ['','','','','','',''];
+                                const maxTrades = Math.max(...days, 1);
                                 return (
                                   <tr key={s.studentId} className="srow">
                                     <td>
                                       <div style={{fontWeight:600}}>{s.name}</div>
                                       <div style={{fontSize:10,color:'var(--muted)'}}>{s.email}</div>
+                                    </td>
+                                    <td>
+                                      <div style={{display:'flex',gap:3,alignItems:'flex-end'}}>
+                                        {days.map((count,i)=>{
+                                          const intensity = count === 0 ? 0 : Math.max(0.2, count / maxTrades);
+                                          const bg = count === 0
+                                            ? 'rgba(71,85,105,.25)'
+                                            : `rgba(0,229,160,${intensity})`;
+                                          return (
+                                            <div key={i} title={`${labels[i]}: ${count} trade${count!==1?'s':''}`} style={{width:14,height:14,borderRadius:3,background:bg,border:`1px solid ${count>0?'rgba(0,229,160,.3)':'rgba(71,85,105,.2)'}`,cursor:'default'}} />
+                                          );
+                                        })}
+                                      </div>
+                                      <div style={{display:'flex',gap:3,marginTop:2}}>
+                                        {labels.map((l,i)=><div key={i} style={{width:14,fontSize:8,color:'var(--muted)',textAlign:'center',lineHeight:1}}>{l[0]}</div>)}
+                                      </div>
                                     </td>
                                     <td style={{textAlign:'center'}}>
                                       <span style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:14,color:s.tradesToday>0?'var(--accent)':'var(--muted)'}}>{s.tradesToday}</span>

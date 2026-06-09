@@ -218,15 +218,18 @@ export async function GET(request) {
   let marketEvent = null;
   if (market) {
     const bullActive  = market.bullRun;
+    const crashActive = market.flashCrash;
     const saleActive  = !!market.flashSale;
-    if (bullActive || saleActive) {
+    if (bullActive || crashActive || saleActive) {
       Object.keys(result).forEach(sym => {
-        if (bullActive)                        result[sym].price *= market.bullMult;
+        if (bullActive)  result[sym].price *= market.bullMult;
+        if (crashActive) result[sym].price *= market.flashCrashMult;
         if (saleActive && market.flashSale.coin === sym) result[sym].price *= market.flashSale.factor;
       });
     }
-    if (bullActive) marketEvent = { type: 'bull_run', mult: market.bullMult };
-    else if (saleActive) marketEvent = { type: 'flash_sale', coin: market.flashSale.coin, factor: market.flashSale.factor };
+    if (bullActive)       marketEvent = { type: 'bull_run',    mult: market.bullMult };
+    else if (crashActive) marketEvent = { type: 'flash_crash', mult: market.flashCrashMult };
+    else if (saleActive)  marketEvent = { type: 'flash_sale',  coin: market.flashSale.coin, factor: market.flashSale.factor };
   }
 
   // ?full=true returns array format for compatibility

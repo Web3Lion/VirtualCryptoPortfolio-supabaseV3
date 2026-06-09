@@ -20,6 +20,12 @@ export async function POST(request, { params }) {
     case 'unfreeze':
       await setConfigs({ MARKET_FREEZE: '0', MARKET_FREEZE_REASON: '', MARKET_FREEZE_UNTIL: '' });
       return Response.json({ success: true, message: '✅ Market open' });
+    case 'flash-crash/start':
+      await setConfigs({ FLASH_CRASH_ACTIVE: '1', FLASH_CRASH_MULTIPLIER: String(body.multiplier || 0.5) });
+      return Response.json({ success: true, message: `📉 Flash crash started (prices at ${Math.round((body.multiplier || 0.5) * 100)}%)` });
+    case 'flash-crash/stop':
+      await setConfigs({ FLASH_CRASH_ACTIVE: '0' });
+      return Response.json({ success: true, message: '⏹ Flash crash ended' });
     case 'bull-run/start':
       await setConfigs({ BULL_RUN_ACTIVE: '1', BULL_RUN_MULTIPLIER: String(body.multiplier || 2) });
       return Response.json({ success: true, message: `🐂 Bull run started (${body.multiplier || 2}×)` });

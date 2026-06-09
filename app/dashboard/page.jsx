@@ -788,6 +788,15 @@ export default function Dashboard() {
         {marketStatus?.frozen && (
           <div className="freeze-banner">🚫 {marketStatus.freezeReason}</div>
         )}
+        {activeMarketEvent?.type === 'flash_crash' && (
+          <div style={{background:'rgba(220,38,38,.12)',border:'1px solid rgba(220,38,38,.4)',borderRadius:12,padding:'12px 18px',marginBottom:16,display:'flex',alignItems:'center',gap:12}}>
+            <span style={{fontSize:22}}>📉</span>
+            <div>
+              <div style={{fontSize:13,fontWeight:700,color:'#f87171',letterSpacing:.3}}>FLASH CRASH — Market in freefall!</div>
+              <div style={{fontSize:11,color:'rgba(248,113,113,.8)',marginTop:2}}>All prices are down {Math.round((1-(activeMarketEvent.mult||0.5))*100)}% · Buy the dip or wait it out</div>
+            </div>
+          </div>
+        )}
         {activeMarketEvent?.type === 'bull_run' && (
           <div style={{background:'rgba(245,158,11,.12)',border:'1px solid rgba(245,158,11,.4)',borderRadius:12,padding:'10px 16px',marginBottom:12,display:'flex',alignItems:'center',gap:10,boxShadow:'0 0 20px rgba(245,158,11,.1)'}}>
             <span style={{fontSize:18}}>🐂</span>
