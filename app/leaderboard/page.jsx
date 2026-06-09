@@ -207,7 +207,7 @@ export default function Leaderboard() {
     if(status==='authenticated'){
       // Silently refresh prices + take intraday snapshot on page load.
       // Server enforces a 30-min cooldown so this is safe to fire every visit.
-      fetch('/api/refresh', { method: 'POST' }).catch(() => {});
+      fetch('/api/snapshots/intraday', { method: 'POST' }).catch(() => {});
       fetchAll();
       const iv = setInterval(fetchAll, 60000);
       return () => clearInterval(iv);
