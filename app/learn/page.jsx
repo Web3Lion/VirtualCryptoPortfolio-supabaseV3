@@ -91,7 +91,7 @@ export default function Learn() {
         <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 32, letterSpacing: -1, marginBottom: 4 }}>
           🎓 <span style={{ color: "var(--accent)" }}>Learn</span>
         </div>
-        <div style={{ fontSize: 11, color: "#94a3b8", marginBottom: 24 }}>Complete lessons to earn tokens and level up your crypto knowledge</div>
+        <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 24 }}>Complete lessons to earn tokens and level up your crypto knowledge</div>
 
         {loading ? (
           <>
@@ -101,13 +101,13 @@ export default function Learn() {
             <div className="skeleton" style={{ height: 68 }} />
           </>
         ) : notReady ? (
-          <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 32, textAlign: "center", color: "#94a3b8" }}>
+          <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 32, textAlign: "center", color: "var(--muted)" }}>
             <div style={{ fontSize: 32, marginBottom: 12 }}>🚧</div>
             <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 16, marginBottom: 8, color: "var(--text)" }}>Learning modules not set up yet</div>
             <div style={{ fontSize: 12 }}>Ask your teacher to enable this feature.</div>
           </div>
         ) : modules.length === 0 ? (
-          <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 32, textAlign: "center", color: "#94a3b8" }}>
+          <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 32, textAlign: "center", color: "var(--muted)" }}>
             <div style={{ fontSize: 32, marginBottom: 12 }}>📭</div>
             <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 16, marginBottom: 8, color: "var(--text)" }}>No modules yet</div>
             <div style={{ fontSize: 12 }}>Check back soon — your teacher is building content.</div>
@@ -118,12 +118,12 @@ export default function Learn() {
               <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 18, marginBottom: 20, display: "flex", alignItems: "center", gap: 20 }}>
                 <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 36, color: "var(--accent)", lineHeight: 1 }}>{passedLessons}</div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 11, color: "#94a3b8", marginBottom: 6 }}>of {totalLessons} lessons passed</div>
+                  <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 6 }}>of {totalLessons} lessons passed</div>
                   <div className="progress-bar-wrap">
                     <div className="progress-bar-fill" style={{ width: `${totalLessons > 0 ? (passedLessons / totalLessons) * 100 : 0}%` }} />
                   </div>
                 </div>
-                <div style={{ fontSize: 11, color: "#94a3b8" }}>
+                <div style={{ fontSize: 11, color: "var(--muted)" }}>
                   {modules.filter(m => {
                     const ls = m.lessons || [];
                     return ls.length > 0 && ls.every(l => l.progress?.passed);
@@ -160,7 +160,7 @@ export default function Learn() {
                       {isComplete ? (
                         <span className="mod-badge" style={{ background: "rgba(0,229,160,.15)", color: "#00e5a0" }}>✓ Complete</span>
                       ) : lessons.length > 0 ? (
-                        <span className="mod-badge" style={{ background: "var(--surface2)", color: "#94a3b8" }}>{doneLessons}/{lessons.length}</span>
+                        <span className="mod-badge" style={{ background: "var(--surface2)", color: "var(--muted)" }}>{doneLessons}/{lessons.length}</span>
                       ) : null}
                       <span className={`chevron${isOpen ? " open" : ""}`}>▼</span>
                     </div>
@@ -170,7 +170,7 @@ export default function Learn() {
                     <div className="lessons-inner">
                       <div className="lessons-inner-pad">
                         {lessons.length === 0 ? (
-                          <div style={{ fontSize: 11, color: "#475569", padding: "8px 0" }}>No lessons yet</div>
+                          <div style={{ fontSize: 11, color: "var(--muted)", padding: "8px 0" }}>No lessons yet</div>
                         ) : lessons.map(lesson => {
                           const prog = lesson.progress;
                           const passed = prog?.passed;
@@ -185,7 +185,7 @@ export default function Learn() {
                               <div className="status-dot" style={{ background: dotColor }} />
                               <div style={{ flex: 1 }}>
                                 <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{lesson.title}</div>
-                                {lesson.description && <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>{lesson.description}</div>}
+                                {lesson.description && <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 2 }}>{lesson.description}</div>}
                               </div>
                               <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
                                 {lesson.tokens_reward > 0 && (
@@ -198,7 +198,7 @@ export default function Learn() {
                                     {prog.score}%
                                   </span>
                                 )}
-                                <span style={{ fontSize: 14, color: "#475569" }}>→</span>
+                                <span style={{ fontSize: 14, color: "var(--muted)" }}>→</span>
                               </div>
                             </Link>
                           );

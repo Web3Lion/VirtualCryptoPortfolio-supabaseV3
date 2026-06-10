@@ -69,7 +69,7 @@ function ContentBlock({ block }) {
         {segments.map((seg, i) =>
           seg.type === "table"
             ? <div key={i} style={{ overflowX: "auto", margin: "12px 0" }} dangerouslySetInnerHTML={{ __html: seg.html }} />
-            : <div key={i} style={{ fontSize: 13, lineHeight: 1.9, color: "#cbd5e1", whiteSpace: "pre-wrap" }}
+            : <div key={i} style={{ fontSize: 13, lineHeight: 1.9, color: "var(--text)", whiteSpace: "pre-wrap" }}
                 dangerouslySetInnerHTML={{ __html: bold(seg.content) }} />
         )}
       </div>
@@ -83,7 +83,7 @@ function ContentBlock({ block }) {
     if (ytMatch) {
       return (
         <div style={{ margin: "16px 0" }}>
-          {content.title && <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 6 }}>▶ {content.title}</div>}
+          {content.title && <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 6 }}>▶ {content.title}</div>}
           <div style={{ position: "relative", paddingBottom: "56.25%", height: 0, borderRadius: 12, overflow: "hidden", background: "#000" }}>
             <iframe
               src={`https://www.youtube-nocookie.com/embed/${ytMatch[1]}`}
@@ -92,23 +92,23 @@ function ContentBlock({ block }) {
               title={content.title || "Video"}
             />
           </div>
-          {content.description && <div style={{ fontSize: 11, color: "#475569", marginTop: 6 }}>{content.description}</div>}
+          {content.description && <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 6 }}>{content.description}</div>}
         </div>
       );
     }
     return (
       <a href={content.url} target="_blank" rel="noopener noreferrer" style={{ display: "block", background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 12, padding: 14, margin: "12px 0", textDecoration: "none" }}>
         <div style={{ fontSize: 12, color: "var(--accent)" }}>▶ {content.title || content.url}</div>
-        {content.description && <div style={{ fontSize: 11, color: "#475569", marginTop: 4 }}>{content.description}</div>}
+        {content.description && <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>{content.description}</div>}
       </a>
     );
   }
   if (block_type === "article") {
     return (
       <a href={content.url} target="_blank" rel="noopener noreferrer" style={{ display: "block", background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 12, padding: 14, margin: "12px 0", textDecoration: "none" }}>
-        <div style={{ fontSize: 11, color: "#94a3b8", marginBottom: 4 }}>📖 FURTHER READING</div>
+        <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 4 }}>📖 FURTHER READING</div>
         <div style={{ fontSize: 13, color: "var(--accent)", fontWeight: 600 }}>{content.title || content.url}</div>
-        {content.description && <div style={{ fontSize: 11, color: "#475569", marginTop: 4 }}>{content.description}</div>}
+        {content.description && <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>{content.description}</div>}
       </a>
     );
   }
@@ -227,7 +227,7 @@ function LessonPage() {
         <Nav active="learn" />
 
         <div style={{ marginBottom: 20 }}>
-          <Link href="/learn" style={{ fontSize: 11, color: "#475569", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}>
+          <Link href="/learn" style={{ fontSize: 11, color: "var(--muted)", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}>
             ← Back to modules
           </Link>
         </div>
@@ -241,18 +241,18 @@ function LessonPage() {
           <>
             <div style={{ marginBottom: 20 }}>
               <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 26, letterSpacing: -0.5 }}>{lesson?.title}</div>
-              {lesson?.description && <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 4 }}>{lesson.description}</div>}
+              {lesson?.description && <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>{lesson.description}</div>}
               <div style={{ display: "flex", gap: 12, marginTop: 10, flexWrap: "wrap" }}>
                 {lesson?.tokens_reward > 0 && (
                   <span style={{ fontSize: 11, color: "var(--accent)", background: "rgba(0,229,160,.1)", padding: "3px 10px", borderRadius: 6 }}>
                     +{lesson.tokens_reward} tokens on pass
                   </span>
                 )}
-                <span style={{ fontSize: 11, color: "#94a3b8", background: "var(--surface2)", padding: "3px 10px", borderRadius: 6 }}>
+                <span style={{ fontSize: 11, color: "var(--muted)", background: "var(--surface2)", padding: "3px 10px", borderRadius: 6 }}>
                   Pass at {lesson?.pass_threshold || 75}%
                 </span>
                 {questions.length > 0 && (
-                  <span style={{ fontSize: 11, color: "#94a3b8", background: "var(--surface2)", padding: "3px 10px", borderRadius: 6 }}>
+                  <span style={{ fontSize: 11, color: "var(--muted)", background: "var(--surface2)", padding: "3px 10px", borderRadius: 6 }}>
                     {questions.length} question{questions.length !== 1 ? "s" : ""}
                   </span>
                 )}
@@ -285,7 +285,7 @@ function LessonPage() {
                       <div style={{ marginTop: 20, background: "rgba(0,229,160,.1)", border: "1px solid rgba(0,229,160,.3)", borderRadius: 14, padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
                         <div>
                           <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 15, color: "var(--accent)" }}>🎉 Lesson complete!</div>
-                          {gameTokens > 0 && <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 2 }}>+{gameTokens} tokens earned</div>}
+                          {gameTokens > 0 && <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>+{gameTokens} tokens earned</div>}
                         </div>
                         <Link href="/learn" className="btn" style={{ background: "var(--accent)", color: "#000", textDecoration: "none", padding: "10px 20px", borderRadius: 10, fontSize: 12, fontWeight: 700 }}>
                           ← Back to modules
@@ -299,7 +299,7 @@ function LessonPage() {
                 {!GameComponent && (
                   <div className="card" style={{ marginBottom: 0 }}>
                   {!gameBlock && blocks.length === 0 && (
-                    <div style={{ color: "#475569", fontSize: 13, padding: "20px 0" }}>No content yet.</div>
+                    <div style={{ color: "var(--muted)", fontSize: 13, padding: "20px 0" }}>No content yet.</div>
                   )}
 
                 <div style={{ background: questions.length > 0 ? "linear-gradient(135deg,rgba(0,229,160,.12),rgba(59,130,246,.08))" : "var(--surface)", border: `1px solid ${questions.length > 0 ? "rgba(0,229,160,.3)" : "var(--border)"}`, borderRadius: 20, padding: "24px 28px", marginTop: 16, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
@@ -307,7 +307,7 @@ function LessonPage() {
                     <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 16, color: "var(--text)", marginBottom: 4 }}>
                       {questions.length > 0 ? "Ready to test your knowledge?" : "No quiz for this lesson yet"}
                     </div>
-                    <div style={{ fontSize: 12, color: "#94a3b8" }}>
+                    <div style={{ fontSize: 12, color: "var(--muted)" }}>
                       {questions.length > 0
                         ? `${questions.length} question${questions.length !== 1 ? "s" : ""} · pass at ${lesson?.pass_threshold || 75}%${lesson?.tokens_reward > 0 ? ` · earn +${lesson.tokens_reward} tokens` : ""}`
                         : "The teacher hasn't added quiz questions yet"}
@@ -329,7 +329,7 @@ function LessonPage() {
             {phase === "quiz" && (
               <div className="card">
                 <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 18, marginBottom: 4 }}>Quiz</div>
-                <div style={{ fontSize: 11, color: "#94a3b8", marginBottom: 24 }}>
+                <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 24 }}>
                   {answeredCount}/{questions.length} answered
                 </div>
 
@@ -376,7 +376,7 @@ function LessonPage() {
                   <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 48, color: results.passed ? "var(--accent)" : "#ef4444", lineHeight: 1 }}>
                     {results.score}%
                   </div>
-                  <div style={{ fontSize: 14, color: "#94a3b8", marginTop: 8 }}>
+                  <div style={{ fontSize: 14, color: "var(--muted)", marginTop: 8 }}>
                     {results.correct}/{results.total} correct
                   </div>
                   <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 18, marginTop: 12, color: results.passed ? "var(--accent)" : "#94a3b8" }}>
@@ -413,7 +413,7 @@ function LessonPage() {
                         );
                       })}
                       {q.explanation && (
-                        <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 6, padding: "8px 12px", background: "rgba(71,85,105,.15)", borderRadius: 8, borderLeft: "3px solid var(--accent)" }}>
+                        <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 6, padding: "8px 12px", background: "rgba(71,85,105,.15)", borderRadius: 8, borderLeft: "3px solid var(--accent)" }}>
                           {q.explanation}
                         </div>
                       )}
