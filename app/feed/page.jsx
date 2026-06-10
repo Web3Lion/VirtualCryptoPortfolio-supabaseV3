@@ -26,10 +26,53 @@ function fmtVal(v) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(v);
 }
 
+function CopyModal({ item, onClose }) {
+  const [amount, setAmount] = useState(item.value > 0 ? String(Math.round(item.value)) : '');
+  const [status, setStatus] = useState(null);
+  const copyAction = ['BUY','SHORT'].includes(item.action) ? item.action : 'BUY';
+
+  async function execute() {
+    setStatus('loading');
+    try {
+      const res = await fetch('/api/trade', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: copyAction, coin: item.coin, amountType: 'Dollar Amount', amount: parseFloat(amount), reasoning: `Copied ${item.name}'s trade from the feed` }),
+      });
+      const d = await res.json();
+      if (res.ok && d.success) { setStatus('done'); setTimeout(onClose, 1200); }
+      else setStatus(d.error || 'Failed');
+    } catch (e) { setStatus('Failed'); }
+  }
+
+  return (
+    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.6)', zIndex:1000, display:'flex', alignItems:'center', justifyContent:'center', padding:16 }} onClick={onClose}>
+      <div style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:16, padding:24, width:'100%', maxWidth:340 }} onClick={e => e.stopPropagation()}>
+        <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:16, marginBottom:4 }}>Copy Trade</div>
+        <div style={{ fontSize:12, color:'var(--muted)', marginBottom:16 }}>Mirror {item.isMine ? 'your' : `${item.name}'s`} {copyAction.toLowerCase()} on {item.coin}</div>
+        <div style={{ fontSize:11, color:'var(--muted)', marginBottom:4 }}>Dollar Amount</div>
+        <input type="number" min="1" step="1" value={amount} onChange={e => setAmount(e.target.value)}
+          style={{ width:'100%', background:'var(--surface2)', border:'1px solid var(--border)', borderRadius:8, padding:'9px 12px', color:'var(--text)', fontSize:14, fontFamily:"'DM Mono',monospace", marginBottom:14 }} />
+        <div style={{ display:'flex', gap:8 }}>
+          <button onClick={onClose} style={{ flex:1, padding:'9px', borderRadius:8, border:'1px solid var(--border)', background:'transparent', color:'var(--muted)', cursor:'pointer', fontSize:12 }}>Cancel</button>
+          <button onClick={execute} disabled={!amount || status === 'loading' || status === 'done'}
+            style={{ flex:1, padding:'9px', borderRadius:8, border:'none', background: status==='done'?'rgba(0,229,160,.3)':'var(--accent)', color:'#000', cursor:'pointer', fontSize:12, fontWeight:700, fontFamily:"'DM Mono',monospace" }}>
+            {status === 'loading' ? '…' : status === 'done' ? '✓ Done' : `${copyAction} ${item.coin}`}
+          </button>
+        </div>
+        {status && status !== 'loading' && status !== 'done' && (
+          <div style={{ marginTop:10, fontSize:11, color:'var(--down)' }}>{status}</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function TradeCard({ item, onReact }) {
   const [expanded, setExpanded] = useState(false);
   const [localReactions, setLocalReactions] = useState(item.reactions || {});
   const [mine, setMine] = useState(item.reactions?.__mine || null);
+  const [copying, setCopying] = useState(false);
   const st = ACTION_STYLE[item.action] || ACTION_STYLE.BUY;
   const hasReasoning = item.reasoning && item.reasoning.trim().length > 0;
   const cleanReasoning = hasReasoning ? item.reasoning.replace(/^\[EVENT:[^\]]+\]\s*/,'') : '';
@@ -77,8 +120,15 @@ function TradeCard({ item, onReact }) {
         </div>
       )}
 
-      {/* Reactions */}
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+      {/* Reactions + Copy */}
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+        {['BUY','SHORT'].includes(item.action) && !item.isMine && (
+          <button onClick={() => setCopying(true)} style={{ padding:'3px 10px', borderRadius:20, border:'1px solid var(--border)', background:'transparent', cursor:'pointer', fontSize:11, color:'var(--muted)', fontFamily:"'DM Mono',monospace", transition:'all .15s' }}
+            onMouseEnter={e=>{ e.currentTarget.style.borderColor='var(--accent)'; e.currentTarget.style.color='var(--accent)'; }}
+            onMouseLeave={e=>{ e.currentTarget.style.borderColor='var(--border)'; e.currentTarget.style.color='var(--muted)'; }}>
+            Copy
+          </button>
+        )}
         {EMOJIS.map(e => {
           const count = localReactions[e] || 0;
           const active = mine === e;
@@ -96,6 +146,7 @@ function TradeCard({ item, onReact }) {
           );
         })}
       </div>
+    {copying && <CopyModal item={item} onClose={() => setCopying(false)} />}
     </div>
   );
 }

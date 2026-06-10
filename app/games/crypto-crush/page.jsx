@@ -97,6 +97,15 @@ export default function CryptoCrush() {
   const [claiming, setClaiming]       = useState(false);
   const [claimResult, setClaimResult] = useState(null);
   const [earnedBadges, setEarnedBadges] = useState([]);
+  const [crushLb, setCrushLb] = useState([]);
+
+  useEffect(() => {
+    if (!classId) return;
+    fetch(`/api/games/leaderboard?classId=${classId}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => d?.crush && setCrushLb(d.crush))
+      .catch(() => {});
+  }, [classId]);
 
   // ── Game render state ──────────────────────────────────────────────────────
   const [cells, setCells]           = useState(() => makeBoard());   // 2-D array for rendering
@@ -518,6 +527,21 @@ export default function CryptoCrush() {
                 <div style={{ fontSize:12, color:"#94a3b8" }}>{claimResult?.reason}</div>
               </>
             )}
+          </div>
+        )}
+
+        {/* ── Class Leaderboard ── */}
+        {crushLb.length > 0 && (
+          <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:14, padding:"14px 16px", marginTop:14 }}>
+            <div style={{ fontSize:11, color:"var(--muted)", marginBottom:10, textTransform:"uppercase", letterSpacing:1.5, fontFamily:"'DM Mono',monospace" }}>🏆 Class Leaderboard</div>
+            {crushLb.map((s, i) => (
+              <div key={s.id} style={{ display:"flex", alignItems:"center", gap:10, padding:"7px 0", borderBottom: i < crushLb.length-1 ? "1px solid var(--border)" : "none" }}>
+                <span style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:13, color: i===0?"var(--gold)":i===1?"#94a3b8":i===2?"#cd7c2f":"var(--muted)", width:20, textAlign:"center" }}>{i===0?"🥇":i===1?"🥈":i===2?"🥉":i+1}</span>
+                <span style={{ flex:1, fontSize:12, fontWeight:600 }}>{s.name}</span>
+                <span style={{ fontFamily:"'DM Mono',monospace", fontSize:11, color:"var(--gold)", fontWeight:700 }}>{s.total.toLocaleString()} pts</span>
+                <span style={{ fontSize:10, color:"var(--muted)", width:60, textAlign:"right" }}>best {s.best.toLocaleString()}</span>
+              </div>
+            ))}
           </div>
         )}
 
