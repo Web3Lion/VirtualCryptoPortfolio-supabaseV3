@@ -36,8 +36,8 @@ function renderTextContent(text) {
         rows.map((row, ri) => {
           const cells = row.split("|").slice(1, -1);
           const tag = ri === 0 ? "th" : "td";
-          const bg = ri === 0 ? "background:#1a2235;" : ri % 2 === 0 ? "background:rgba(255,255,255,.02);" : "";
-          return `<tr>${cells.map(c => `<${tag} style="padding:10px 14px;border:1px solid #1e293b;text-align:left;${bg}white-space:nowrap">${bold(c.trim())}</${tag}>`).join("")}</tr>`;
+          const bg = ri === 0 ? "background:var(--surface2);" : ri % 2 === 0 ? "background:var(--surface2);" : "";
+          return `<tr>${cells.map(c => `<${tag} style="padding:10px 14px;border:1px solid var(--border);text-align:left;color:var(--text);${bg}white-space:nowrap">${bold(c.trim())}</${tag}>`).join("")}</tr>`;
         }).join("")
       }</table>`;
       segments.push({ type: "table", html });
