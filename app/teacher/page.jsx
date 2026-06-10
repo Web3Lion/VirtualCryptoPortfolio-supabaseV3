@@ -52,8 +52,11 @@ export default function Teacher() {
   const [refreshResult, setRefreshResult] = useState(null);
   const [editingClassName, setEditingClassName] = useState(false);
   const [classNameInput, setClassNameInput] = useState('');
-  const [moveStudent, setMoveStudent] = useState(null); // student object to move
+  const [moveStudent, setMoveStudent] = useState(null);
   const [moveTargetClass, setMoveTargetClass] = useState('');
+  const [pastSeasons, setPastSeasons] = useState([]);
+  const [seasonEnding, setSeasonEnding] = useState(false);
+  const [seasonResult, setSeasonResult] = useState(null);
   const [backfilling, setBackfilling] = useState(false);
   const [botConfig, setBotConfig] = useState({ enabled:false, strategy:'momentum', risk:'moderate', maxPositions:5, buyThreshold:2, takeProfit:15, stopLoss:10, seedMoney:10000 });
   const [botStats, setBotStats]   = useState(null);
@@ -261,6 +264,27 @@ export default function Teacher() {
       setAllStudents(merged);
     } catch(e) { console.error(e); }
     setAllStudentsLoading(false);
+  };
+
+  const loadSeasons = async (classId) => {
+    try {
+      const res = await fetch('/api/teacher/seasons', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ classId }) });
+      if (res.ok) setPastSeasons(await res.json());
+    } catch {}
+  };
+
+  const endSeason = async () => {
+    if (!activeClass) return;
+    if (!confirm(`End the current season for "${activeClass.name}"?\n\nFinal standings will be saved, then all portfolios reset to $${activeClass.seed_money?.toLocaleString() || '10,000'}.`)) return;
+    setSeasonEnding(true);
+    setSeasonResult(null);
+    try {
+      const res = await fetch('/api/teacher/end-season', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ classId: activeClass.id }) });
+      const d = await res.json();
+      if (res.ok) { setSeasonResult({ type: 'success', msg: `✅ Season ${d.season} archived — ${d.standings?.length} students reset` }); fetchData(activeClass.id); loadSeasons(activeClass.id); }
+      else setSeasonResult({ type: 'error', msg: d.error || 'Failed' });
+    } catch { setSeasonResult({ type: 'error', msg: 'Network error' }); }
+    setSeasonEnding(false);
   };
 
   const saveRewardConfig = async () => {
@@ -536,6 +560,7 @@ export default function Teacher() {
                 <button key={s} className={`stab${activeSection===s?' active':''}`} onClick={()=>{
                   setActiveSection(s);
                   if(s==='analytics') fetchAnalytics(activeClass?.id);
+                  if(s==='students') loadSeasons(activeClass?.id);
                   if(s==='grades'){ setGradesData(null); setGradesLoading(true); fetch(`/api/teacher/export?classId=${activeClass?.id}&format=json`).then(r=>r.ok?r.json():null).then(d=>{if(d)setGradesData(d);setGradesLoading(false);}).catch(()=>setGradesLoading(false)); }
                 }}>{s.charAt(0).toUpperCase()+s.slice(1)}</button>
               ))}
@@ -1518,6 +1543,56 @@ export default function Teacher() {
                             })}
                           </tbody>
                         </table>
+                      )}
+                    </div>
+
+                    {/* Season Management */}
+                    <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:20,padding:22,marginTop:16}}>
+                      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}}>
+                        <div>
+                          <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:15,color:'var(--text)'}}>🏁 Season Management</div>
+                          <div style={{fontSize:11,color:'var(--muted)',marginTop:2}}>Archive final standings and reset all portfolios for a new term.</div>
+                        </div>
+                        <button
+                          className="btn btn-red"
+                          onClick={() => { endSeason(); }}
+                          disabled={seasonEnding}
+                          style={{padding:'8px 16px',fontSize:12,flexShrink:0}}
+                        >
+                          {seasonEnding ? 'Ending…' : '🏁 End Season'}
+                        </button>
+                      </div>
+                      {seasonResult && (
+                        <div style={{marginTop:12,fontSize:12,padding:'8px 12px',borderRadius:8,background:seasonResult.type==='success'?'rgba(0,229,160,.1)':'rgba(244,63,94,.1)',color:seasonResult.type==='success'?'var(--up)':'var(--down)'}}>
+                          {seasonResult.msg}
+                        </div>
+                      )}
+                      {pastSeasons.length === 0 && (
+                        <button style={{marginTop:12,background:'transparent',border:'none',color:'var(--accent)',fontSize:11,cursor:'pointer',padding:0}} onClick={()=>loadSeasons(activeClass?.id)}>
+                          Load past seasons ↓
+                        </button>
+                      )}
+                      {pastSeasons.length > 0 && (
+                        <div style={{marginTop:16}}>
+                          {pastSeasons.map(season => (
+                            <details key={season.season} style={{marginBottom:8}}>
+                              <summary style={{cursor:'pointer',fontSize:12,color:'var(--text)',padding:'8px 12px',background:'var(--surface2)',borderRadius:10,userSelect:'none'}}>
+                                Season {season.season} — {new Date(season.endedAt).toLocaleDateString()} &nbsp;·&nbsp; {season.standings?.length} students
+                              </summary>
+                              <div style={{paddingTop:8,paddingLeft:8}}>
+                                {(season.standings || []).slice(0, 5).map(s => (
+                                  <div key={s.id} style={{display:'flex',alignItems:'center',gap:10,padding:'6px 10px',fontSize:11,borderBottom:'1px solid var(--border)'}}>
+                                    <span style={{color:'var(--muted)',minWidth:20,textAlign:'right'}}>#{s.rank}</span>
+                                    <span style={{flex:1,fontWeight:600}}>{s.name}</span>
+                                    <span style={{color:s.returnPct>=0?'var(--up)':'var(--down)',fontWeight:700}}>{s.returnPct>=0?'+':''}{s.returnPct?.toFixed(1)}%</span>
+                                    <span style={{color:'var(--muted)'}}>${s.total?.toLocaleString()}</span>
+                                  </div>
+                                ))}
+                                {season.standings?.length > 5 && <div style={{fontSize:10,color:'var(--muted)',padding:'4px 10px'}}>+{season.standings.length - 5} more</div>}
+                              </div>
+                            </details>
+                          ))}
+                        </div>
                       )}
                     </div>
                   </>

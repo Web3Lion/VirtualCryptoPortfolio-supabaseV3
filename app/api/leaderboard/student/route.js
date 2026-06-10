@@ -9,12 +9,30 @@ export async function GET(request) {
 
   const { searchParams } = new URL(request.url);
   const studentId = searchParams.get('studentId');
-  const classId   = searchParams.get('classId');
-  if (!studentId || !classId) return Response.json({ error: 'studentId and classId required' }, { status: 400 });
+  let classId     = searchParams.get('classId');
+  if (!studentId) return Response.json({ error: 'studentId required' }, { status: 400 });
 
-  // Verify requester is in the same class (or is the teacher)
   const email = session.user.email.toLowerCase();
   const isTeacher = email === process.env.TEACHER_EMAIL?.toLowerCase();
+
+  // Auto-detect classId: find a class both viewer and target share
+  if (!classId) {
+    if (isTeacher) {
+      const { data: tc } = await db.from('classes').select('id').eq('teacher_email', process.env.TEACHER_EMAIL).order('created_at', { ascending: false }).limit(1).single();
+      classId = tc?.id;
+    } else {
+      const { data: me } = await db.from('students').select('id').eq('email', email).single();
+      if (me) {
+        const { data: myClasses } = await db.from('class_students').select('class_id').eq('student_id', me.id);
+        const myClassIds = (myClasses || []).map(c => c.class_id);
+        const { data: theirClasses } = await db.from('class_students').select('class_id').eq('student_id', studentId);
+        classId = (theirClasses || []).map(c => c.class_id).find(id => myClassIds.includes(id));
+      }
+    }
+  }
+  if (!classId) return Response.json({ error: 'Class not found' }, { status: 404 });
+
+  // Verify requester is in the same class (or is teacher)
   if (!isTeacher) {
     const { data: me } = await db.from('students').select('id').eq('email', email).single();
     if (me) {
@@ -29,11 +47,12 @@ export async function GET(request) {
   const { data: cls } = await db.from('classes').select('seed_money').eq('id', classId).single();
   const seedMoney = parseFloat(cls?.seed_money || 10000);
 
-  const [portRes, holdRes, tradesRes, snapsRes] = await Promise.all([
+  const [portRes, holdRes, tradesRes, snapsRes, badgesRes] = await Promise.all([
     db.from('portfolios').select('cash, fees_paid').eq('student_id', studentId).eq('class_id', classId).single(),
     db.from('holdings').select('coin, quantity, avg_buy_price, margin_borrowed').eq('student_id', studentId).eq('class_id', classId),
     db.from('trades').select('action, coin, quantity, price, gross_value, fee, cash_after, reasoning, created_at').eq('student_id', studentId).eq('class_id', classId).order('created_at', { ascending: false }).limit(20),
     db.from('snapshots').select('total_value, created_at').eq('student_id', studentId).eq('class_id', classId).order('created_at', { ascending: true }),
+    db.from('badges').select('badge_id, earned_at').eq('student_id', studentId).eq('class_id', classId),
   ]);
 
   const cash = parseFloat(portRes.data?.cash || 0);
@@ -110,5 +129,6 @@ export async function GET(request) {
       createdAt: t.created_at,
     })),
     chartData,
+    badges: (badgesRes.data || []).map(b => b.badge_id),
   });
 }

@@ -14,7 +14,7 @@ const clean  = s => parseFloat(String(s||'').replace(/[$,%]/g,''))||0;
 const STUDENT_COLORS = ['#00e5a0','#3b82f6','#f59e0b','#f43f5e','#8b5cf6','#06b6d4','#10b981','#f97316'];
 const SECTOR_COLORS  = {
   'Layer 1':'#3b82f6','Layer 2':'#8b5cf6','DeFi':'#06b6d4','AI / Data':'#00e5a0',
-  'Gaming/NFT':'#f59e0b','Memecoin':'#f43f5e','Stablecoin':'#94a3b8','Exchange':'#f97316',
+  'Gaming/NFT':'#f59e0b','Memecoin':'#f43f5e','Stablecoin':'var(--muted)','Exchange':'#f97316',
   'Cash':'#334155','Other':'#475569',
 };
 const COIN_COLORS = {
@@ -478,16 +478,19 @@ export default function Leaderboard() {
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.75)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000,padding:16}} onClick={()=>setSelectedStudent(null)}>
           <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:24,padding:28,width:'100%',maxWidth:620,maxHeight:'90vh',overflowY:'auto'}} onClick={e=>e.stopPropagation()}>
             {profileLoading ? (
-              <div style={{textAlign:'center',padding:40,color:'#94a3b8'}}>Loading portfolio…</div>
+              <div style={{textAlign:'center',padding:40,color:'var(--muted)'}}>Loading portfolio…</div>
             ) : studentProfile ? (
               <>
                 {/* Header */}
                 <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20}}>
                   <div>
                     <div style={{fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:20,color:'var(--text)'}}>{studentProfile.student.isBot?'🤖 ':''}{studentProfile.student.name}</div>
-                    <div style={{fontSize:11,color:'#94a3b8',marginTop:2}}>Portfolio Overview</div>
+                    <div style={{fontSize:11,color:'var(--muted)',marginTop:2}}>Portfolio Overview</div>
                   </div>
-                  <button onClick={()=>setSelectedStudent(null)} style={{background:'none',border:'none',color:'var(--muted)',cursor:'pointer',fontSize:20,lineHeight:1}}>✕</button>
+                  <div style={{display:'flex',alignItems:'center',gap:8}}>
+                    <a href={`/profile/${studentProfile.student.id}`} style={{fontSize:11,color:'var(--accent)',textDecoration:'none',padding:'4px 10px',borderRadius:8,border:'1px solid var(--border)'}}>Full Profile →</a>
+                    <button onClick={()=>setSelectedStudent(null)} style={{background:'none',border:'none',color:'var(--muted)',cursor:'pointer',fontSize:20,lineHeight:1}}>✕</button>
+                  </div>
                 </div>
 
                 {/* Summary Stats */}
@@ -507,7 +510,7 @@ export default function Leaderboard() {
                       <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:10,marginBottom:20}}>
                         {[['Cash',fmtUSD(s.cash),'var(--text)'],['Holdings',fmtUSD(s.holdingsVal),'var(--text)'],s.stakingVal>0?['Staked',fmtUSD(s.stakingVal),'#60a5fa']:['Fees',fmtUSD(s.fees),'var(--muted)'],['Start',fmtUSD(s.seedMoney),'var(--muted)']].map(([label,val,color])=>(
                           <div key={label} style={{background:'var(--surface2)',borderRadius:12,padding:'10px 12px',textAlign:'center'}}>
-                            <div style={{fontSize:10,color:'#94a3b8',marginBottom:4}}>{label}</div>
+                            <div style={{fontSize:10,color:'var(--muted)',marginBottom:4}}>{label}</div>
                             <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:13,color}}>{val}</div>
                           </div>
                         ))}
@@ -530,7 +533,7 @@ export default function Leaderboard() {
                     <div style={{display:'grid',gridTemplateColumns:`repeat(${metricItems.length},1fr)`,gap:10,marginBottom:20}}>
                       {metricItems.map(([label, val, colorFn, fmt]) => (
                         <div key={label} style={{background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:12,padding:'10px 12px',textAlign:'center'}}>
-                          <div style={{fontSize:10,color:'#94a3b8',marginBottom:4}}>{label}</div>
+                          <div style={{fontSize:10,color:'var(--muted)',marginBottom:4}}>{label}</div>
                           <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:14,color:colorFn(val)}}>{fmt(val)}</div>
                         </div>
                       ))}
@@ -550,11 +553,11 @@ export default function Leaderboard() {
                             <div style={{width:8,height:8,borderRadius:'50%',background:getCoinColor(h.coin),flexShrink:0}}/>
                             <div>
                               <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:13,color:'var(--text)'}}>{h.isShort?'⬇ ':'+'}{h.coin}</div>
-                              <div style={{fontSize:10,color:'#94a3b8'}}>{Math.abs(h.qty).toFixed(4)} @ {fmtUSD(h.avgBuy)}</div>
+                              <div style={{fontSize:10,color:'var(--muted)'}}>{Math.abs(h.qty).toFixed(4)} @ {fmtUSD(h.avgBuy)}</div>
                             </div>
                             <div style={{textAlign:'right'}}>
                               <div style={{fontSize:13,fontWeight:600,color:'var(--text)'}}>{fmtUSD(h.curVal)}</div>
-                              <div style={{fontSize:10,color:'#94a3b8'}}>{fmtUSD(h.curPrice)}</div>
+                              <div style={{fontSize:10,color:'var(--muted)'}}>{fmtUSD(h.curPrice)}</div>
                             </div>
                             <div style={{textAlign:'right',minWidth:60}}>
                               <div style={{fontSize:13,fontWeight:600,color:isPos?'var(--up)':'var(--down)'}}>{isPos?'+':''}{h.plPct.toFixed(1)}%</div>
@@ -576,9 +579,9 @@ export default function Leaderboard() {
                         <div key={i} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 12px',background:'var(--surface2)',borderRadius:10,fontSize:12}}>
                           <span style={{color:t.action==='BUY'?'var(--up)':t.action==='SELL'||t.action==='SELL_ALL'?'var(--down)':'#8b5cf6',fontWeight:700,minWidth:52}}>{t.action}</span>
                           <span style={{color:'var(--text)',fontWeight:600}}>{t.coin}</span>
-                          <span style={{color:'#94a3b8'}}>{Math.abs(t.quantity).toFixed(4)}</span>
+                          <span style={{color:'var(--muted)'}}>{Math.abs(t.quantity).toFixed(4)}</span>
                           <span style={{color:'var(--text)'}}>{fmtUSD(t.price)}</span>
-                          <span style={{color:'#94a3b8',fontSize:10}}>{new Date(t.createdAt).toLocaleDateString()}</span>
+                          <span style={{color:'var(--muted)',fontSize:10}}>{new Date(t.createdAt).toLocaleDateString()}</span>
                         </div>
                       ))}
                     </div>
@@ -586,7 +589,7 @@ export default function Leaderboard() {
                 )}
               </>
             ) : (
-              <div style={{textAlign:'center',padding:40,color:'#94a3b8'}}>Could not load portfolio</div>
+              <div style={{textAlign:'center',padding:40,color:'var(--muted)'}}>Could not load portfolio</div>
             )}
           </div>
         </div>

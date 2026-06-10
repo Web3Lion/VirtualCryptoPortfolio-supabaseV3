@@ -121,6 +121,49 @@ export async function POST(request, { params }) {
       ]);
       return Response.json({ success: true, message: '✅ Reset' });
     }
+    case 'end-season': {
+      if (!body.classId) return Response.json({ error: 'classId required' }, { status: 400 });
+      const { data: clsS } = await db.from('classes').select('seed_money').eq('id', body.classId).single();
+      const seedMoney = parseFloat(clsS?.seed_money || 10000);
+      const { data: classStudents } = await db.from('class_students').select('student_id, students(id, name)').eq('class_id', body.classId);
+      const studentIds = (classStudents || []).map(r => r.student_id);
+      const nameMap = Object.fromEntries((classStudents || []).map(r => [r.student_id, r.students?.name || 'Unknown']));
+      const [portRes, holdRes, priceRes] = await Promise.all([
+        db.from('portfolios').select('student_id, cash').in('student_id', studentIds).eq('class_id', body.classId),
+        db.from('holdings').select('student_id, coin, quantity, avg_buy_price').in('student_id', studentIds).eq('class_id', body.classId).gt('quantity', 0),
+        db.from('price_cache').select('symbol, price'),
+      ]);
+      const priceMap = Object.fromEntries((priceRes.data || []).map(p => [p.symbol, parseFloat(p.price)]));
+      const portfolioMap = Object.fromEntries((portRes.data || []).map(p => [p.student_id, parseFloat(p.cash)]));
+      const holdingsMap = {};
+      (holdRes.data || []).forEach(h => {
+        if (!holdingsMap[h.student_id]) holdingsMap[h.student_id] = [];
+        holdingsMap[h.student_id].push(h);
+      });
+      const standings = studentIds.map(sid => {
+        const cash = portfolioMap[sid] || 0;
+        const hv = (holdingsMap[sid] || []).reduce((s, h) => s + parseFloat(h.quantity) * (priceMap[h.coin] || parseFloat(h.avg_buy_price)), 0);
+        const total = cash + hv;
+        return { id: sid, name: nameMap[sid], total: +total.toFixed(2), returnPct: +((total / seedMoney - 1) * 100).toFixed(2) };
+      }).sort((a, b) => b.total - a.total).map((s, i) => ({ ...s, rank: i + 1 }));
+      const { data: existing } = await db.from('class_configs').select('value').eq('class_id', body.classId).eq('key', 'SEASONS_ARCHIVE').single();
+      const prev = (() => { try { return JSON.parse(existing?.value || '[]'); } catch { return []; } })();
+      const archive = [{ season: prev.length + 1, endedAt: new Date().toISOString(), seedMoney, standings }, ...prev].slice(0, 10);
+      await db.from('class_configs').upsert({ class_id: body.classId, key: 'SEASONS_ARCHIVE', value: JSON.stringify(archive) }, { onConflict: 'class_id,key' });
+      await Promise.all(studentIds.map(sid => Promise.all([
+        db.from('portfolios').update({ cash: seedMoney, fees_paid: 0 }).eq('student_id', sid).eq('class_id', body.classId),
+        db.from('holdings').delete().eq('student_id', sid).eq('class_id', body.classId),
+        db.from('trades').delete().eq('student_id', sid).eq('class_id', body.classId),
+        db.from('snapshots').delete().eq('student_id', sid).eq('class_id', body.classId),
+      ])));
+      return Response.json({ success: true, season: prev.length + 1, standings });
+    }
+    case 'seasons': {
+      if (!body.classId) return Response.json({ error: 'classId required' }, { status: 400 });
+      const { data: sData } = await db.from('class_configs').select('value').eq('class_id', body.classId).eq('key', 'SEASONS_ARCHIVE').single();
+      const seasons = (() => { try { return JSON.parse(sData?.value || '[]'); } catch { return []; } })();
+      return Response.json(seasons);
+    }
     case 'edit-class': {
       if (!body.classId || !body.name) return Response.json({ error: 'classId and name required' }, { status: 400 });
       await db.from('classes').update({ name: body.name }).eq('id', body.classId);

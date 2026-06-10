@@ -255,6 +255,7 @@ export default function Dashboard() {
   const [activeTournament, setActiveTournament] = useState(null);
   const [activeAssignments, setActiveAssignments] = useState([]);
   const [optionsPositions, setOptionsPositions] = useState([]);
+  const [expiringOptions, setExpiringOptions] = useState([]);
   const [optionsForm, setOptionsForm] = useState({ coin: '', type: 'call', strikeMode: 'atm', customStrike: '', expiryDays: 7 });
   const [optionsStatus, setOptionsStatus] = useState(null);
   const [optionsTableReady, setOptionsTableReady] = useState(true);
@@ -262,6 +263,20 @@ export default function Dashboard() {
   useEffect(() => {
     applyTheme(getTheme());
   }, []);
+
+  // Check for options expiring within 48 hours on mount
+  useEffect(() => {
+    if (status !== 'authenticated') return;
+    fetch('/api/options')
+      .then(r => r.ok ? r.json() : [])
+      .then(opts => {
+        if (!Array.isArray(opts)) return;
+        setOptionsPositions(opts);
+        const cutoff = Date.now() + 48 * 3600 * 1000;
+        setExpiringOptions(opts.filter(o => o.status === 'open' && new Date(o.expires_at).getTime() <= cutoff));
+      })
+      .catch(() => {});
+  }, [status]);
 
   const fetchData = useCallback(async () => {
     try {
@@ -856,6 +871,23 @@ export default function Dashboard() {
               <span style={{fontSize:13,fontWeight:700,color:'#a78bfa'}}>HISTORICAL SCENARIO</span>
               <span style={{fontSize:12,color:'#c4b5fd',marginLeft:8}}>Trading on historical prices — {marketStatus.scenarioLabel}</span>
             </div>
+          </div>
+        )}
+        {expiringOptions.length > 0 && (
+          <div style={{background:'rgba(251,191,36,.08)',border:'1px solid rgba(251,191,36,.3)',borderRadius:12,padding:'10px 16px',marginBottom:12,display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
+            <span style={{fontSize:18}}>⏰</span>
+            <div style={{flex:1,minWidth:0}}>
+              <span style={{fontSize:13,fontWeight:700,color:'#fbbf24'}}>Options expiring soon: </span>
+              <span style={{fontSize:12,color:'var(--text)'}}>
+                {expiringOptions.map(o => {
+                  const daysLeft = Math.ceil((new Date(o.expires_at) - new Date()) / (1000 * 86400));
+                  return `${o.option_type?.toUpperCase()} ${o.coin} (${daysLeft <= 0 ? 'today' : daysLeft === 1 ? 'tomorrow' : `${daysLeft}d`})`;
+                }).join(' · ')}
+              </span>
+            </div>
+            <button onClick={() => setActiveTab('options')} style={{padding:'4px 12px',borderRadius:8,border:'1px solid rgba(251,191,36,.4)',background:'transparent',color:'#fbbf24',cursor:'pointer',fontSize:11,whiteSpace:'nowrap',flexShrink:0}}>
+              View →
+            </button>
           </div>
         )}
         {refreshResult && !refreshResult.blocked && !refreshResult.error && (
