@@ -759,7 +759,28 @@ export default function Dashboard() {
         @keyframes slideUp{from{opacity:0;transform:translateX(-50%) translateY(20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
         .watch-form{background:var(--surface2);border:1px solid var(--border);border-radius:16px;padding:18px;margin-bottom:16px}
         .watch-form-grid{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;align-items:end}
-        @media(max-width:640px){.hero-value{font-size:36px}.hero-stats{grid-template-columns:1fr 1fr}.trade-grid{grid-template-columns:1fr}.watch-form-grid{grid-template-columns:1fr 1fr}.range-btns{flex-wrap:wrap}}
+        .options-form-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:12px}
+        .options-preview-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px}
+        .dca-form-grid{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;align-items:end;margin-bottom:10px}
+        .tax-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+        @media(max-width:640px){
+          .hero-value{font-size:32px}
+          .hero-stats{grid-template-columns:1fr 1fr}
+          .trade-grid{grid-template-columns:1fr}
+          .watch-form-grid{grid-template-columns:1fr 1fr}
+          .range-btns{flex-wrap:wrap}
+          .tabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px}
+          .tabs::-webkit-scrollbar{display:none}
+          .tab{flex:0 0 auto;min-width:0;padding:8px 10px;font-size:10px}
+          .options-form-grid{grid-template-columns:1fr 1fr}
+          .options-preview-grid{grid-template-columns:1fr 1fr}
+          .dca-form-grid{grid-template-columns:1fr 1fr}
+          .tax-grid{grid-template-columns:1fr}
+          .holding-row{grid-template-columns:32px 1fr auto;gap:10px}
+          .history-row{grid-template-columns:28px 1fr auto}
+          .watch-row{grid-template-columns:1fr auto;flex-wrap:wrap}
+          .page{padding:16px 12px}
+        }
       `}</style>
 
       <div className="page">
@@ -2349,7 +2370,7 @@ export default function Dashboard() {
                 <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:20,padding:22,marginTop:16}}>
                   <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:15,marginBottom:4}}>🔄 Dollar-Cost Averaging</div>
                   <div style={{fontSize:11,color:'var(--muted)',marginBottom:14}}>Auto-buy a fixed $ amount on a schedule. Executes daily at 4pm UTC.</div>
-                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr auto',gap:8,alignItems:'end',marginBottom:10}}>
+                  <div className="dca-form-grid">
                     <div>
                       <div className="form-label">Coin</div>
                       <select className="form-select" value={dcaForm.coin} onChange={e=>setDcaForm(f=>({...f,coin:e.target.value}))}>
@@ -2412,7 +2433,7 @@ export default function Dashboard() {
                       <div style={{fontSize:11,color:'var(--gold)',background:'rgba(245,158,11,.08)',border:'1px solid rgba(245,158,11,.2)',borderRadius:8,padding:'7px 12px',marginBottom:16}}>
                         ⏰ Expired contracts are settled the following morning. You can also close any open position early at its current market value.
                       </div>
-                      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:10,marginBottom:12}}>
+                      <div className="options-form-grid">
                         <div>
                           <div className="form-label">Coin</div>
                           <select className="form-select" value={optionsForm.coin} onChange={e=>setOptionsForm(f=>({...f,coin:e.target.value}))}>
@@ -2474,7 +2495,7 @@ export default function Dashboard() {
                         const timeVal = strike * vol * Math.sqrt(Math.max(0, optionsForm.expiryDays) / 365);
                         const premiumPer = intrinsic + timeVal;
                         return (
-                          <div style={{background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:10,padding:'12px 16px',marginBottom:12,display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:10}}>
+                          <div className="options-preview-grid" style={{background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:10,padding:'12px 16px',marginBottom:12}}>
                             <div><div style={{fontSize:9,color:'var(--muted)',letterSpacing:2,textTransform:'uppercase',marginBottom:2}}>Strike</div><div style={{fontSize:13,fontWeight:600}}>${strike.toLocaleString('en-US',{maximumFractionDigits:2})}</div></div>
                             <div><div style={{fontSize:9,color:'var(--muted)',letterSpacing:2,textTransform:'uppercase',marginBottom:2}}>Premium / contract</div><div style={{fontSize:13,fontWeight:600,color:'var(--gold)'}}>${premiumPer.toLocaleString('en-US',{maximumFractionDigits:2})}</div></div>
                             <div><div style={{fontSize:9,color:'var(--muted)',letterSpacing:2,textTransform:'uppercase',marginBottom:2}}>Break-even</div><div style={{fontSize:13,fontWeight:600}}>${(optionsForm.type==='call'?strike+premiumPer:strike-premiumPer).toLocaleString('en-US',{maximumFractionDigits:2})}</div></div>
@@ -2656,7 +2677,7 @@ export default function Dashboard() {
                       <span style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:13,color:'var(--gold)'}}>Estimated Tax — {new Date().getFullYear()}</span>
                       <span style={{fontSize:10,color:'var(--muted)'}}>US federal approximation · educational only</span>
                     </div>
-                    <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:10}}>
+                    <div className="tax-grid">
                       {[
                         ['Short-term gains', stGains, `${(ST_RATE*100).toFixed(0)}% rate`, stGains * ST_RATE],
                         ['Long-term gains',  ltGains, `${(LT_RATE*100).toFixed(0)}% rate`, ltGains * LT_RATE],
