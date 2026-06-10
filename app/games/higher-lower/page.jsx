@@ -321,7 +321,7 @@ export default function HigherLowerGame() {
           <div style={{ fontFamily:"'DM Mono',monospace", fontSize:11, color:"var(--muted)", textTransform:"uppercase", letterSpacing:1.5, marginBottom:10 }}>🏆 Class Leaderboard</div>
           {hlLb.map((s, i) => (
             <div key={s.id} style={{ display:"flex", alignItems:"center", gap:10, padding:"8px 0", borderBottom: i < hlLb.length-1 ? "1px solid var(--border)" : "none" }}>
-              <span style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:13, color: i===0?"var(--gold)":i===1?"#94a3b8":i===2?"#cd7c2f":"var(--muted)", width:20, textAlign:"center" }}>{i===0?"🥇":i===1?"🥈":i===2?"🥉":i+1}</span>
+              <span style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:13, color: i===0?"var(--gold)":i===1?"var(--muted)":i===2?"#cd7c2f":"var(--muted)", width:20, textAlign:"center" }}>{i===0?"🥇":i===1?"🥈":i===2?"🥉":i+1}</span>
               <span style={{ flex:1, fontSize:12, fontWeight:600 }}>{s.name}</span>
               <span style={{ fontFamily:"'DM Mono',monospace", fontSize:11, fontWeight:700, color:"var(--accent)" }}>{s.correct} correct</span>
               <span style={{ fontSize:10, color:"var(--muted)", width:48, textAlign:"right" }}>{s.accuracy != null ? `${s.accuracy}%` : "—"}</span>

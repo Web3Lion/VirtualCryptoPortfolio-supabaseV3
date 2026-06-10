@@ -46,7 +46,7 @@ export default function TrueFalse({ config, onComplete, completed }) {
   const timerColor = timeLeft > 4 ? '#00e5a0' : timeLeft > 2 ? '#f59e0b' : '#ef4444';
 
   if (!statements.length) return (
-    <div style={{ textAlign: 'center', color: '#475569', padding: 32 }}>No statements configured for this game.</div>
+    <div style={{ textAlign: 'center', color: 'var(--muted)', padding: 32 }}>No statements configured for this game.</div>
   );
 
   if (done) {
@@ -57,7 +57,7 @@ export default function TrueFalse({ config, onComplete, completed }) {
         <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 24, color: 'var(--accent)', marginBottom: 6 }}>
           {score}/{statements.length} Correct
         </div>
-        <div style={{ fontSize: 13, color: '#94a3b8' }}>{pct >= 80 ? 'Excellent!' : pct >= 50 ? 'Not bad — keep studying!' : 'Review the material and try again.'}</div>
+        <div style={{ fontSize: 13, color: 'var(--muted)' }}>{pct >= 80 ? 'Excellent!' : pct >= 50 ? 'Not bad — keep studying!' : 'Review the material and try again.'}</div>
       </div>
     );
   }
@@ -71,7 +71,7 @@ export default function TrueFalse({ config, onComplete, completed }) {
 
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <div style={{ fontSize: 11, color: '#475569', letterSpacing: 1 }}>QUESTION {idx + 1} / {statements.length}</div>
+        <div style={{ fontSize: 11, color: 'var(--muted)', letterSpacing: 1 }}>QUESTION {idx + 1} / {statements.length}</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{ width: 80, height: 6, background: 'var(--surface2)', borderRadius: 3, overflow: 'hidden' }}>
             <div style={{ width: `${pct}%`, height: '100%', background: timerColor, borderRadius: 3, transition: 'width .9s linear, background .3s' }} />
@@ -105,7 +105,7 @@ export default function TrueFalse({ config, onComplete, completed }) {
             style={{
               padding: '20px 0', borderRadius: 14, border: `2px solid ${color}`,
               background: answering ? 'var(--surface2)' : bg,
-              color: answering ? '#475569' : color,
+              color: answering ? 'var(--muted)' : color,
               fontSize: 15, fontWeight: 800, fontFamily: "'Syne',sans-serif",
               cursor: answering ? 'not-allowed' : 'pointer',
               transition: 'all .15s', letterSpacing: 1,
@@ -115,7 +115,7 @@ export default function TrueFalse({ config, onComplete, completed }) {
       </div>
 
       {/* Score tracker */}
-      <div style={{ textAlign: 'center', marginTop: 16, fontSize: 11, color: '#475569' }}>
+      <div style={{ textAlign: 'center', marginTop: 16, fontSize: 11, color: 'var(--muted)' }}>
         Score: {score} / {idx} correct so far
       </div>
     </div>

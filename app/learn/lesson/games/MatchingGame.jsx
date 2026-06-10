@@ -74,7 +74,7 @@ export default function MatchingGame({ config, onComplete, completed }) {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
         {/* Terms */}
         <div>
-          <div style={{ fontSize: 10, color: "#475569", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Terms</div>
+          <div style={{ fontSize: 10, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Terms</div>
           {terms.map(({ id, term }) => {
             const isMatched = matched.has(id);
             const isSel = selectedTerm === id;
@@ -99,7 +99,7 @@ export default function MatchingGame({ config, onComplete, completed }) {
 
         {/* Definitions */}
         <div>
-          <div style={{ fontSize: 10, color: "#475569", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Definitions</div>
+          <div style={{ fontSize: 10, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Definitions</div>
           {shuffledDefs.map(({ id, definition }) => {
             const isMatched = matched.has(id);
             const isSel = selectedDef === id;
@@ -111,7 +111,7 @@ export default function MatchingGame({ config, onComplete, completed }) {
                   background: isMatched ? "rgba(0,229,160,.1)" : isWrong ? "rgba(239,68,68,.1)" : isSel ? "rgba(0,229,160,.2)" : "var(--surface2)",
                   border: `2px solid ${isMatched ? "rgba(0,229,160,.4)" : isWrong ? "#ef4444" : isSel ? "var(--accent)" : "var(--border)"}`,
                   fontSize: 11, lineHeight: 1.5,
-                  color: isMatched ? "var(--accent)" : isWrong ? "#ef4444" : "#cbd5e1",
+                  color: isMatched ? "var(--accent)" : isWrong ? "#ef4444" : "var(--text)",
                   transition: "all .15s", opacity: isMatched ? .6 : 1,
                 }}>
                 {definition}
@@ -121,7 +121,7 @@ export default function MatchingGame({ config, onComplete, completed }) {
         </div>
       </div>
 
-      <div style={{ marginTop: 10, fontSize: 11, color: "#475569" }}>
+      <div style={{ marginTop: 10, fontSize: 11, color: "var(--muted)" }}>
         {matched.size}/{pairs.length} matched · Click a term, then its definition
       </div>
     </div>

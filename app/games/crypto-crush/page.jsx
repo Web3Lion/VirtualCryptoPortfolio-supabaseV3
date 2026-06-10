@@ -302,7 +302,7 @@ export default function CryptoCrush() {
   const timerColor    = timeLeft > 30 ? "#00e5a0" : timeLeft > 10 ? "#f59e0b" : "#ef4444";
 
   if (status === "loading" || status === "unauthenticated") {
-    return <div style={{ background: "#080c14", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", color: "#475569" }}>Loading…</div>;
+    return <div style={{ background: "#080c14", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)" }}>Loading…</div>;
   }
 
   return (
@@ -322,13 +322,13 @@ export default function CryptoCrush() {
         }
         .crush-title{font-family:'Syne',sans-serif;font-weight:800;font-size:28px;letter-spacing:-1px;line-height:1}
         .crush-title span{color:var(--accent)}
-        .crush-sub{font-size:11px;color:#64748b;margin-top:4px}
+        .crush-sub{font-size:11px;color:var(--muted);margin-top:4px}
 
         /* ── Stats bar ── */
         .stats-bar{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px}
         .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;text-align:center}
         .stat-val{font-family:'Syne',sans-serif;font-weight:800;font-size:24px;line-height:1}
-        .stat-lbl{font-size:9px;color:#475569;margin-top:4px;letter-spacing:1.5px;text-transform:uppercase}
+        .stat-lbl{font-size:9px;color:var(--muted);margin-top:4px;letter-spacing:1.5px;text-transform:uppercase}
         .timer-bar{height:5px;border-radius:3px;background:var(--surface2);overflow:hidden;margin-top:6px}
         .timer-fill{height:100%;border-radius:3px;transition:width .9s linear,background .5s}
 
@@ -344,7 +344,7 @@ export default function CryptoCrush() {
           background:rgba(8,12,20,.75);backdrop-filter:blur(2px);
           display:flex;align-items:center;justify-content:center;
           font-family:'Syne',sans-serif;font-weight:700;font-size:15px;
-          color:#475569;pointer-events:none;letter-spacing:.5px;
+          color:var(--muted);pointer-events:none;letter-spacing:.5px;
         }
         .tile{
           aspect-ratio:1;border-radius:10px;display:flex;flex-direction:column;
@@ -388,7 +388,7 @@ export default function CryptoCrush() {
         .result-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;margin-top:12px;text-align:center}
 
         /* ── Hint strip ── */
-        .hint-strip{text-align:center;font-size:11px;color:#475569;padding:8px 0;margin-top:6px}
+        .hint-strip{text-align:center;font-size:11px;color:var(--muted);padding:8px 0;margin-top:6px}
       `}</style>
 
       <div className="page">
@@ -419,7 +419,7 @@ export default function CryptoCrush() {
             )}
             {gameState === "playing" && (
               <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:14, color:"#f59e0b" }}>
-                🎁 {tokensToday}<span style={{ fontSize:11, color:"#475569", fontWeight:400 }}>/{maxTokens} today</span>
+                🎁 {tokensToday}<span style={{ fontSize:11, color:"var(--muted)", fontWeight:400 }}>/{maxTokens} today</span>
               </div>
             )}
           </div>
@@ -441,7 +441,7 @@ export default function CryptoCrush() {
           </div>
           <div className="stat-card">
             <div className="stat-val" style={{ color:"#f59e0b" }}>
-              {tokensToday}<span style={{ fontSize:14, color:"#475569" }}>/{maxTokens}</span>
+              {tokensToday}<span style={{ fontSize:14, color:"var(--muted)" }}>/{maxTokens}</span>
             </div>
             <div className="stat-lbl">Tokens Today</div>
           </div>
@@ -486,7 +486,7 @@ export default function CryptoCrush() {
         {gameState === "over" && (
           <div className="result-card">
             <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:22, marginBottom:8 }}>⏱ Time's Up!</div>
-            <div style={{ fontSize:15, color:"#94a3b8", marginBottom:14 }}>
+            <div style={{ fontSize:15, color:"var(--muted)", marginBottom:14 }}>
               Final score: <strong style={{ color:"var(--accent)", fontSize:26 }}>{score}</strong>
             </div>
             {tokensPreview > 0 ? (
@@ -494,7 +494,7 @@ export default function CryptoCrush() {
                 🎉 You earned <strong style={{ color:"#f59e0b", fontSize:20 }}>{tokensPreview}</strong> Class Reward Token{tokensPreview !== 1 ? "s" : ""}!
               </div>
             ) : (
-              <div style={{ color:"#475569", fontSize:12, marginBottom:18 }}>
+              <div style={{ color:"var(--muted)", fontSize:12, marginBottom:18 }}>
                 {tokensToday >= maxTokens ? "Daily limit already reached." : `Need ${pointsPerToken} pts per token. Keep going!`}
               </div>
             )}
@@ -518,13 +518,13 @@ export default function CryptoCrush() {
                 <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:22, marginBottom:6, color:"#f59e0b" }}>
                   +{claimResult.tokensAwarded} Token{claimResult.tokensAwarded !== 1 ? "s" : ""} Claimed!
                 </div>
-                <div style={{ fontSize:12, color:"#94a3b8", marginBottom:4 }}>Today: {claimResult.tokensToday}/{maxTokens}</div>
+                <div style={{ fontSize:12, color:"var(--muted)", marginBottom:4 }}>Today: {claimResult.tokensToday}/{maxTokens}</div>
               </>
             ) : (
               <>
                 <div style={{ fontSize:36, marginBottom:8 }}>😅</div>
                 <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:16, marginBottom:6 }}>No tokens this time</div>
-                <div style={{ fontSize:12, color:"#94a3b8" }}>{claimResult?.reason}</div>
+                <div style={{ fontSize:12, color:"var(--muted)" }}>{claimResult?.reason}</div>
               </>
             )}
           </div>
@@ -536,7 +536,7 @@ export default function CryptoCrush() {
             <div style={{ fontSize:11, color:"var(--muted)", marginBottom:10, textTransform:"uppercase", letterSpacing:1.5, fontFamily:"'DM Mono',monospace" }}>🏆 Class Leaderboard</div>
             {crushLb.map((s, i) => (
               <div key={s.id} style={{ display:"flex", alignItems:"center", gap:10, padding:"7px 0", borderBottom: i < crushLb.length-1 ? "1px solid var(--border)" : "none" }}>
-                <span style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:13, color: i===0?"var(--gold)":i===1?"#94a3b8":i===2?"#cd7c2f":"var(--muted)", width:20, textAlign:"center" }}>{i===0?"🥇":i===1?"🥈":i===2?"🥉":i+1}</span>
+                <span style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:13, color: i===0?"var(--gold)":i===1?"var(--muted)":i===2?"#cd7c2f":"var(--muted)", width:20, textAlign:"center" }}>{i===0?"🥇":i===1?"🥈":i===2?"🥉":i+1}</span>
                 <span style={{ flex:1, fontSize:12, fontWeight:600 }}>{s.name}</span>
                 <span style={{ fontFamily:"'DM Mono',monospace", fontSize:11, color:"var(--gold)", fontWeight:700 }}>{s.total.toLocaleString()} pts</span>
                 <span style={{ fontSize:10, color:"var(--muted)", width:60, textAlign:"right" }}>best {s.best.toLocaleString()}</span>
@@ -547,12 +547,12 @@ export default function CryptoCrush() {
 
         {/* ── Coin legend ── */}
         <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:14, padding:"12px 16px", marginTop:14 }}>
-          <div style={{ fontSize:9, color:"#475569", marginBottom:8, textTransform:"uppercase", letterSpacing:1.5 }}>Coins in play</div>
+          <div style={{ fontSize:9, color:"var(--muted)", marginBottom:8, textTransform:"uppercase", letterSpacing:1.5 }}>Coins in play</div>
           <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
             {COINS.map(c => (
               <div key={c.id} style={{ display:"flex", alignItems:"center", gap:5, background:"var(--surface2)", borderRadius:8, padding:"4px 10px" }}>
                 <div style={{ width:20, height:20, borderRadius:"50%", background:c.bg, display:"flex", alignItems:"center", justifyContent:"center", fontSize:10, fontWeight:800, color:c.fg }}>{c.symbol}</div>
-                <span style={{ fontSize:11, color:"#94a3b8" }}>{c.label}</span>
+                <span style={{ fontSize:11, color:"var(--muted)" }}>{c.label}</span>
               </div>
             ))}
           </div>

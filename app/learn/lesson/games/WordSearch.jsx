@@ -167,14 +167,14 @@ export default function WordSearch({ config, onComplete, completed }) {
                   </span>
                   {isFound && <span style={{ color: "var(--accent)", fontSize: 14 }}>✓</span>}
                 </div>
-                <span style={{ fontSize: 10, color: "#475569", lineHeight: 1.4, maxWidth: 180 }}>{definition}</span>
+                <span style={{ fontSize: 10, color: "var(--muted)", lineHeight: 1.4, maxWidth: 180 }}>{definition}</span>
               </div>
             );
           })}
-          <div style={{ marginTop: 8, fontSize: 11, color: "#475569" }}>{found.size}/{placed.length} found</div>
+          <div style={{ marginTop: 8, fontSize: 11, color: "var(--muted)" }}>{found.size}/{placed.length} found</div>
         </div>
       </div>
-      <div style={{ fontSize: 10, color: "#475569", marginTop: 10 }}>Click a letter to start · Click another to select the word</div>
+      <div style={{ fontSize: 10, color: "var(--muted)", marginTop: 10 }}>Click a letter to start · Click another to select the word</div>
     </div>
   );
 }

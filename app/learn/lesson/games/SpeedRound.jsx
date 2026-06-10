@@ -56,7 +56,7 @@ export default function SpeedRound({ config, onComplete, completed }) {
   }, [done, completed, onComplete]);
 
   if (!questions.length) return (
-    <div style={{ textAlign: 'center', color: '#475569', padding: 32 }}>No questions configured for this Speed Round.</div>
+    <div style={{ textAlign: 'center', color: 'var(--muted)', padding: 32 }}>No questions configured for this Speed Round.</div>
   );
 
   if (done) {
@@ -65,8 +65,8 @@ export default function SpeedRound({ config, onComplete, completed }) {
       <div style={{ textAlign: 'center', padding: '32px 16px' }}>
         <div style={{ fontSize: 52, marginBottom: 12 }}>{pct >= 70 ? '⚡' : pct >= 40 ? '💨' : '🐢'}</div>
         <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 28, color: 'var(--accent)', marginBottom: 4 }}>{points} pts</div>
-        <div style={{ fontSize: 13, color: '#94a3b8', marginBottom: 4 }}>out of {MAX_POINTS} possible</div>
-        <div style={{ fontSize: 12, color: '#475569' }}>Speed bonus included — faster answers = more points</div>
+        <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 4 }}>out of {MAX_POINTS} possible</div>
+        <div style={{ fontSize: 12, color: 'var(--muted)' }}>Speed bonus included — faster answers = more points</div>
       </div>
     );
   }
@@ -79,7 +79,7 @@ export default function SpeedRound({ config, onComplete, completed }) {
     <div style={{ padding: '8px 0' }}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-        <div style={{ fontSize: 11, color: '#475569', letterSpacing: 1 }}>{idx + 1} / {questions.length}</div>
+        <div style={{ fontSize: 11, color: 'var(--muted)', letterSpacing: 1 }}>{idx + 1} / {questions.length}</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 700 }}>⚡ {points} pts</div>
           <div style={{ width: 100, height: 6, background: 'var(--surface2)', borderRadius: 3, overflow: 'hidden' }}>
@@ -128,7 +128,7 @@ export default function SpeedRound({ config, onComplete, completed }) {
         })}
       </div>
 
-      <div style={{ textAlign: 'center', marginTop: 12, fontSize: 10, color: '#334155' }}>
+      <div style={{ textAlign: 'center', marginTop: 12, fontSize: 10, color: 'var(--border)' }}>
         Faster answers earn bonus points — max {MAX_POINTS} total
       </div>
     </div>

@@ -66,12 +66,12 @@ export default function Learn() {
         .module-emoji{font-size:26px;flex-shrink:0;line-height:1}
         .module-meta{flex:1;min-width:0}
         .module-title{font-family:'Syne',sans-serif;font-weight:700;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-        .module-desc{font-size:11px;color:#94a3b8;margin-top:2px}
+        .module-desc{font-size:11px;color:var(--muted);margin-top:2px}
         .module-right{display:flex;align-items:center;gap:12px;flex-shrink:0}
         .mod-progress-dots{display:flex;gap:4px;align-items:center}
         .mod-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
         .mod-badge{font-size:11px;padding:3px 10px;border-radius:20px;font-weight:600;white-space:nowrap}
-        .chevron{font-size:13px;color:#475569;transition:transform .25s ease;flex-shrink:0}
+        .chevron{font-size:13px;color:var(--muted);transition:transform .25s ease;flex-shrink:0}
         .chevron.open{transform:rotate(180deg)}
         .lessons-wrap{display:grid;grid-template-rows:0fr;transition:grid-template-rows .28s ease}
         .lessons-wrap.open{grid-template-rows:1fr}
@@ -152,7 +152,7 @@ export default function Learn() {
                           {lessons.map(l => (
                             <div key={l.id} className="mod-dot" style={{
                               background: l.progress?.passed ? "#00e5a0" : l.progress ? "#ef4444" : "#1e293b",
-                              border: l.progress ? "none" : "1px solid #334155",
+                              border: l.progress ? "none" : "1px solid var(--border)",
                             }} />
                           ))}
                         </div>
@@ -175,7 +175,7 @@ export default function Learn() {
                           const prog = lesson.progress;
                           const passed = prog?.passed;
                           const attempted = !!prog;
-                          const dotColor = passed ? "#00e5a0" : attempted ? "#ef4444" : "#475569";
+                          const dotColor = passed ? "#00e5a0" : attempted ? "#ef4444" : "var(--muted)";
                           return (
                             <Link
                               key={lesson.id}
@@ -189,7 +189,7 @@ export default function Learn() {
                               </div>
                               <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
                                 {lesson.tokens_reward > 0 && (
-                                  <span style={{ fontSize: 11, color: passed ? "#94a3b8" : "var(--accent)", background: passed ? "rgba(71,85,105,.2)" : "rgba(0,229,160,.1)", padding: "2px 8px", borderRadius: 6 }}>
+                                  <span style={{ fontSize: 11, color: passed ? "var(--muted)" : "var(--accent)", background: passed ? "var(--surface2)" : "rgba(0,229,160,.1)", padding: "2px 8px", borderRadius: 6 }}>
                                     {passed ? "✓" : "+"}{lesson.tokens_reward} tokens
                                   </span>
                                 )}

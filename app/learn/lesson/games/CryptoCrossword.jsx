@@ -166,7 +166,7 @@ export default function CryptoCrossword({ config, onComplete, completed }) {
                     borderRadius: 3, cursor: black ? "default" : "pointer",
                   }} onClick={() => !black && handleCellClick(r, c)}>
                     {num && !black && (
-                      <span style={{ position: "absolute", top: 1, left: 2, fontSize: 8, color: "#94a3b8", lineHeight: 1, pointerEvents: "none" }}>{num}</span>
+                      <span style={{ position: "absolute", top: 1, left: 2, fontSize: 8, color: "var(--muted)", lineHeight: 1, pointerEvents: "none" }}>{num}</span>
                     )}
                     {!black && (
                       <input
@@ -200,7 +200,7 @@ export default function CryptoCrossword({ config, onComplete, completed }) {
           {across.map(p => (
             <div key={p.number} style={{ display: "flex", gap: 6, marginBottom: 8, opacity: solved.has(p.number) ? .45 : 1 }}>
               <span style={{ fontSize: 11, color: "var(--accent)", fontWeight: 700, minWidth: 16 }}>{p.number}.</span>
-              <span style={{ fontSize: 11, color: solved.has(p.number) ? "#64748b" : "#94a3b8", lineHeight: 1.5 }}>{p.clue}</span>
+              <span style={{ fontSize: 11, color: solved.has(p.number) ? "var(--muted)" : "var(--muted)", lineHeight: 1.5 }}>{p.clue}</span>
               {solved.has(p.number) && <span style={{ fontSize: 11, color: "var(--accent)" }}>✓</span>}
             </div>
           ))}
@@ -208,14 +208,14 @@ export default function CryptoCrossword({ config, onComplete, completed }) {
           {down.map(p => (
             <div key={p.number} style={{ display: "flex", gap: 6, marginBottom: 8, opacity: solved.has(p.number) ? .45 : 1 }}>
               <span style={{ fontSize: 11, color: "var(--accent)", fontWeight: 700, minWidth: 16 }}>{p.number}.</span>
-              <span style={{ fontSize: 11, color: solved.has(p.number) ? "#64748b" : "#94a3b8", lineHeight: 1.5 }}>{p.clue}</span>
+              <span style={{ fontSize: 11, color: solved.has(p.number) ? "var(--muted)" : "var(--muted)", lineHeight: 1.5 }}>{p.clue}</span>
               {solved.has(p.number) && <span style={{ fontSize: 11, color: "var(--accent)" }}>✓</span>}
             </div>
           ))}
-          <div style={{ marginTop: 12, fontSize: 11, color: "#475569" }}>{solved.size}/{placed.length} words solved</div>
+          <div style={{ marginTop: 12, fontSize: 11, color: "var(--muted)" }}>{solved.size}/{placed.length} words solved</div>
         </div>
       </div>
-      <div style={{ fontSize: 10, color: "#475569", marginTop: 10 }}>Click a cell to select · Click again to switch direction · Type to fill</div>
+      <div style={{ fontSize: 10, color: "var(--muted)", marginTop: 10 }}>Click a cell to select · Click again to switch direction · Type to fill</div>
     </div>
   );
 }

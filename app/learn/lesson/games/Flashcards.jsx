@@ -56,7 +56,7 @@ export default function Flashcards({ config, onComplete, completed }) {
         <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 20, marginBottom: 8, color: "var(--accent)" }}>
           {completed && !done ? "Already completed!" : "Deck complete!"}
         </div>
-        <div style={{ fontSize: 13, color: "#94a3b8", marginBottom: 20 }}>
+        <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 20 }}>
           {known.size} known · {review.size} still learning
         </div>
         {(review.size > 0 || done) && (
@@ -72,7 +72,7 @@ export default function Flashcards({ config, onComplete, completed }) {
     <div style={{ fontFamily: "'DM Mono',monospace" }}>
       {/* Progress */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-        <span style={{ fontSize: 11, color: "#475569" }}>{index + 1} of {deck.length}</span>
+        <span style={{ fontSize: 11, color: "var(--muted)" }}>{index + 1} of {deck.length}</span>
         <span style={{ fontSize: 11, color: "var(--accent)" }}>{known.size} known ✓</span>
       </div>
       <div style={{ height: 4, background: "var(--surface2)", borderRadius: 2, marginBottom: 20, overflow: "hidden" }}>
@@ -89,11 +89,11 @@ export default function Flashcards({ config, onComplete, completed }) {
           display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
           padding: "28px 32px", textAlign: "center", transition: "all .25s", userSelect: "none",
         }}>
-        <div style={{ fontSize: 10, color: "#475569", textTransform: "uppercase", letterSpacing: 1, marginBottom: 16 }}>
+        <div style={{ fontSize: 10, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 16 }}>
           {flipped ? "Definition" : "Term — tap to reveal"}
         </div>
         {flipped ? (
-          <div style={{ fontSize: 15, color: "#cbd5e1", lineHeight: 1.7 }}>{card.definition}</div>
+          <div style={{ fontSize: 15, color: "var(--text)", lineHeight: 1.7 }}>{card.definition}</div>
         ) : (
           <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 28, color: "var(--accent)", letterSpacing: 1 }}>
             {card.term}
@@ -119,7 +119,7 @@ export default function Flashcards({ config, onComplete, completed }) {
         </div>
       )}
       {!flipped && (
-        <div style={{ textAlign: "center", fontSize: 11, color: "#475569", marginTop: 12 }}>
+        <div style={{ textAlign: "center", fontSize: 11, color: "var(--muted)", marginTop: 12 }}>
           Tap the card to see the definition
         </div>
       )}

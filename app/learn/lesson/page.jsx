@@ -344,7 +344,7 @@ function LessonPage() {
                         className={`option-btn ${answers[q.id] === opt.id ? "selected" : ""}`}
                         onClick={() => setAnswers(a => ({ ...a, [q.id]: opt.id }))}
                       >
-                        <span style={{ width: 20, height: 20, borderRadius: "50%", border: "2px solid", borderColor: answers[q.id] === opt.id ? "var(--accent)" : "#334155", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                        <span style={{ width: 20, height: 20, borderRadius: "50%", border: "2px solid", borderColor: answers[q.id] === opt.id ? "var(--accent)" : "var(--border)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                           {answers[q.id] === opt.id && <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--accent)" }} />}
                         </span>
                         {opt.option_text}
@@ -379,7 +379,7 @@ function LessonPage() {
                   <div style={{ fontSize: 14, color: "var(--muted)", marginTop: 8 }}>
                     {results.correct}/{results.total} correct
                   </div>
-                  <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 18, marginTop: 12, color: results.passed ? "var(--accent)" : "#94a3b8" }}>
+                  <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 18, marginTop: 12, color: results.passed ? "var(--accent)" : "var(--muted)" }}>
                     {results.passed ? "Passed!" : `Needs ${lesson?.pass_threshold || 75}% to pass`}
                   </div>
                   {results.tokensAwarded > 0 && (
@@ -482,7 +482,7 @@ function ModuleCompleteOverlay({ module, tokensTotal, onDismiss }) {
           <div style={{ fontSize:56, marginBottom:12 }}>{module.emoji || '🏅'}</div>
           <div style={{ fontSize:11, color:'var(--accent)', letterSpacing:3, textTransform:'uppercase', marginBottom:8 }}>Module Complete!</div>
           <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:24, color:'var(--text)', marginBottom:8 }}>{module.title}</div>
-          {module.description && <div style={{ fontSize:13, color:'#94a3b8', marginBottom:16 }}>{module.description}</div>}
+          {module.description && <div style={{ fontSize:13, color:'var(--muted)', marginBottom:16 }}>{module.description}</div>}
           {tokensTotal > 0 && (
             <div style={{ display:'inline-flex', alignItems:'center', gap:8, background:'rgba(0,229,160,.12)', border:'1px solid rgba(0,229,160,.3)', borderRadius:12, padding:'8px 18px', fontSize:14, fontWeight:700, color:'var(--accent)', marginBottom:20 }}>
               +{tokensTotal} ClassReward Tokens earned

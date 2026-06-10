@@ -52,7 +52,7 @@ export default function EmojiDecode({ config, onComplete, completed }) {
         </div>
       )}
 
-      <div style={{ marginBottom: 12, fontSize: 11, color: "#94a3b8" }}>
+      <div style={{ marginBottom: 12, fontSize: 11, color: "var(--muted)" }}>
         Each emoji combo represents a crypto term. Type what you think it means!
       </div>
 
@@ -99,16 +99,16 @@ export default function EmojiDecode({ config, onComplete, completed }) {
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
                       <span style={{ fontSize: 11, color: "#ef4444" }}>Not quite — try again!</span>
                       <button onClick={() => reveal(i)} style={{
-                        fontSize: 10, padding: "4px 10px", border: "1px solid #475569", borderRadius: 6,
-                        background: "transparent", color: "#475569", cursor: "pointer", fontFamily: "'DM Mono',monospace",
+                        fontSize: 10, padding: "4px 10px", border: "1px solid var(--border)", borderRadius: 6,
+                        background: "transparent", color: "var(--muted)", cursor: "pointer", fontFamily: "'DM Mono',monospace",
                       }}>Reveal answer</button>
                     </div>
                   )}
                   {!checked[i] && hint && (
-                    <div style={{ fontSize: 10, color: "#475569" }}>Hint: {hint}</div>
+                    <div style={{ fontSize: 10, color: "var(--muted)" }}>Hint: {hint}</div>
                   )}
                   {isDone && (
-                    <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>{items[i].definition}</div>
+                    <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>{items[i].definition}</div>
                   )}
                 </div>
               </div>
@@ -117,7 +117,7 @@ export default function EmojiDecode({ config, onComplete, completed }) {
         })}
       </div>
 
-      <div style={{ marginTop: 14, fontSize: 11, color: "#475569" }}>
+      <div style={{ marginTop: 14, fontSize: 11, color: "var(--muted)" }}>
         {solvedCount}/{items.length} decoded · Press Enter or click Check to submit each answer
       </div>
     </div>
