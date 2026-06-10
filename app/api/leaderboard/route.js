@@ -57,7 +57,7 @@ export async function GET(request) {
   const [portfoliosRes, holdingsRes, tradesRes, pricesRes, snapshotsRes, flairRes] = await Promise.all([
     db.from('portfolios').select('student_id, cash, fees_paid').in('student_id', studentIds).eq('class_id', classId),
     db.from('holdings').select('student_id, coin, quantity, avg_buy_price').in('student_id', studentIds).eq('class_id', classId).gt('quantity', 0),
-    db.from('trades').select('student_id, action, coin, gross_value, fee').in('student_id', studentIds).eq('class_id', classId),
+    db.from('trades').select('student_id, action, coin, gross_value, fee, created_at').in('student_id', studentIds).eq('class_id', classId),
     db.from('price_cache').select('symbol, price'),
     db.from('snapshots').select('student_id, total_value, created_at').in('student_id', studentIds).eq('class_id', classId).order('created_at', { ascending: true }),
     db.from('class_reward_ledger').select('student_id, reason, created_at').in('student_id', studentIds).eq('class_id', classId).like('reason', 'store:flair_%').order('created_at', { ascending: false }),
@@ -113,6 +113,21 @@ export async function GET(request) {
     snapshotsByStudent[s.student_id].push(s);
   });
 
+  // Pre-compute trading streaks: consecutive calendar days (up to today) with ≥1 trade
+  function calcStreak(trades) {
+    const days = [...new Set(trades.map(t => t.created_at.slice(0, 10)))].sort().reverse();
+    if (!days.length) return 0;
+    const today = new Date().toISOString().slice(0, 10);
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    if (days[0] !== today && days[0] !== yesterday) return 0;
+    let streak = 1, check = days[0];
+    for (let i = 1; i < days.length; i++) {
+      const expected = new Date(new Date(check).getTime() - 86400000).toISOString().slice(0, 10);
+      if (days[i] === expected) { streak++; check = expected; } else break;
+    }
+    return streak;
+  }
+
   // Build leaderboard rows
   const rows = students.map(student => {
     const portfolio  = portfolioMap[student.id] || { cash: seedMoney, fees_paid: 0 };
@@ -151,6 +166,7 @@ export async function GET(request) {
       maxDrawdown:  calculateMaxDrawdown(snapshotsByStudent[student.id] || []),
       winRate:      calculateWinRate(tradesByStudent[student.id] || []),
       flair:        flairMap[student.id] || null,
+      streak:       calcStreak(tradesByStudent[student.id] || []),
     };
   });
 

@@ -335,6 +335,7 @@ export default function Leaderboard() {
                             <div style={{display:'flex',alignItems:'center',gap:8}}>
                               <div style={{width:8,height:8,borderRadius:'50%',background:color,flexShrink:0}}/>
                               <div style={{fontFamily:"'Syne',sans-serif",fontWeight:600,fontSize:13}}>{s.isBot?'🤖 ':''}{s.flair && <span style={{marginRight:3}}>{s.flair}</span>}{s.name}</div>
+                              {s.streak >= 2 && <span title={`${s.streak}-day trading streak`} style={{fontSize:10,fontFamily:"'DM Mono',monospace",fontWeight:700,color:'#fb923c',background:'rgba(251,146,60,.12)',border:'1px solid rgba(251,146,60,.25)',borderRadius:6,padding:'1px 5px',whiteSpace:'nowrap'}}>🔥{s.streak}</span>}
                             </div>
                           </td>
                           <td style={{fontFamily:"'Syne',sans-serif",fontWeight:700}}>
