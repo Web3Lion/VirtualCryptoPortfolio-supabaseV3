@@ -129,7 +129,6 @@ export default function Badges() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap');
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-        :root{--bg:#080c14;--surface:#0f172a;--surface2:#1a2235;--border:#1e293b;--accent:#00e5a0;--text:#e2e8f0;--muted:#475569;--gold:#f59e0b}
         body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;min-height:100vh}
         .page{max-width:1200px;margin:0 auto;padding:24px 16px}
         .progress-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:24px;margin-bottom:24px;display:flex;align-items:center;gap:24px}
