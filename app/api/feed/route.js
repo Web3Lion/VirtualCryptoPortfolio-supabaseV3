@@ -18,17 +18,17 @@ export async function GET(request) {
   }
   if (!classId) return Response.json([]);
 
-  const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+  const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
   const [tradesRes, badgesRes, challengesRes] = await Promise.all([
     db.from('trades')
-      .select('id, action, coin, gross_value, created_at, students(name, is_bot)')
+      .select('id, student_id, action, coin, quantity, price, gross_value, reasoning, created_at, students(name, is_bot)')
       .eq('class_id', classId).gte('created_at', cutoff)
-      .order('created_at', { ascending: false }).limit(30),
+      .order('created_at', { ascending: false }).limit(50),
     db.from('badges')
       .select('badge_id, earned_at, students(name)')
       .eq('class_id', classId).gte('earned_at', cutoff)
-      .order('earned_at', { ascending: false }).limit(15),
+      .order('earned_at', { ascending: false }).limit(20),
     db.from('class_reward_ledger')
       .select('tokens, reason, created_at, students(name)')
       .eq('class_id', classId).gte('created_at', cutoff)
@@ -36,53 +36,71 @@ export async function GET(request) {
       .order('created_at', { ascending: false }).limit(10),
   ]);
 
+  // Fetch reactions for all trade IDs in one query
+  const tradeIds = (tradesRes.data || []).filter(t => !t.students?.is_bot).map(t => t.id);
+  let reactionsMap = {};
+  if (tradeIds.length) {
+    const { data: rxData } = await db.from('trade_reactions')
+      .select('trade_id, emoji, student_id').in('trade_id', tradeIds).catch(() => ({ data: null }));
+    (rxData || []).forEach(r => {
+      if (!reactionsMap[r.trade_id]) reactionsMap[r.trade_id] = {};
+      reactionsMap[r.trade_id][r.emoji] = (reactionsMap[r.trade_id][r.emoji] || 0) + 1;
+      if (r.student_id === student.id) reactionsMap[r.trade_id].__mine = r.emoji;
+    });
+  }
+
   const items = [];
 
   (tradesRes.data || []).forEach(t => {
     if (t.students?.is_bot) return;
     const name = t.students?.name || 'Someone';
-    const val = parseFloat(t.gross_value || 0);
-    const emoji = t.action === 'BUY' ? '📈' : t.action === 'SELL' ? '📉' : '⬇';
+    const val  = parseFloat(t.gross_value || 0);
+    const qty  = parseFloat(t.quantity || 0);
+    const price = parseFloat(t.price || 0);
+    const actionLabel = { BUY: 'bought', SELL: 'sold', SHORT: 'shorted', COVER: 'covered' }[t.action] || t.action.toLowerCase();
     items.push({
-      type: 'trade',
-      id: t.id,
-      ts: t.created_at,
-      emoji,
-      text: `${name} ${t.action.toLowerCase()}${t.action === 'SHORT' ? 'ed' : 't'} ${t.coin}`,
-      sub: val > 0 ? `$${val.toLocaleString('en-US', { maximumFractionDigits: 0 })}` : null,
+      type:      'trade',
+      id:        t.id,
+      studentId: t.student_id,
+      isMine:    t.student_id === student.id,
+      ts:        t.created_at,
+      action:    t.action,
+      coin:      t.coin,
+      name,
+      actionLabel,
+      qty:       qty,
+      price:     price,
+      value:     val,
+      reasoning: t.reasoning || null,
+      reactions: reactionsMap[t.id] || {},
     });
   });
 
   const BADGE_NAMES = {
-    first_trade:'First Trade',active_trader:'Active Trader',power_trader:'Power Trader',
-    whale:'Whale',doubled_up:'Doubled Up',first_profit:'First Profit',ten_pct:'+10%',
-    to_the_moon:'To the Moon',diamond_hands:'Diamond Hands',diversified:'Diversified',
-    sharpshooter:'Sharpshooter',analyst:'Analyst',researcher:'Researcher',
-    crush_500:'Crush 500',crush_1000:'Crush 1000',first_lesson:'First Lesson',
+    first_trade:'First Trade', active_trader:'Active Trader', power_trader:'Power Trader',
+    whale:'Whale', doubled_up:'Doubled Up', first_profit:'First Profit', ten_pct:'+10%',
+    to_the_moon:'To the Moon', diamond_hands:'Diamond Hands', diversified:'Diversified',
+    sharpshooter:'Sharpshooter', analyst:'Analyst', researcher:'Researcher',
+    crush_500:'Crush 500', crush_1000:'Crush 1000', first_lesson:'First Lesson',
+    signal_found:'Signal Found', data_chef:'Data Chef', market_pulse:'Market Pulse',
   };
   (badgesRes.data || []).forEach(b => {
-    const name = b.students?.name || 'Someone';
     items.push({
-      type: 'badge',
-      ts: b.earned_at,
-      emoji: '🏅',
-      text: `${name} earned a badge`,
-      sub: BADGE_NAMES[b.badge_id] || b.badge_id,
+      type: 'badge', ts: b.earned_at,
+      name: b.students?.name || 'Someone',
+      badgeId: b.badge_id,
+      badgeName: BADGE_NAMES[b.badge_id] || b.badge_id,
     });
   });
 
   (challengesRes.data || []).forEach(r => {
-    const name = r.students?.name || 'Someone';
     items.push({
-      type: 'challenge',
-      ts: r.created_at,
-      emoji: '🎯',
-      text: `${name} completed the daily challenge`,
-      sub: `+${r.tokens} tokens`,
+      type: 'challenge', ts: r.created_at,
+      name: r.students?.name || 'Someone',
+      tokens: r.tokens,
     });
   });
 
-  // Sort all by timestamp desc, cap at 25
   items.sort((a, b) => b.ts.localeCompare(a.ts));
-  return Response.json(items.slice(0, 25));
+  return Response.json({ items: items.slice(0, 40), currentStudentId: student.id });
 }

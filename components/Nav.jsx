@@ -12,6 +12,7 @@ const ROW1 = [
 ];
 
 const ROW2 = [
+  { href: '/feed',               label: 'Feed',    key: 'feed' },
   { href: '/learn',              label: 'Learn',   key: 'learn' },
   { href: '/badges',             label: 'Badges',  key: 'badges' },
   { href: '/news',               label: 'News',    key: 'news' },
