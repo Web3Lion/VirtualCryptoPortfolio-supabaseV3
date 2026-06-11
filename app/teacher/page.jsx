@@ -54,6 +54,12 @@ export default function Teacher() {
   const [classNameInput, setClassNameInput] = useState('');
   const [moveStudent, setMoveStudent] = useState(null);
   const [moveTargetClass, setMoveTargetClass] = useState('');
+  const [expandedStudentId, setExpandedStudentId] = useState(null);
+  const [expandedStudentData, setExpandedStudentData] = useState({});
+  const [expandedStudentLoading, setExpandedStudentLoading] = useState(null);
+  const [lessonProgress, setLessonProgress] = useState(null);
+  const [lessonProgressLoading, setLessonProgressLoading] = useState(false);
+  const [studentsSubView, setStudentsSubView] = useState('roster');
   const [pastSeasons, setPastSeasons] = useState([]);
   const [seasonEnding, setSeasonEnding] = useState(false);
   const [seasonResult, setSeasonResult] = useState(null);
@@ -271,6 +277,27 @@ export default function Teacher() {
       const res = await fetch('/api/teacher/seasons', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ classId }) });
       if (res.ok) setPastSeasons(await res.json());
     } catch {}
+  };
+
+  const toggleStudentExpand = async (student) => {
+    if (expandedStudentId === student.id) { setExpandedStudentId(null); return; }
+    setExpandedStudentId(student.id);
+    if (expandedStudentData[student.id]) return;
+    setExpandedStudentLoading(student.id);
+    try {
+      const res = await fetch(`/api/leaderboard/student?studentId=${student.id}`);
+      if (res.ok) setExpandedStudentData(d => ({ ...d, [student.id]: await res.json() }));
+    } catch {}
+    setExpandedStudentLoading(null);
+  };
+
+  const loadLessonProgress = async (classId) => {
+    setLessonProgressLoading(true);
+    try {
+      const res = await fetch('/api/teacher/lesson-progress', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ classId }) });
+      if (res.ok) setLessonProgress(await res.json());
+    } catch {}
+    setLessonProgressLoading(false);
   };
 
   const endSeason = async () => {
@@ -560,7 +587,7 @@ export default function Teacher() {
                 <button key={s} className={`stab${activeSection===s?' active':''}`} onClick={()=>{
                   setActiveSection(s);
                   if(s==='analytics') fetchAnalytics(activeClass?.id);
-                  if(s==='students') loadSeasons(activeClass?.id);
+                  if(s==='students') { loadSeasons(activeClass?.id); setStudentsSubView('roster'); }
                   if(s==='grades'){ setGradesData(null); setGradesLoading(true); fetch(`/api/teacher/export?classId=${activeClass?.id}&format=json`).then(r=>r.ok?r.json():null).then(d=>{if(d)setGradesData(d);setGradesLoading(false);}).catch(()=>setGradesLoading(false)); }
                 }}>{s.charAt(0).toUpperCase()+s.slice(1)}</button>
               ))}
@@ -1469,7 +1496,7 @@ export default function Teacher() {
 
                 {activeSection==='students' && (
                   <>
-                    {studentsView==='class' && (
+                    {studentsView==='class' && studentsSubView==='roster' && (
                       <div className="ctrl-card" style={{marginBottom:16}}>
                         <div className="ctrl-title" style={{marginBottom:12}}>➕ Add Student</div>
                         <div className="form-row">
@@ -1481,68 +1508,203 @@ export default function Teacher() {
                       </div>
                     )}
                     <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:20,padding:22,overflowX:'auto'}}>
-                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16,flexWrap:'wrap',gap:8}}>
                         <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:15,color:'var(--text)'}}>
-                          {studentsView==='class' ? `Students (${humans.length})` : `All Students (${allStudents.length})`}
+                          {studentsView==='class' ? (studentsSubView==='lessons' ? `Lesson Progress — ${humans.length} Students` : `Students (${humans.length})`) : `All Students (${allStudents.length})`}
                         </div>
-                        <div style={{display:'flex',gap:8,alignItems:'center'}}>
-                          {classes.length > 1 && (
+                        <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
+                          {studentsView==='class' && (
+                            <div style={{display:'flex',gap:2,background:'var(--surface2)',padding:3,borderRadius:10,border:'1px solid var(--border)'}}>
+                              <button style={{padding:'4px 12px',borderRadius:7,border:'none',background:studentsSubView==='roster'?'var(--accent)':'transparent',color:studentsSubView==='roster'?'#000':'var(--muted)',cursor:'pointer',fontSize:10,fontFamily:"'DM Mono',monospace",fontWeight:studentsSubView==='roster'?600:400,transition:'all .2s'}} onClick={()=>setStudentsSubView('roster')}>📋 Roster</button>
+                              <button style={{padding:'4px 12px',borderRadius:7,border:'none',background:studentsSubView==='lessons'?'var(--accent)':'transparent',color:studentsSubView==='lessons'?'#000':'var(--muted)',cursor:'pointer',fontSize:10,fontFamily:"'DM Mono',monospace",fontWeight:studentsSubView==='lessons'?600:400,transition:'all .2s'}} onClick={()=>{setStudentsSubView('lessons');if(!lessonProgress)loadLessonProgress(activeClass?.id);}}>📚 Lessons</button>
+                            </div>
+                          )}
+                          {classes.length > 1 && studentsSubView==='roster' && (
                             <div style={{display:'flex',gap:2,background:'var(--surface2)',padding:3,borderRadius:10,border:'1px solid var(--border)'}}>
                               <button style={{padding:'4px 12px',borderRadius:7,border:'none',background:studentsView==='class'?'var(--accent)':'transparent',color:studentsView==='class'?'#000':'var(--muted)',cursor:'pointer',fontSize:10,fontFamily:"'DM Mono',monospace",fontWeight:studentsView==='class'?600:400,transition:'all .2s'}} onClick={()=>setStudentsView('class')}>This Class</button>
                               <button style={{padding:'4px 12px',borderRadius:7,border:'none',background:studentsView==='all'?'var(--accent)':'transparent',color:studentsView==='all'?'#000':'var(--muted)',cursor:'pointer',fontSize:10,fontFamily:"'DM Mono',monospace",fontWeight:studentsView==='all'?600:400,transition:'all .2s'}} onClick={()=>{setStudentsView('all');fetchAllStudents();}}>All Classes</button>
                             </div>
                           )}
-                          <button className="btn btn-muted" onClick={()=>studentsView==='class'?fetchData(activeClass.id):fetchAllStudents()}>↻ Refresh</button>
+                          <button className="btn btn-muted" onClick={()=>{if(studentsSubView==='lessons'){loadLessonProgress(activeClass.id);}else if(studentsView==='class'){fetchData(activeClass.id);}else{fetchAllStudents();}}}>↻ Refresh</button>
                         </div>
                       </div>
-                      {studentsView==='class' ? (
-                        <table className="student-table">
-                          <thead><tr><th>Rank</th><th>Name</th><th>Portfolio</th><th>Return</th><th>P/L</th><th>Cash</th><th>Actions</th></tr></thead>
-                          <tbody>
-                            {students.map((s,i)=>{
-                              const ret=clean(s.returnPct),pl=clean(s.pl),isPos=ret>=0;
-                              return (
-                                <tr className="srow" key={i}>
-                                  <td style={{color:'var(--muted)',fontWeight:700}}>{i+1}</td>
-                                  <td><div style={{fontFamily:"'Syne',sans-serif",fontWeight:600,fontSize:13}}>{s.isBot?'🤖 ':''}{s.name}</div></td>
-                                  <td style={{fontFamily:"'Syne',sans-serif",fontWeight:700}}>{fmtUSD(s.total)}</td>
-                                  <td style={{color:isPos?'var(--up)':'var(--down)',fontWeight:500}}>{fmtPct(ret)}</td>
-                                  <td style={{color:isPos?'var(--up)':'var(--down)'}}>{isPos?'+':''}{fmtUSD(pl)}</td>
-                                  <td style={{color:'var(--muted)'}}>{fmtUSD(s.cash)}</td>
-                                  <td>
-                                    <div className="btn-row">
-                                      {classes.length > 1 && <button className="btn btn-muted" style={{padding:'4px 10px',fontSize:10}} onClick={()=>{setMoveStudent(s);setMoveTargetClass('');}}>⇄ Move</button>}
-                                      <button className="btn btn-muted" style={{padding:'4px 10px',fontSize:10}} onClick={()=>{if(confirm(`Reset ${s.name}?`))teacherAction('reset-student',{studentId:s.id,classId:activeClass.id})}}>↺ Reset</button>
-                                      <button className="btn btn-red" style={{padding:'4px 10px',fontSize:10}} onClick={()=>{if(confirm(`Remove ${s.name}?`))teacherAction('remove-student',{studentId:s.id,classId:activeClass.id})}}>✕</button>
-                                    </div>
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      ) : allStudentsLoading ? (
-                        <div style={{color:'var(--muted)',textAlign:'center',padding:32,fontSize:13}}>Loading all students...</div>
-                      ) : (
-                        <table className="student-table">
-                          <thead><tr><th>Rank</th><th>Name</th><th>Class</th><th>Portfolio</th><th>Return</th><th>P/L</th><th>Cash</th></tr></thead>
-                          <tbody>
-                            {allStudents.map((s,i)=>{
-                              const ret=clean(s.returnPct),pl=clean(s.pl),isPos=ret>=0;
-                              return (
-                                <tr className="srow" key={i}>
-                                  <td style={{color:'var(--muted)',fontWeight:700}}>{i+1}</td>
-                                  <td><div style={{fontFamily:"'Syne',sans-serif",fontWeight:600,fontSize:13}}>{s.name}</div></td>
-                                  <td style={{color:'var(--muted)',fontSize:11}}>{s.className}</td>
-                                  <td style={{fontFamily:"'Syne',sans-serif",fontWeight:700}}>{fmtUSD(s.total)}</td>
-                                  <td style={{color:isPos?'var(--up)':'var(--down)',fontWeight:500}}>{fmtPct(ret)}</td>
-                                  <td style={{color:isPos?'var(--up)':'var(--down)'}}>{isPos?'+':''}{fmtUSD(pl)}</td>
-                                  <td style={{color:'var(--muted)'}}>{fmtUSD(s.cash)}</td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
+
+                      {/* Lesson Progress Grid */}
+                      {studentsView==='class' && studentsSubView==='lessons' && (
+                        lessonProgressLoading ? (
+                          <div style={{color:'var(--muted)',textAlign:'center',padding:40,fontSize:13}}>Loading lesson progress…</div>
+                        ) : !lessonProgress ? (
+                          <div style={{color:'var(--muted)',textAlign:'center',padding:40,fontSize:13}}>Click Refresh to load lesson progress.</div>
+                        ) : (() => {
+                          const { lessons, modules, progress } = lessonProgress;
+                          const classStudents = humans;
+                          return (
+                            <div style={{overflowX:'auto'}}>
+                              <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
+                                <thead>
+                                  <tr>
+                                    <th style={{padding:'8px 12px',textAlign:'left',color:'var(--muted)',fontSize:9,letterSpacing:'1px',textTransform:'uppercase',borderBottom:'2px solid var(--border)',minWidth:120,position:'sticky',left:0,background:'var(--surface)',zIndex:2}}>Student</th>
+                                    <th style={{padding:'8px 8px',textAlign:'center',color:'var(--muted)',fontSize:9,letterSpacing:'1px',textTransform:'uppercase',borderBottom:'2px solid var(--border)',minWidth:60}}>Done</th>
+                                    {modules.map(m => (
+                                      lessons.filter(l=>l.module_id===m.id).map((l,li,arr) => (
+                                        <th key={l.id} title={`${m.title}: ${l.title}`} style={{padding:'4px 3px',textAlign:'center',borderBottom:'2px solid var(--border)',minWidth:32,maxWidth:40,borderLeft:li===0?'2px solid var(--border)':'none'}}>
+                                          <div style={{fontSize:8,color:'var(--muted)',fontWeight:400,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:36,transform:'rotate(-45deg)',transformOrigin:'bottom left',marginLeft:8,marginBottom:4,height:28}}>{l.title.length>12?l.title.slice(0,12)+'…':l.title}</div>
+                                        </th>
+                                      ))
+                                    ))}
+                                  </tr>
+                                  <tr>
+                                    <td style={{padding:'2px 12px',borderBottom:'1px solid var(--border)',position:'sticky',left:0,background:'var(--surface)',zIndex:2}}></td>
+                                    <td style={{padding:'2px 8px',borderBottom:'1px solid var(--border)'}}></td>
+                                    {modules.map(m => {
+                                      const mLessons = lessons.filter(l=>l.module_id===m.id);
+                                      return mLessons.map((l,li) => (
+                                        <td key={l.id} style={{padding:'2px 3px',borderBottom:'1px solid var(--border)',textAlign:'center',borderLeft:li===0?'2px solid var(--border)':'none'}}>
+                                          <div style={{fontSize:8,color:'var(--border)',fontWeight:400,textAlign:'center'}}>{li+1}</div>
+                                        </td>
+                                      ));
+                                    })}
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {classStudents.map(s => {
+                                    const sp = progress[s.id] || {};
+                                    const passedCount = lessons.filter(l => sp[l.id]?.passed).length;
+                                    return (
+                                      <tr key={s.id} className="srow">
+                                        <td style={{padding:'7px 12px',fontFamily:"'Syne',sans-serif",fontWeight:600,fontSize:12,borderBottom:'1px solid var(--border)',position:'sticky',left:0,background:'var(--surface)',zIndex:1}}>{s.name}</td>
+                                        <td style={{padding:'7px 8px',textAlign:'center',borderBottom:'1px solid var(--border)',color:'var(--accent)',fontWeight:700,fontSize:12}}>{passedCount}/{lessons.length}</td>
+                                        {modules.map(m =>
+                                          lessons.filter(l=>l.module_id===m.id).map((l,li) => {
+                                            const att = sp[l.id];
+                                            const bg = att?.passed ? 'rgba(0,229,160,.18)' : att ? 'rgba(251,191,36,.15)' : 'transparent';
+                                            const icon = att?.passed ? '✓' : att ? `${att.score}%` : '·';
+                                            const color = att?.passed ? 'var(--up)' : att ? 'var(--gold)' : 'var(--border)';
+                                            return (
+                                              <td key={l.id} title={att ? `${l.title}: ${att.score}% — ${att.passed?'Passed':'Failed'}` : `${l.title}: Not started`} style={{padding:'4px 3px',textAlign:'center',borderBottom:'1px solid var(--border)',background:bg,borderLeft:li===0?'2px solid var(--border)':'none'}}>
+                                                <span style={{fontSize:10,color,fontWeight:att?.passed?700:400}}>{icon}</span>
+                                              </td>
+                                            );
+                                          })
+                                        )}
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                              <div style={{marginTop:12,display:'flex',gap:16,fontSize:10,color:'var(--muted)'}}>
+                                <span><span style={{color:'var(--up)',fontWeight:700}}>✓</span> Passed</span>
+                                <span><span style={{color:'var(--gold)'}}>%</span> Attempted</span>
+                                <span><span style={{color:'var(--border)'}}>·</span> Not started</span>
+                              </div>
+                            </div>
+                          );
+                        })()
+                      )}
+
+                      {/* Roster / All Classes */}
+                      {(studentsSubView==='roster' || studentsView==='all') && (
+                        studentsView==='class' ? (
+                          <table className="student-table">
+                            <thead><tr><th>Rank</th><th>Name</th><th>Portfolio</th><th>Return</th><th>P/L</th><th>Cash</th><th>Actions</th></tr></thead>
+                            <tbody>
+                              {students.map((s,i)=>{
+                                const ret=clean(s.returnPct),pl=clean(s.pl),isPos=ret>=0;
+                                const isExpanded = expandedStudentId === s.id;
+                                const eData = expandedStudentData[s.id];
+                                const isLoading = expandedStudentLoading === s.id;
+                                return (
+                                  <>
+                                    <tr className="srow" key={s.id} onClick={()=>!s.isBot&&toggleStudentExpand(s)} style={{cursor:s.isBot?'default':'pointer',background:isExpanded?'var(--surface2)':''}}>
+                                      <td style={{color:'var(--muted)',fontWeight:700}}>{i+1}</td>
+                                      <td><div style={{fontFamily:"'Syne',sans-serif",fontWeight:600,fontSize:13,display:'flex',alignItems:'center',gap:6}}>{s.isBot?'🤖 ':''}{s.name}{!s.isBot&&<span style={{fontSize:9,color:'var(--muted)'}}>{isExpanded?'▲':'▼'}</span>}</div></td>
+                                      <td style={{fontFamily:"'Syne',sans-serif",fontWeight:700}}>{fmtUSD(s.total)}</td>
+                                      <td style={{color:isPos?'var(--up)':'var(--down)',fontWeight:500}}>{fmtPct(ret)}</td>
+                                      <td style={{color:isPos?'var(--up)':'var(--down)'}}>{isPos?'+':''}{fmtUSD(pl)}</td>
+                                      <td style={{color:'var(--muted)'}}>{fmtUSD(s.cash)}</td>
+                                      <td onClick={e=>e.stopPropagation()}>
+                                        <div className="btn-row">
+                                          {classes.length > 1 && <button className="btn btn-muted" style={{padding:'4px 10px',fontSize:10}} onClick={()=>{setMoveStudent(s);setMoveTargetClass('');}}>⇄ Move</button>}
+                                          <button className="btn btn-muted" style={{padding:'4px 10px',fontSize:10}} onClick={()=>{if(confirm(`Reset ${s.name}?`))teacherAction('reset-student',{studentId:s.id,classId:activeClass.id})}}>↺ Reset</button>
+                                          <button className="btn btn-red" style={{padding:'4px 10px',fontSize:10}} onClick={()=>{if(confirm(`Remove ${s.name}?`))teacherAction('remove-student',{studentId:s.id,classId:activeClass.id})}}>✕</button>
+                                        </div>
+                                      </td>
+                                    </tr>
+                                    {isExpanded && (
+                                      <tr key={`${s.id}-expand`}>
+                                        <td colSpan={7} style={{padding:'0 0 8px 0',background:'var(--surface2)',borderBottom:'2px solid var(--border)'}}>
+                                          {isLoading ? (
+                                            <div style={{padding:'16px 20px',color:'var(--muted)',fontSize:12}}>Loading holdings…</div>
+                                          ) : eData ? (
+                                            <div style={{padding:'12px 20px'}}>
+                                              <div style={{display:'flex',gap:16,marginBottom:10,flexWrap:'wrap'}}>
+                                                {[
+                                                  ['Cash',fmtUSD(eData.summary?.cash),'var(--text)'],
+                                                  ['Holdings',fmtUSD(eData.summary?.holdingsVal),'var(--text)'],
+                                                  ['Total',fmtUSD(eData.summary?.totalVal),parseFloat(eData.summary?.returnPct)>=0?'var(--up)':'var(--down)'],
+                                                  ['Return',fmtPct(eData.summary?.returnPct),parseFloat(eData.summary?.returnPct)>=0?'var(--up)':'var(--down)'],
+                                                ].map(([lbl,val,color])=>(
+                                                  <div key={lbl} style={{textAlign:'center',background:'var(--surface)',borderRadius:10,padding:'6px 14px',border:'1px solid var(--border)'}}>
+                                                    <div style={{fontSize:9,color:'var(--muted)',marginBottom:2,textTransform:'uppercase',letterSpacing:'1px'}}>{lbl}</div>
+                                                    <div style={{fontSize:13,fontWeight:700,color}}>{val}</div>
+                                                  </div>
+                                                ))}
+                                                <a href={`/profile/${s.id}`} target="_blank" rel="noreferrer" style={{alignSelf:'center',fontSize:11,color:'var(--accent)',textDecoration:'none',padding:'6px 14px',borderRadius:10,border:'1px solid var(--border)',background:'var(--surface)',marginLeft:'auto'}}>Full Profile →</a>
+                                              </div>
+                                              {(eData.holdings||[]).filter(h=>Math.abs(h.qty)>0).length > 0 ? (
+                                                <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
+                                                  <thead><tr>{['Coin','Qty','Avg Buy','Current','Value','P/L'].map(h=><th key={h} style={{padding:'6px 10px',textAlign:'left',color:'var(--muted)',fontSize:9,letterSpacing:'1px',textTransform:'uppercase',borderBottom:'1px solid var(--border)'}}>{h}</th>)}</tr></thead>
+                                                  <tbody>
+                                                    {(eData.holdings||[]).filter(h=>Math.abs(h.qty)>0).map(h=>(
+                                                      <tr key={h.coin}>
+                                                        <td style={{padding:'6px 10px',fontWeight:700,fontFamily:"'Syne',sans-serif"}}>{h.isShort?'⬇ ':''}{h.coin}</td>
+                                                        <td style={{padding:'6px 10px',color:'var(--muted)'}}>{Math.abs(h.qty).toFixed(4)}</td>
+                                                        <td style={{padding:'6px 10px',color:'var(--muted)'}}>{fmtUSD(h.avgBuy)}</td>
+                                                        <td style={{padding:'6px 10px'}}>{fmtUSD(h.curPrice)}</td>
+                                                        <td style={{padding:'6px 10px',fontWeight:600}}>{fmtUSD(h.curVal)}</td>
+                                                        <td style={{padding:'6px 10px',fontWeight:600,color:h.plPct>=0?'var(--up)':'var(--down)'}}>{h.plPct>=0?'+':''}{h.plPct?.toFixed(1)}% ({h.plPct>=0?'+':''}{fmtUSD(h.plTotal)})</td>
+                                                      </tr>
+                                                    ))}
+                                                  </tbody>
+                                                </table>
+                                              ) : (
+                                                <div style={{fontSize:11,color:'var(--muted)',padding:'8px 0'}}>No open holdings.</div>
+                                              )}
+                                            </div>
+                                          ) : (
+                                            <div style={{padding:'16px 20px',color:'var(--muted)',fontSize:12}}>Failed to load data.</div>
+                                          )}
+                                        </td>
+                                      </tr>
+                                    )}
+                                  </>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        ) : allStudentsLoading ? (
+                          <div style={{color:'var(--muted)',textAlign:'center',padding:32,fontSize:13}}>Loading all students...</div>
+                        ) : (
+                          <table className="student-table">
+                            <thead><tr><th>Rank</th><th>Name</th><th>Class</th><th>Portfolio</th><th>Return</th><th>P/L</th><th>Cash</th></tr></thead>
+                            <tbody>
+                              {allStudents.map((s,i)=>{
+                                const ret=clean(s.returnPct),pl=clean(s.pl),isPos=ret>=0;
+                                return (
+                                  <tr className="srow" key={i}>
+                                    <td style={{color:'var(--muted)',fontWeight:700}}>{i+1}</td>
+                                    <td><div style={{fontFamily:"'Syne',sans-serif",fontWeight:600,fontSize:13}}>{s.name}</div></td>
+                                    <td style={{color:'var(--muted)',fontSize:11}}>{s.className}</td>
+                                    <td style={{fontFamily:"'Syne',sans-serif",fontWeight:700}}>{fmtUSD(s.total)}</td>
+                                    <td style={{color:isPos?'var(--up)':'var(--down)',fontWeight:500}}>{fmtPct(ret)}</td>
+                                    <td style={{color:isPos?'var(--up)':'var(--down)'}}>{isPos?'+':''}{fmtUSD(pl)}</td>
+                                    <td style={{color:'var(--muted)'}}>{fmtUSD(s.cash)}</td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        )
                       )}
                     </div>
 

@@ -164,6 +164,31 @@ export async function POST(request, { params }) {
       const seasons = (() => { try { return JSON.parse(sData?.value || '[]'); } catch { return []; } })();
       return Response.json(seasons);
     }
+    case 'lesson-progress': {
+      if (!body.classId) return Response.json({ error: 'classId required' }, { status: 400 });
+      // Get all lessons for all published modules
+      const { data: modules } = await db.from('learn_modules').select('id, title, order_index').or(`class_id.is.null,class_id.eq.${body.classId}`).eq('is_published', true).order('order_index');
+      const moduleIds = (modules || []).map(m => m.id);
+      if (!moduleIds.length) return Response.json({ lessons: [], progress: {} });
+      const { data: lessons } = await db.from('learn_lessons').select('id, module_id, title, order_index').in('module_id', moduleIds).eq('is_published', true).order('order_index');
+      // Get all students in class
+      const { data: cs } = await db.from('class_students').select('student_id').eq('class_id', body.classId);
+      const studentIds = (cs || []).map(r => r.student_id);
+      if (!studentIds.length) return Response.json({ lessons: lessons || [], modules: modules || [], progress: {} });
+      // Get best attempt per student per lesson
+      const lessonIds = (lessons || []).map(l => l.id);
+      const { data: attempts } = lessonIds.length
+        ? await db.from('learn_attempts').select('student_id, lesson_id, score, passed').eq('class_id', body.classId).in('student_id', studentIds).in('lesson_id', lessonIds)
+        : { data: [] };
+      // Build progress map: { studentId: { lessonId: { score, passed } } }
+      const progress = {};
+      for (const a of (attempts || [])) {
+        if (!progress[a.student_id]) progress[a.student_id] = {};
+        const existing = progress[a.student_id][a.lesson_id];
+        if (!existing || a.score > existing.score) progress[a.student_id][a.lesson_id] = { score: a.score, passed: a.passed };
+      }
+      return Response.json({ lessons: lessons || [], modules: modules || [], progress });
+    }
     case 'edit-class': {
       if (!body.classId || !body.name) return Response.json({ error: 'classId and name required' }, { status: 400 });
       await db.from('classes').update({ name: body.name }).eq('id', body.classId);
