@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Fragment } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -281,9 +281,9 @@ export default function Teacher() {
 
   const toggleStudentExpand = async (student) => {
     if (expandedStudentId === student.id) { setExpandedStudentId(null); return; }
-    setExpandedStudentId(student.id);
-    if (expandedStudentData[student.id]) return;
+    if (expandedStudentData[student.id]) { setExpandedStudentId(student.id); return; }
     setExpandedStudentLoading(student.id);
+    setExpandedStudentId(student.id);
     try {
       const res = await fetch(`/api/leaderboard/student?studentId=${student.id}`);
       if (res.ok) setExpandedStudentData(d => ({ ...d, [student.id]: await res.json() }));
@@ -1614,8 +1614,8 @@ export default function Teacher() {
                                 const eData = expandedStudentData[s.id];
                                 const isLoading = expandedStudentLoading === s.id;
                                 return (
-                                  <>
-                                    <tr className="srow" key={s.id} onClick={()=>!s.isBot&&toggleStudentExpand(s)} style={{cursor:s.isBot?'default':'pointer',background:isExpanded?'var(--surface2)':''}}>
+                                  <Fragment key={s.id}>
+                                    <tr className="srow" onClick={()=>!s.isBot&&toggleStudentExpand(s)} style={{cursor:s.isBot?'default':'pointer',background:isExpanded?'var(--surface2)':''}}>
                                       <td style={{color:'var(--muted)',fontWeight:700}}>{i+1}</td>
                                       <td><div style={{fontFamily:"'Syne',sans-serif",fontWeight:600,fontSize:13,display:'flex',alignItems:'center',gap:6}}>{s.isBot?'🤖 ':''}{s.name}{!s.isBot&&<span style={{fontSize:9,color:'var(--muted)'}}>{isExpanded?'▲':'▼'}</span>}</div></td>
                                       <td style={{fontFamily:"'Syne',sans-serif",fontWeight:700}}>{fmtUSD(s.total)}</td>
@@ -1631,7 +1631,7 @@ export default function Teacher() {
                                       </td>
                                     </tr>
                                     {isExpanded && (
-                                      <tr key={`${s.id}-expand`}>
+                                      <tr>
                                         <td colSpan={7} style={{padding:'0 0 8px 0',background:'var(--surface2)',borderBottom:'2px solid var(--border)'}}>
                                           {isLoading ? (
                                             <div style={{padding:'16px 20px',color:'var(--muted)',fontSize:12}}>Loading holdings…</div>
@@ -1677,7 +1677,7 @@ export default function Teacher() {
                                         </td>
                                       </tr>
                                     )}
-                                  </>
+                                  </Fragment>
                                 );
                               })}
                             </tbody>
