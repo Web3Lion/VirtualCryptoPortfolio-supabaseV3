@@ -6,7 +6,8 @@ const TEACHER_EMAIL = process.env.TEACHER_EMAIL;
 
 export async function GET(request) {
   const session = await getServerSession(authOptions);
-  if (TEACHER_EMAIL && session?.user?.email?.toLowerCase() !== TEACHER_EMAIL.toLowerCase())
+  if (!session) return Response.json({ error: 'Not authenticated' }, { status: 401 });
+  if (TEACHER_EMAIL && session.user?.email?.toLowerCase() !== TEACHER_EMAIL.toLowerCase())
     return Response.json({ error: 'Teacher only' }, { status: 403 });
 
   const { searchParams } = new URL(request.url);

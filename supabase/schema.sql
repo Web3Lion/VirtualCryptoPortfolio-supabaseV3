@@ -236,7 +236,7 @@ create table if not exists learn_modules (
 -- ── Learn: Lessons ────────────────────────────────────────────
 create table if not exists learn_lessons (
   id                uuid primary key default gen_random_uuid(),
-  module_id         uuid not null,
+  module_id         uuid not null references learn_modules(id) on delete cascade,
   title             text not null,
   description       text,
   order_index       integer default 0,

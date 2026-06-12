@@ -1,6 +1,6 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { setConfigs, getAllConfig } from '@/lib/db';
+import { setConfig, setConfigs, getAllConfig } from '@/lib/db';
 import { getAllStudents } from '@/lib/students';
 import { db } from '@/lib/db';
 const TEACHER_EMAIL = process.env.TEACHER_EMAIL;

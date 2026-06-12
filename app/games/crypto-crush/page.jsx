@@ -302,7 +302,7 @@ export default function CryptoCrush() {
   const timerColor    = timeLeft > 30 ? "#00e5a0" : timeLeft > 10 ? "#f59e0b" : "#ef4444";
 
   if (status === "loading" || status === "unauthenticated") {
-    return <div style={{ background: "#080c14", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)" }}>Loading…</div>;
+    return <div style={{ background: "var(--bg)", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)" }}>Loading…</div>;
   }
 
   return (

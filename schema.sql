@@ -284,7 +284,7 @@ CREATE TABLE IF NOT EXISTS learn_modules (
 
 CREATE TABLE IF NOT EXISTS learn_lessons (
   id                uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-  module_id         uuid NOT NULL,
+  module_id         uuid NOT NULL REFERENCES learn_modules(id) ON DELETE CASCADE,
   title             text NOT NULL,
   description       text,
   order_index       integer DEFAULT 0,
