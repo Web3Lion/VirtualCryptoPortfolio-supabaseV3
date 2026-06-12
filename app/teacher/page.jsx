@@ -285,7 +285,7 @@ export default function Teacher() {
     setExpandedStudentLoading(student.id);
     setExpandedStudentId(student.id);
     try {
-      const res = await fetch(`/api/leaderboard/student?studentId=${student.id}`);
+      const res = await fetch(`/api/leaderboard/student?studentId=${student.id}&classId=${activeClass?.id}`);
       if (res.ok) { const data = await res.json(); setExpandedStudentData(d => ({ ...d, [student.id]: data })); }
     } catch {}
     setExpandedStudentLoading(null);
@@ -555,7 +555,7 @@ export default function Teacher() {
           <div className="class-selector">
             <span style={{fontSize:11,color:'var(--muted)'}}>CLASS:</span>
             {classes.map(c=>(
-              <button key={c.id} className={`class-pill${activeClass?.id===c.id?' active':''}`} onClick={()=>{ setActiveClass(c); fetchData(c.id); }}>
+              <button key={c.id} className={`class-pill${activeClass?.id===c.id?' active':''}`} onClick={()=>{ setActiveClass(c); fetchData(c.id); setExpandedStudentId(null); setExpandedStudentData({}); setLessonProgress(null); }}>
                 {c.name} <span style={{opacity:.6}}>· {c.semester}</span>
               </button>
             ))}
