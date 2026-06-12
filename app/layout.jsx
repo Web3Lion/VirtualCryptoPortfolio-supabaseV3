@@ -1,4 +1,5 @@
 import { SessionProvider } from './SessionProvider';
+import './globals.css';
 
 export const metadata = { title: 'CryptoClassroom', description: 'Virtual Crypto Trading Simulator' };
 
