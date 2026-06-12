@@ -9,7 +9,7 @@ html[data-theme="dark"], html:not([data-theme]) {
 html[data-theme="light"] {
   --bg: #f0faf4; --surface: #ffffff; --surface2: #f1f5f9;
   --border: #e2e8f0; --accent: #059669; --accent2: #3b82f6;
-  --up: #059669; --down: #e11d48; --text: #1e293b;
+  --up: #059669; --down: #e11d48; --text: #374151;
   --muted: #475569; --gold: #d97706;
 }
 html[data-theme="sf"] {
