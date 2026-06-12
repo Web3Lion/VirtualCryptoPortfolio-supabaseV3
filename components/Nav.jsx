@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import ThemeToggle from './ThemeToggle';
 import { getCosmetic, applyCosmetic } from '@/lib/cosmetics';
@@ -11,21 +11,33 @@ const ROW1 = [
   { href: '/stake',      label: 'Stake',       key: 'stake' },
 ];
 
-const ROW2 = [
-  { href: '/feed',               label: 'Feed',    key: 'feed' },
-  { href: '/learn',              label: 'Learn',   key: 'learn' },
-  { href: '/badges',             label: 'Badges',  key: 'badges' },
-  { href: '/news',               label: 'News',    key: 'news' },
-  { href: '/games/crypto-crush',   label: 'Crush',   key: 'crush' },
-  { href: '/games/higher-lower',   label: 'Predict', key: 'higher-lower' },
-  { href: '/rewards',            label: 'Store',   key: 'store' },
+const GAMES = [
+  { href: '/games/crypto-crush',  label: 'Crypto Crush',  icon: '💎' },
+  { href: '/games/higher-lower',  label: 'Higher / Lower', icon: '📈' },
+  { href: '/games/miner-runner',  label: 'Miner Runner',  icon: '⛏' },
 ];
 
-const ALL = [...ROW1, ...ROW2];
+const ROW2 = [
+  { href: '/feed',    label: 'Feed',   key: 'feed' },
+  { href: '/learn',   label: 'Learn',  key: 'learn' },
+  { href: '/badges',  label: 'Badges', key: 'badges' },
+  { href: '/news',    label: 'News',   key: 'news' },
+  { href: '/rewards', label: 'Store',  key: 'store' },
+];
+
+const ALL = [...ROW1, ...ROW2, ...GAMES.map((g, i) => ({ ...g, key: `game-${i}` }))];
 
 export default function Nav({ active, right }) {
   const [open, setOpen] = useState(false);
+  const [gamesOpen, setGamesOpen] = useState(false);
+  const gamesRef = useRef(null);
+  const isGameActive = GAMES.some(g => g.href === (typeof window !== 'undefined' ? window.location.pathname : ''));
   useEffect(() => { applyCosmetic(getCosmetic()); }, []);
+  useEffect(() => {
+    const handler = (e) => { if (gamesRef.current && !gamesRef.current.contains(e.target)) setGamesOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   return (
     <>
@@ -58,6 +70,32 @@ export default function Nav({ active, right }) {
         .ccnav-link.active{background:rgba(0,229,160,.12);color:var(--accent,#00e5a0);border:1px solid rgba(0,229,160,.2)}
         /* row-2 links slightly smaller */
         .ccnav-row2 .ccnav-link{font-size:10px;padding:4px 10px}
+        /* ── Games dropdown ── */
+        .ccnav-games{position:relative}
+        .ccnav-games-btn{
+          padding:4px 10px;border-radius:8px;font-size:10px;
+          color:var(--muted,#475569);letter-spacing:.6px;transition:all .2s;
+          text-transform:uppercase;white-space:nowrap;background:none;border:none;cursor:pointer;
+          font-family:inherit;
+        }
+        .ccnav-games-btn:hover,.ccnav-games-btn.active{color:var(--accent,#00e5a0)}
+        .ccnav-games-btn.active{background:rgba(0,229,160,.12);border:1px solid rgba(0,229,160,.2)}
+        .ccnav-games-drop{
+          position:absolute;top:calc(100% + 6px);left:0;min-width:170px;
+          background:var(--surface,#0f172a);border:1px solid var(--border,#1e293b);
+          border-radius:12px;padding:6px;z-index:300;box-shadow:0 8px 24px rgba(0,0,0,.5);
+        }
+        .ccnav-games-drop a{
+          display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;
+          font-size:11px;text-decoration:none;color:var(--muted,#475569);
+          letter-spacing:.4px;transition:all .15s;white-space:nowrap;
+        }
+        .ccnav-games-drop a:hover{background:rgba(0,229,160,.08);color:var(--accent,#00e5a0)}
+        .ccnav-games-drop a.active{background:rgba(0,229,160,.12);color:var(--accent,#00e5a0)}
+        .ccnav-games-drop-label{
+          font-size:9px;letter-spacing:1px;text-transform:uppercase;
+          color:var(--muted,#475569);padding:4px 12px 2px;opacity:.5;
+        }
         /* ── Burger & drawer ── */
         .ccnav-burger{display:none;background:none;border:1px solid var(--border,#1e293b);border-radius:8px;padding:6px 11px;cursor:pointer;color:var(--text,#e2e8f0);font-size:16px;line-height:1;transition:all .2s}
         .ccnav-burger:hover{border-color:var(--accent,#00e5a0);color:var(--accent,#00e5a0)}
@@ -101,6 +139,26 @@ export default function Nav({ active, right }) {
               {l.label}
             </Link>
           ))}
+          {/* Games dropdown */}
+          <div className="ccnav-games" ref={gamesRef}>
+            <button
+              className={`ccnav-games-btn${isGameActive ? ' active' : ''}`}
+              onClick={() => setGamesOpen(o => !o)}
+            >
+              Games ▾
+            </button>
+            {gamesOpen && (
+              <div className="ccnav-games-drop">
+                <div className="ccnav-games-drop-label">Select a game</div>
+                {GAMES.map(g => (
+                  <Link key={g.href} href={g.href} onClick={() => setGamesOpen(false)}
+                    className={active === g.href ? 'active' : ''}>
+                    <span>{g.icon}</span>{g.label}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* ── Mobile drawer ── */}
@@ -112,6 +170,12 @@ export default function Nav({ active, right }) {
             <div className="ccnav-drawer-divider" />
             {ROW2.map(l => (
               <Link key={l.key} href={l.href} className={`ccnav-link${active === l.key ? ' active' : ''}`} onClick={() => setOpen(false)}>{l.label}</Link>
+            ))}
+            <div className="ccnav-drawer-divider" />
+            {GAMES.map(g => (
+              <Link key={g.href} href={g.href} className={`ccnav-link${active === g.href ? ' active' : ''}`} onClick={() => setOpen(false)}>
+                {g.icon} {g.label}
+              </Link>
             ))}
           </div>
         )}
