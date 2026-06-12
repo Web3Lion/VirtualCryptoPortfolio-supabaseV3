@@ -286,7 +286,7 @@ export default function Teacher() {
     setExpandedStudentId(student.id);
     try {
       const res = await fetch(`/api/leaderboard/student?studentId=${student.id}`);
-      if (res.ok) setExpandedStudentData(d => ({ ...d, [student.id]: await res.json() }));
+      if (res.ok) { const data = await res.json(); setExpandedStudentData(d => ({ ...d, [student.id]: data })); }
     } catch {}
     setExpandedStudentLoading(null);
   };
