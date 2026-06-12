@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { calculateSharpe, calculateSortino, calculateMaxDrawdown, calculateWinRate } from '@/lib/metrics';
 
 export async function GET(request) {
+  try {
   const session = await getServerSession(authOptions);
   if (session?.user?.email !== process.env.TEACHER_EMAIL)
     return Response.json({ error: 'Teacher only' }, { status: 403 });
@@ -19,16 +20,17 @@ export async function GET(request) {
   const students = (classStudents || []).map(r => r.students).filter(s => s && !s.is_bot);
   const studentIds = students.map(s => s.id);
 
+  const inStudents = studentIds.length ? studentIds : ['00000000-0000-0000-0000-000000000000'];
   const [portfoliosRes, holdingsRes, tradesRes, pricesRes, snapshotsRes, stakingRes, badgesRes, modulesRes, attemptsRes] = await Promise.all([
-    db.from('portfolios').select('student_id, cash, fees_paid').in('student_id', studentIds).eq('class_id', classId),
-    db.from('holdings').select('student_id, coin, quantity, avg_buy_price').in('student_id', studentIds).eq('class_id', classId),
-    db.from('trades').select('student_id, action, coin, gross_value, fee').in('student_id', studentIds).eq('class_id', classId),
+    db.from('portfolios').select('student_id, cash, fees_paid').in('student_id', inStudents).eq('class_id', classId),
+    db.from('holdings').select('student_id, coin, quantity, avg_buy_price').in('student_id', inStudents).eq('class_id', classId),
+    db.from('trades').select('student_id, action, coin, gross_value, fee').in('student_id', inStudents).eq('class_id', classId),
     db.from('price_cache').select('symbol, price'),
-    db.from('snapshots').select('student_id, total_value, created_at').in('student_id', studentIds).eq('class_id', classId).order('created_at', { ascending: true }),
-    db.from('staking_positions').select('student_id, coin, quantity').in('student_id', studentIds).eq('class_id', classId).in('status', ['active', 'claimable']).catch(() => ({ data: null })),
-    db.from('badges').select('student_id').in('student_id', studentIds).eq('class_id', classId).catch(() => ({ data: null })),
-    db.from('learn_modules').select('id, title, emoji, order_index, learn_lessons(id, title, order_index, pass_threshold)').eq('class_id', classId).eq('is_published', true).order('order_index'),
-    db.from('learn_attempts').select('student_id, lesson_id, score, passed').in('student_id', studentIds).eq('class_id', classId),
+    db.from('snapshots').select('student_id, total_value, created_at').in('student_id', inStudents).eq('class_id', classId).order('created_at', { ascending: true }),
+    db.from('staking_positions').select('student_id, coin, quantity').in('student_id', inStudents).eq('class_id', classId).in('status', ['active', 'claimable']).catch(() => ({ data: null })),
+    db.from('badges').select('student_id').in('student_id', inStudents).eq('class_id', classId).catch(() => ({ data: null })),
+    db.from('learn_modules').select('id, title, emoji, order_index').eq('class_id', classId).eq('is_published', true).order('order_index'),
+    db.from('learn_attempts').select('student_id, lesson_id, score, passed').in('student_id', inStudents).eq('class_id', classId),
   ]);
 
   const pm = {};
@@ -58,10 +60,21 @@ export async function GET(request) {
   const badgesCountMap = {};
   (badgesRes.data || []).forEach(b => { badgesCountMap[b.student_id] = (badgesCountMap[b.student_id] || 0) + 1; });
 
+  // Fetch lessons separately (no FK constraint for nested select)
+  const moduleIds = (modulesRes.data || []).map(m => m.id);
+  const lessonsRes = moduleIds.length
+    ? await db.from('learn_lessons').select('id, module_id, title, order_index, pass_threshold').in('module_id', moduleIds).eq('is_published', true).order('order_index')
+    : { data: [] };
+  const lessonsByModule = {};
+  (lessonsRes.data || []).forEach(l => {
+    if (!lessonsByModule[l.module_id]) lessonsByModule[l.module_id] = [];
+    lessonsByModule[l.module_id].push(l);
+  });
+
   // Build ordered lesson list from modules
   const lessons = (modulesRes.data || [])
     .sort((a, b) => a.order_index - b.order_index)
-    .flatMap(m => (m.learn_lessons || [])
+    .flatMap(m => (lessonsByModule[m.id] || [])
       .sort((a, b) => a.order_index - b.order_index)
       .map(l => ({ ...l, moduleTitle: m.title, moduleEmoji: m.emoji })));
 
@@ -150,4 +163,8 @@ export async function GET(request) {
       'Content-Disposition': `attachment; filename="${className}-grades-${new Date().toISOString().slice(0,10)}.csv"`,
     },
   });
+  } catch (err) {
+    console.error('Export error:', err);
+    return Response.json({ error: err.message }, { status: 500 });
+  }
 }
