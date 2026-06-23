@@ -213,6 +213,7 @@ export default function Dashboard() {
   const [classId, setClassId] = useState(null);
   const [dailyChallenge, setDailyChallenge] = useState(null);
   const [weeklyChallenge, setWeeklyChallenge] = useState(null);
+  const [loginStreak, setLoginStreak] = useState(null);
   const [analyticsData, setAnalyticsData] = useState(null);
   const [pieView, setPieView] = useState('coin');
   const [watchlist, setWatchlist] = useState([]);
@@ -315,6 +316,7 @@ export default function Dashboard() {
         if (me?.classes?.[0]?.id) {
         fetchDailyChallenge(me.classes[0].id);
         fetchWeeklyChallenge(me.classes[0].id);
+        fetchLoginStreak(me.classes[0].id);
       }
       }
       if (stRes.ok) setStakingData(await stRes.json());
@@ -366,6 +368,13 @@ export default function Dashboard() {
     if (!id) return;
     const res = await fetch(`/api/weekly-challenge?classId=${id}`);
     if (res.ok) setWeeklyChallenge(await res.json());
+  }, [classId]);
+
+  const fetchLoginStreak = useCallback(async (cid) => {
+    const id = cid || classId;
+    if (!id) return;
+    const res = await fetch(`/api/login-streak?classId=${id}`);
+    if (res.ok) setLoginStreak(await res.json());
   }, [classId]);
 
   const fetchRefreshStatus = useCallback(async () => {
@@ -960,6 +969,24 @@ export default function Dashboard() {
           </>
         ) : (
           <>
+            {/* Login Streak */}
+            {loginStreak?.justEarned && (
+              <div style={{
+                background: 'rgba(0,229,160,.07)', border: '1px solid rgba(0,229,160,.35)',
+                borderRadius: 16, padding: '14px 20px', marginBottom: 16,
+                display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap',
+              }}>
+                <span style={{ fontSize: 28, flexShrink: 0 }}>🔥</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 9, color: 'var(--accent)', letterSpacing: 2, textTransform: 'uppercase', fontWeight: 700, marginBottom: 2 }}>Login Streak</div>
+                  <div style={{ fontSize: 12, color: '#94a3b8' }}>{loginStreak.streak} day streak — keep logging in daily to keep it going!</div>
+                </div>
+                <div style={{ flexShrink: 0, fontSize: 13, fontWeight: 700, color: 'var(--accent)' }}>
+                  +{loginStreak.tokensAwarded} tokens
+                </div>
+              </div>
+            )}
+
             {/* Daily Challenge */}
             {dailyChallenge?.challenge && (
               <div style={{
@@ -1547,6 +1574,7 @@ export default function Dashboard() {
                                 if (r.startsWith('store:'))         return ['🛒', `Store: ${r.replace('store:','')}`];
                                 if (r.startsWith('crush:'))         return ['🎮', `Crypto Crush (${r.replace('crush:','')})`];
                                 if (r.startsWith('daily_challenge:'))   return ['📅', `Daily challenge: ${r.replace('daily_challenge:','')}`];
+                                if (r.startsWith('login_streak:'))      return ['🔥', `Login streak: ${r.replace('login_streak:','')}`];
                                 if (r.startsWith('weekly_challenge:')) return ['🏆', 'Weekly challenge completed'];
                                 if (r === 'redeemed')               return ['💵', 'Redeemed for cash'];
                                 return ['🎁', r || 'Reward'];
