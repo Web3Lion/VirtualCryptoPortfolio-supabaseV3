@@ -6,8 +6,8 @@ import Nav from "@/components/Nav";
 import { applyTheme, getTheme } from "@/lib/theme";
 import { COSMETIC_THEMES, setCosmetic, getCosmetic, applyCosmetic, saveOwnedThemes } from "@/lib/cosmetics";
 
-const CAT_LABELS = { flair: '✨ Leaderboard Flair', title: '🏷️ Profile Titles', theme: '🎨 Portfolio Themes' };
-const CAT_ORDER  = ['theme', 'flair', 'title'];
+const CAT_LABELS = { flair: '✨ Leaderboard Flair', title: '🏷️ Profile Titles', theme: '🎨 Portfolio Themes', freeze: '🧊 Streak Protection' };
+const CAT_ORDER  = ['theme', 'flair', 'title', 'freeze'];
 
 const THEME_SWATCHES = {
   theme_gold:   ['#0c0800','#f59e0b','#fef3c7','#f59e0b','#ef4444'],
@@ -182,7 +182,7 @@ export default function RewardsStore() {
                 const isAnyActive    = isActiveTheme || isActiveFlair;
                 const canAfford      = balance >= item.price;
                 const isBuying       = buying === item.id;
-                const btnLabel       = isBuying ? 'Applying...' : isAnyActive ? 'Active' : !canAfford ? 'Not enough ClassReward Tokens' : item.category === 'theme' ? 'Apply Theme' : item.category === 'flair' ? (activeFlair ? 'Switch Flair' : 'Equip Flair') : 'Unlock';
+                const btnLabel       = isBuying ? 'Applying...' : isAnyActive ? 'Active' : !canAfford ? 'Not enough ClassReward Tokens' : item.category === 'theme' ? 'Apply Theme' : item.category === 'flair' ? (activeFlair ? 'Switch Flair' : 'Equip Flair') : item.category === 'freeze' ? 'Buy Freeze' : 'Unlock';
                 return (
                   <div key={item.id} className={`store-card${isAnyActive ? ' active-item' : ''}`}>
                     {isAnyActive && <span className="active-pill">ACTIVE</span>}
@@ -190,6 +190,9 @@ export default function RewardsStore() {
                     <div className="store-name">{item.name}</div>
                     <div className="store-desc">{item.desc}</div>
                     {item.category === 'theme' && <ThemeSwatch id={item.id} />}
+                    {item.category === 'freeze' && (data?.freezesAvailable || 0) > 0 && (
+                      <div style={{ fontSize: 11, color: 'var(--accent)' }}>You own {data.freezesAvailable} 🧊</div>
+                    )}
                     <div className="store-price">{item.price.toLocaleString()} ClassReward Tokens{(item.category === 'flair' && activeFlair && !isActiveFlair) || (item.category === 'theme' && activeTheme && !isActiveTheme) ? ' (swap — old refunded)' : ''}</div>
                     <button
                       className={`buy-btn ${isAnyActive ? 'muted' : !canAfford || isBuying ? 'disabled' : 'primary'}`}

@@ -54,13 +54,15 @@ export async function GET(request) {
 
   const FLAIR_EMOJI = { flair_star:'⭐', flair_fire:'🔥', flair_diamond:'💎', flair_crown:'👑' };
 
-  const [portfoliosRes, holdingsRes, tradesRes, pricesRes, snapshotsRes, flairRes] = await Promise.all([
+  const [portfoliosRes, holdingsRes, tradesRes, pricesRes, snapshotsRes, flairRes, loginStreakRes] = await Promise.all([
     db.from('portfolios').select('student_id, cash, fees_paid').in('student_id', studentIds).eq('class_id', classId),
     db.from('holdings').select('student_id, coin, quantity, avg_buy_price').in('student_id', studentIds).eq('class_id', classId).gt('quantity', 0),
     db.from('trades').select('student_id, action, coin, gross_value, fee, created_at').in('student_id', studentIds).eq('class_id', classId),
     db.from('price_cache').select('symbol, price'),
     db.from('snapshots').select('student_id, total_value, created_at').in('student_id', studentIds).eq('class_id', classId).order('created_at', { ascending: true }),
     db.from('class_reward_ledger').select('student_id, reason, created_at').in('student_id', studentIds).eq('class_id', classId).like('reason', 'store:flair_%').order('created_at', { ascending: false }),
+    db.from('class_reward_ledger').select('student_id, reason').in('student_id', studentIds).eq('class_id', classId)
+      .or('reason.like.login_streak:%,reason.like.freeze_used:%,reason.eq.store:streak_freeze'),
   ]);
 
   // Most recent flair per student (purchases have negative tokens implied by reason pattern + order)
@@ -113,6 +115,38 @@ export async function GET(request) {
     snapshotsByStudent[s.student_id].push(s);
   });
 
+  // Pre-compute login streaks per student from class_reward_ledger login_streak:/freeze entries
+  const loginLedgerByStudent = {};
+  (loginStreakRes.data || []).forEach(r => {
+    if (!loginLedgerByStudent[r.student_id]) loginLedgerByStudent[r.student_id] = [];
+    loginLedgerByStudent[r.student_id].push(r.reason);
+  });
+
+  function prevDay(dateStr) {
+    const d = new Date(dateStr + 'T12:00:00Z');
+    d.setDate(d.getDate() - 1);
+    return d.toISOString().slice(0, 10);
+  }
+
+  function calcLoginStreak(reasons) {
+    const loginDates = [...new Set(reasons.filter(r => r.startsWith('login_streak:')).map(r => r.replace('login_streak:', '')))];
+    const freezeDates = [...new Set(reasons.filter(r => r.startsWith('freeze_used:')).map(r => r.replace('freeze_used:', '')))];
+    const freezesOwned = reasons.filter(r => r === 'store:streak_freeze').length;
+    const freezesAvailable = Math.max(0, freezesOwned - freezeDates.length);
+    const dates = [...new Set([...loginDates, ...freezeDates])].sort().reverse();
+    if (!dates.length) return { loginStreak: 0, loginStreakAtRisk: false, freezesAvailable };
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const yesterday = prevDay(todayStr);
+    const claimedToday = dates[0] === todayStr;
+    let streak = 0, check = claimedToday ? todayStr : yesterday;
+    for (const d of dates) {
+      if (d === check) { streak++; check = prevDay(check); }
+      else if (d < check) break;
+    }
+    const loginStreakAtRisk = !claimedToday && dates[0] === yesterday && streak > 0;
+    return { loginStreak: streak, loginStreakAtRisk, freezesAvailable };
+  }
+
   // Pre-compute trading streaks: consecutive calendar days (up to today) with ≥1 trade
   function calcStreak(trades) {
     const days = [...new Set(trades.map(t => t.created_at.slice(0, 10)))].sort().reverse();
@@ -142,6 +176,8 @@ export async function GET(request) {
       holdingsVal += parseFloat(h.quantity) * price;
     });
 
+    const { loginStreak, loginStreakAtRisk, freezesAvailable } = calcLoginStreak(loginLedgerByStudent[student.id] || []);
+
     const stakingVal = stakingMap[student.id] || 0;
     const totalVal   = cash + holdingsVal + stakingVal;
     const pl         = totalVal - seedMoney;
@@ -167,6 +203,9 @@ export async function GET(request) {
       winRate:      calculateWinRate(tradesByStudent[student.id] || []),
       flair:        flairMap[student.id] || null,
       streak:       calcStreak(tradesByStudent[student.id] || []),
+      loginStreak,
+      loginStreakAtRisk,
+      freezesAvailable,
     };
   });
 

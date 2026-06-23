@@ -982,7 +982,11 @@ export default function Dashboard() {
                   <div style={{ fontSize: 9, color: 'var(--accent)', letterSpacing: 2, textTransform: 'uppercase', fontWeight: 700, marginBottom: 2 }}>Login Streak</div>
                   <div style={{ fontSize: 12, color: '#94a3b8' }}>
                     {loginStreak.streak} day streak{loginStreak.justEarned ? ' — keep logging in daily to keep it going!' : ''}
+                    {loginStreak.freezeUsed && <span style={{ color: '#38bdf8' }}> · 🧊 a streak freeze saved your streak!</span>}
                   </div>
+                  {loginStreak.freezesAvailable > 0 && (
+                    <div style={{ fontSize: 10, color: '#38bdf8', marginTop: 2 }}>🧊 {loginStreak.freezesAvailable} streak freeze{loginStreak.freezesAvailable > 1 ? 's' : ''} in reserve</div>
+                  )}
                 </div>
                 <div style={{ flexShrink: 0, textAlign: 'right' }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent)' }}>

@@ -43,23 +43,40 @@ export async function GET(request) {
   }
   if (!classId) return Response.json({ error: 'No class' }, { status: 404 });
 
-  const { data: existing } = await db.from('class_reward_ledger').select('tokens')
+  const { data: ledger } = await db.from('class_reward_ledger').select('tokens, reason')
     .eq('student_id', student.id).eq('class_id', classId)
-    .eq('reason', `login_streak:${today()}`).limit(1);
-  const alreadyClaimed = (existing || []).length > 0;
+    .or('reason.like.login_streak:%,reason.like.freeze_used:%,reason.eq.store:streak_freeze');
 
-  const { data: allLogins } = await db.from('class_reward_ledger')
-    .select('reason').eq('student_id', student.id).eq('class_id', classId)
-    .like('reason', 'login_streak:%').order('reason', { ascending: false });
-  const loginDates = [...new Set((allLogins || []).map(c => c.reason.replace('login_streak:', '')))].sort().reverse();
+  const alreadyClaimed = (ledger || []).some(r => r.reason === `login_streak:${today()}`);
+  const loginDates = [...new Set((ledger || []).filter(r => r.reason.startsWith('login_streak:')).map(r => r.reason.replace('login_streak:', '')))];
+  const freezeDates = [...new Set((ledger || []).filter(r => r.reason.startsWith('freeze_used:')).map(r => r.reason.replace('freeze_used:', '')))];
+  const freezesOwned = (ledger || []).filter(r => r.reason === 'store:streak_freeze').length;
+
+  // Combine real logins with freeze-protected gap days for streak continuity purposes.
+  let effectiveDates = [...new Set([...loginDates, ...freezeDates])].sort().reverse();
 
   let justEarned = false;
+  let freezeUsed = false;
   let tokensAwarded = 0;
   if (!alreadyClaimed) {
     try {
       const { data: cfg } = await db.from('class_reward_config').select('enabled').eq('class_id', classId).single();
       if (cfg?.enabled) {
-        const day = calcStreak(loginDates, today(), false) + 1;
+        const yesterday = prevDay(today());
+        const dayBeforeYesterday = prevDay(yesterday);
+        const freezesAvailable = freezesOwned - freezeDates.length;
+        const hasGap = effectiveDates.length > 0 && effectiveDates[0] !== yesterday;
+        // A streak freeze covers exactly one missed day: yesterday is missing but the day before it isn't.
+        if (hasGap && effectiveDates[0] === dayBeforeYesterday && freezesAvailable > 0) {
+          await db.from('class_reward_ledger').insert({
+            student_id: student.id, class_id: classId,
+            tokens: 0, reason: `freeze_used:${yesterday}`,
+          });
+          effectiveDates = [yesterday, ...effectiveDates];
+          freezeUsed = true;
+        }
+
+        const day = calcStreak(effectiveDates, today(), false) + 1;
         const tokens = tokensForDay(day);
         await db.from('class_reward_ledger').insert({
           student_id: student.id, class_id: classId,
@@ -67,15 +84,16 @@ export async function GET(request) {
         });
         justEarned = true;
         tokensAwarded = tokens;
-        if (!loginDates.includes(today())) loginDates.unshift(today());
+        if (!effectiveDates.includes(today())) effectiveDates.unshift(today());
       }
     } catch {}
   }
 
   const claimed = alreadyClaimed || justEarned;
-  const streak = calcStreak(loginDates, today(), claimed);
-  const tokensToday = justEarned ? tokensAwarded : (alreadyClaimed ? (existing[0]?.tokens || 0) : 0);
+  const streak = calcStreak(effectiveDates, today(), claimed);
+  const tokensToday = justEarned ? tokensAwarded : (alreadyClaimed ? ((ledger || []).find(r => r.reason === `login_streak:${today()}`)?.tokens || 0) : 0);
   const tokensTomorrow = tokensForDay(streak + 1);
+  const freezesAvailable = Math.max(0, freezesOwned - (freezeUsed ? freezeDates.length + 1 : freezeDates.length));
 
-  return Response.json({ claimed, justEarned, tokensAwarded, tokensToday, tokensTomorrow, streak, date: today() });
+  return Response.json({ claimed, justEarned, freezeUsed, tokensAwarded, tokensToday, tokensTomorrow, streak, freezesAvailable, date: today() });
 }

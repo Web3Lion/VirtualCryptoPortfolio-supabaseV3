@@ -17,6 +17,8 @@ export const STORE_ITEMS = [
   { id: 'theme_gold',    name: 'Gold Rush',         emoji: '🪙', price: 300, desc: 'Transform the app into a golden trading floor — rich amber and burnished gold', category: 'theme' },
   { id: 'theme_arcade',  name: '80s Arcade',        emoji: '👾', price: 300, desc: 'Neon magenta and cyan on deep black — pixel vibes from the golden age of gaming', category: 'theme' },
   { id: 'theme_dino',    name: 'Dino Trader',       emoji: '🦕', price: 300, desc: 'Prehistoric jungle greens — trade like a beast that survived 65 million years', category: 'theme' },
+  // Streak protection
+  { id: 'streak_freeze', name: 'Streak Freeze',     emoji: '🧊', price: 75,  desc: 'Protects your login streak if you miss exactly one day. Stackable — buy more for extra protection.', category: 'freeze' },
 ];
 
 export async function GET(request) {
@@ -46,7 +48,11 @@ export async function GET(request) {
   const activeFlair = purchases.find(r => r.reason?.startsWith('store:flair_'))?.reason.replace('store:', '') || null;
   const activeTheme = purchases.find(r => r.reason?.startsWith('store:theme_'))?.reason.replace('store:', '') || null;
 
-  return Response.json({ balance, items: STORE_ITEMS, owned, activeFlair, activeTheme, classId });
+  const freezesOwned = (ledger || []).filter(r => r.reason === 'store:streak_freeze').length;
+  const freezesUsed = (ledger || []).filter(r => r.reason?.startsWith('freeze_used:')).length;
+  const freezesAvailable = Math.max(0, freezesOwned - freezesUsed);
+
+  return Response.json({ balance, items: STORE_ITEMS, owned, activeFlair, activeTheme, freezesAvailable, classId });
 }
 
 export async function POST(request) {

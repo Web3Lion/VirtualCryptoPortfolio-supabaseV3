@@ -1606,7 +1606,7 @@ export default function Teacher() {
                       {(studentsSubView==='roster' || studentsView==='all') && (
                         studentsView==='class' ? (
                           <table className="student-table">
-                            <thead><tr><th>Rank</th><th>Name</th><th>Portfolio</th><th>Return</th><th>P/L</th><th>Cash</th><th>Actions</th></tr></thead>
+                            <thead><tr><th>Rank</th><th>Name</th><th>Portfolio</th><th>Return</th><th>P/L</th><th>Cash</th><th>Streak</th><th>Actions</th></tr></thead>
                             <tbody>
                               {students.map((s,i)=>{
                                 const ret=clean(s.returnPct),pl=clean(s.pl),isPos=ret>=0;
@@ -1622,6 +1622,15 @@ export default function Teacher() {
                                       <td style={{color:isPos?'var(--up)':'var(--down)',fontWeight:500}}>{fmtPct(ret)}</td>
                                       <td style={{color:isPos?'var(--up)':'var(--down)'}}>{isPos?'+':''}{fmtUSD(pl)}</td>
                                       <td style={{color:'var(--muted)'}}>{fmtUSD(s.cash)}</td>
+                                      <td onClick={e=>e.stopPropagation()} title={s.loginStreakAtRisk?'Logged in yesterday but not yet today — streak will reset if they don\'t log in today':''}>
+                                        {s.isBot ? <span style={{color:'var(--muted)'}}>—</span> : (
+                                          <span style={{display:'flex',alignItems:'center',gap:4,color:s.loginStreakAtRisk?'#f59e0b':'var(--muted)',fontWeight:s.loginStreakAtRisk?700:400}}>
+                                            🔥 {s.loginStreak || 0}
+                                            {s.loginStreakAtRisk && <span>⚠️</span>}
+                                            {s.freezesAvailable > 0 && <span title={`${s.freezesAvailable} streak freeze(s) available`}>🧊{s.freezesAvailable}</span>}
+                                          </span>
+                                        )}
+                                      </td>
                                       <td onClick={e=>e.stopPropagation()}>
                                         <div className="btn-row">
                                           {classes.length > 1 && <button className="btn btn-muted" style={{padding:'4px 10px',fontSize:10}} onClick={()=>{setMoveStudent(s);setMoveTargetClass('');}}>⇄ Move</button>}
@@ -1632,7 +1641,7 @@ export default function Teacher() {
                                     </tr>
                                     {isExpanded && (
                                       <tr>
-                                        <td colSpan={7} style={{padding:'0 0 8px 0',background:'var(--surface2)',borderBottom:'2px solid var(--border)'}}>
+                                        <td colSpan={8} style={{padding:'0 0 8px 0',background:'var(--surface2)',borderBottom:'2px solid var(--border)'}}>
                                           {isLoading ? (
                                             <div style={{padding:'16px 20px',color:'var(--muted)',fontSize:12}}>Loading holdings…</div>
                                           ) : eData ? (
