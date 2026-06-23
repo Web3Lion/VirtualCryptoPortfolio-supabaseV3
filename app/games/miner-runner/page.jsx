@@ -572,14 +572,14 @@ export default function MinerRunner() {
         </div>
 
         {/* Canvas */}
-        <div className="relative rounded-2xl overflow-hidden shadow-2xl" style={{ border: "2px solid var(--border-color)" }}>
+        <div className="relative rounded-2xl overflow-hidden shadow-2xl flex justify-center" style={{ border: "2px solid var(--border-color)" }}>
           <canvas
             ref={canvasRef}
             width={W}
             height={H}
             onClick={handleCanvasClick}
-            className="w-full cursor-pointer block"
-            style={{ imageRendering: "pixelated", maxHeight: 320 }}
+            className="cursor-pointer block"
+            style={{ imageRendering: "pixelated", width: "100%", maxWidth: W, aspectRatio: `${W} / ${H}`, height: "auto" }}
           />
         </div>
 

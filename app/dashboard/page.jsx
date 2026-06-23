@@ -970,19 +970,27 @@ export default function Dashboard() {
         ) : (
           <>
             {/* Login Streak */}
-            {loginStreak?.justEarned && (
+            {loginStreak && (
               <div style={{
-                background: 'rgba(0,229,160,.07)', border: '1px solid rgba(0,229,160,.35)',
+                background: loginStreak.justEarned ? 'rgba(0,229,160,.07)' : 'var(--surface)',
+                border: `1px solid ${loginStreak.justEarned ? 'rgba(0,229,160,.35)' : 'var(--border)'}`,
                 borderRadius: 16, padding: '14px 20px', marginBottom: 16,
                 display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap',
               }}>
                 <span style={{ fontSize: 28, flexShrink: 0 }}>🔥</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 9, color: 'var(--accent)', letterSpacing: 2, textTransform: 'uppercase', fontWeight: 700, marginBottom: 2 }}>Login Streak</div>
-                  <div style={{ fontSize: 12, color: '#94a3b8' }}>{loginStreak.streak} day streak — keep logging in daily to keep it going!</div>
+                  <div style={{ fontSize: 12, color: '#94a3b8' }}>
+                    {loginStreak.streak} day streak{loginStreak.justEarned ? ' — keep logging in daily to keep it going!' : ''}
+                  </div>
                 </div>
-                <div style={{ flexShrink: 0, fontSize: 13, fontWeight: 700, color: 'var(--accent)' }}>
-                  +{loginStreak.tokensAwarded} tokens
+                <div style={{ flexShrink: 0, textAlign: 'right' }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent)' }}>
+                    +{loginStreak.tokensToday} tokens today
+                  </div>
+                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>
+                    +{loginStreak.tokensTomorrow} tokens tomorrow
+                  </div>
                 </div>
               </div>
             )}

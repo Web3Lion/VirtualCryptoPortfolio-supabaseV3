@@ -43,7 +43,7 @@ export async function GET(request) {
   }
   if (!classId) return Response.json({ error: 'No class' }, { status: 404 });
 
-  const { data: existing } = await db.from('class_reward_ledger').select('id')
+  const { data: existing } = await db.from('class_reward_ledger').select('tokens')
     .eq('student_id', student.id).eq('class_id', classId)
     .eq('reason', `login_streak:${today()}`).limit(1);
   const alreadyClaimed = (existing || []).length > 0;
@@ -74,6 +74,8 @@ export async function GET(request) {
 
   const claimed = alreadyClaimed || justEarned;
   const streak = calcStreak(loginDates, today(), claimed);
+  const tokensToday = justEarned ? tokensAwarded : (alreadyClaimed ? (existing[0]?.tokens || 0) : 0);
+  const tokensTomorrow = tokensForDay(streak + 1);
 
-  return Response.json({ claimed, justEarned, tokensAwarded, streak, date: today() });
+  return Response.json({ claimed, justEarned, tokensAwarded, tokensToday, tokensTomorrow, streak, date: today() });
 }
