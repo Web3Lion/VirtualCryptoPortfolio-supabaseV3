@@ -529,7 +529,7 @@ export default function MinerRunner() {
   return (
     <div className="min-h-screen" style={{ background: "var(--bg-primary)" }}>
       <Nav />
-      <div className="max-w-4xl mx-auto px-4 py-8">
+      <div style={{ maxWidth: 896, margin: '0 auto', padding: '32px 16px' }}>
         {/* Header */}
         <div className="mb-6 flex items-center justify-between">
           <div>
@@ -572,14 +572,13 @@ export default function MinerRunner() {
         </div>
 
         {/* Canvas */}
-        <div className="relative rounded-2xl overflow-hidden shadow-2xl flex justify-center" style={{ border: "2px solid var(--border-color)" }}>
+        <div style={{ position: 'relative', borderRadius: 16, overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0,0,0,.5)', display: 'flex', justifyContent: 'center', border: '2px solid var(--border, #1e293b)' }}>
           <canvas
             ref={canvasRef}
             width={W}
             height={H}
             onClick={handleCanvasClick}
-            className="cursor-pointer block"
-            style={{ imageRendering: "pixelated", width: "100%", maxWidth: W, aspectRatio: `${W} / ${H}`, height: "auto" }}
+            style={{ imageRendering: "pixelated", width: "100%", maxWidth: W, aspectRatio: `${W} / ${H}`, height: "auto", cursor: 'pointer', display: 'block' }}
           />
         </div>
 
