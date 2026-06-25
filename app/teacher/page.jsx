@@ -1695,7 +1695,7 @@ export default function Teacher() {
                           <div style={{color:'var(--muted)',textAlign:'center',padding:32,fontSize:13}}>Loading all students...</div>
                         ) : (
                           <table className="student-table">
-                            <thead><tr><th>Rank</th><th>Name</th><th>Class</th><th>Portfolio</th><th>Return</th><th>P/L</th><th>Cash</th></tr></thead>
+                            <thead><tr><th>Rank</th><th>Name</th><th>Class</th><th>Portfolio</th><th>Return</th><th>P/L</th><th>Cash</th><th>Streak</th></tr></thead>
                             <tbody>
                               {allStudents.map((s,i)=>{
                                 const ret=clean(s.returnPct),pl=clean(s.pl),isPos=ret>=0;
@@ -1708,6 +1708,13 @@ export default function Teacher() {
                                     <td style={{color:isPos?'var(--up)':'var(--down)',fontWeight:500}}>{fmtPct(ret)}</td>
                                     <td style={{color:isPos?'var(--up)':'var(--down)'}}>{isPos?'+':''}{fmtUSD(pl)}</td>
                                     <td style={{color:'var(--muted)'}}>{fmtUSD(s.cash)}</td>
+                                    <td title={s.loginStreakAtRisk?'Logged in yesterday but not yet today — streak will reset if they don\'t log in today':''}>
+                                      <span style={{display:'flex',alignItems:'center',gap:4,color:s.loginStreakAtRisk?'#f59e0b':'var(--muted)',fontWeight:s.loginStreakAtRisk?700:400}}>
+                                        🔥 {s.loginStreak || 0}
+                                        {s.loginStreakAtRisk && <span>⚠️</span>}
+                                        {s.freezesAvailable > 0 && <span title={`${s.freezesAvailable} streak freeze(s) available`}>🧊{s.freezesAvailable}</span>}
+                                      </span>
+                                    </td>
                                   </tr>
                                 );
                               })}
