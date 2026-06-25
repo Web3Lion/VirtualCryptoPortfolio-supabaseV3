@@ -527,45 +527,42 @@ export default function MinerRunner() {
   }, [gameState, score, highScore]);
 
   return (
-    <div className="min-h-screen" style={{ background: "var(--bg-primary)" }}>
+    <div style={{ minHeight: '100vh', background: "var(--bg)" }}>
       <Nav />
       <div style={{ maxWidth: 896, margin: '0 auto', padding: '32px 16px' }}>
         {/* Header */}
-        <div className="mb-6 flex items-center justify-between">
+        <div style={{ marginBottom: 24, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <h1 className="text-2xl font-bold" style={{ color: "var(--text-primary)" }}>
+            <h1 style={{ fontSize: 24, fontWeight: 700, color: "var(--text)" }}>
               ⛏ Miner Runner
             </h1>
-            <p className="text-sm mt-1" style={{ color: "var(--text-secondary)" }}>
+            <p style={{ fontSize: 14, marginTop: 4, color: "var(--muted)" }}>
               Dodge the BTC coins — double jump to survive!
             </p>
           </div>
           <Link
             href="/games"
-            className="text-sm px-4 py-2 rounded-lg font-medium transition-colors"
-            style={{ background: "var(--bg-secondary)", color: "var(--text-secondary)" }}
+            style={{ fontSize: 14, padding: '8px 16px', borderRadius: 8, fontWeight: 500, transition: 'color .2s', background: "var(--surface)", color: "var(--muted)" }}
           >
             ← Games
           </Link>
         </div>
 
         {/* Score bar */}
-        <div className="flex gap-4 mb-4">
+        <div style={{ display: 'flex', gap: 16, marginBottom: 16 }}>
           <div
-            className="flex-1 rounded-xl px-5 py-3 flex items-center justify-between"
-            style={{ background: "var(--bg-secondary)" }}
+            style={{ flex: 1, borderRadius: 12, padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: "var(--surface)" }}
           >
-            <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>Score</span>
-            <span className="text-xl font-bold font-mono" style={{ color: "var(--text-primary)" }}>
+            <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: "var(--muted)" }}>Score</span>
+            <span style={{ fontSize: 20, fontWeight: 700, fontFamily: 'monospace', color: "var(--text)" }}>
               {score.toString().padStart(6, "0")}
             </span>
           </div>
           <div
-            className="flex-1 rounded-xl px-5 py-3 flex items-center justify-between"
-            style={{ background: "var(--bg-secondary)" }}
+            style={{ flex: 1, borderRadius: 12, padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: "var(--surface)" }}
           >
-            <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>Best</span>
-            <span className="text-xl font-bold font-mono" style={{ color: "#f59e0b" }}>
+            <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: "var(--muted)" }}>Best</span>
+            <span style={{ fontSize: 20, fontWeight: 700, fontFamily: 'monospace', color: "#f59e0b" }}>
               {highScore.toString().padStart(6, "0")}
             </span>
           </div>
@@ -583,9 +580,9 @@ export default function MinerRunner() {
         </div>
 
         {/* Controls hint */}
-        <p className="text-center text-xs mt-3" style={{ color: "var(--text-secondary)" }}>
-          Press <kbd className="px-1.5 py-0.5 rounded text-xs font-mono" style={{ background: "var(--bg-secondary)" }}>Space</kbd> or{" "}
-          <kbd className="px-1.5 py-0.5 rounded text-xs font-mono" style={{ background: "var(--bg-secondary)" }}>↑</kbd> to jump &nbsp;·&nbsp; tap/click the canvas on mobile
+        <p style={{ textAlign: 'center', fontSize: 12, marginTop: 12, color: "var(--muted)" }}>
+          Press <kbd style={{ padding: '2px 6px', borderRadius: 4, fontSize: 12, fontFamily: 'monospace', background: "var(--surface)" }}>Space</kbd> or{" "}
+          <kbd style={{ padding: '2px 6px', borderRadius: 4, fontSize: 12, fontFamily: 'monospace', background: "var(--surface)" }}>↑</kbd> to jump &nbsp;·&nbsp; tap/click the canvas on mobile
         </p>
       </div>
     </div>
