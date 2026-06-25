@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import ThemeToggle from './ThemeToggle';
 import { getCosmetic, applyCosmetic } from '@/lib/cosmetics';
 
@@ -31,7 +32,8 @@ export default function Nav({ active, right }) {
   const [open, setOpen] = useState(false);
   const [gamesOpen, setGamesOpen] = useState(false);
   const gamesRef = useRef(null);
-  const isGameActive = GAMES.some(g => g.href === (typeof window !== 'undefined' ? window.location.pathname : ''));
+  const pathname = usePathname();
+  const isGameActive = GAMES.some(g => g.href === pathname);
   useEffect(() => { applyCosmetic(getCosmetic()); }, []);
   useEffect(() => {
     const handler = (e) => { if (gamesRef.current && !gamesRef.current.contains(e.target)) setGamesOpen(false); };
@@ -41,7 +43,7 @@ export default function Nav({ active, right }) {
 
   return (
     <>
-      <style>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         .ccnav{
           display:flex;flex-direction:column;
           padding:14px 20px 12px;margin-bottom:28px;
@@ -110,7 +112,7 @@ export default function Nav({ active, right }) {
           .ccnav-burger{display:flex;align-items:center}
         }
         @media(min-width:701px){.ccnav-drawer{display:none!important}}
-      `}</style>
+      ` }} />
 
       <nav className="ccnav">
         {/* ── Row 1: Logo · Trading links · Controls ── */}
@@ -152,7 +154,7 @@ export default function Nav({ active, right }) {
                 <div className="ccnav-games-drop-label">Select a game</div>
                 {GAMES.map(g => (
                   <Link key={g.href} href={g.href} onClick={() => setGamesOpen(false)}
-                    className={active === g.href ? 'active' : ''}>
+                    className={pathname === g.href ? 'active' : ''}>
                     <span>{g.icon}</span>{g.label}
                   </Link>
                 ))}
@@ -173,7 +175,7 @@ export default function Nav({ active, right }) {
             ))}
             <div className="ccnav-drawer-divider" />
             {GAMES.map(g => (
-              <Link key={g.href} href={g.href} className={`ccnav-link${active === g.href ? ' active' : ''}`} onClick={() => setOpen(false)}>
+              <Link key={g.href} href={g.href} className={`ccnav-link${pathname === g.href ? ' active' : ''}`} onClick={() => setOpen(false)}>
                 {g.icon} {g.label}
               </Link>
             ))}
