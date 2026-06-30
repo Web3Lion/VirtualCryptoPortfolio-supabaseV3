@@ -5,6 +5,13 @@ import { usePathname } from 'next/navigation';
 import ThemeToggle from './ThemeToggle';
 import { getCosmetic, applyCosmetic } from '@/lib/cosmetics';
 
+const ANNOUNCE_COLORS = {
+  blue:   { bg:'rgba(96,165,250,.12)',  border:'rgba(96,165,250,.4)',  text:'#93c5fd' },
+  green:  { bg:'rgba(0,229,160,.12)',   border:'rgba(0,229,160,.4)',   text:'#00e5a0' },
+  yellow: { bg:'rgba(245,158,11,.12)',  border:'rgba(245,158,11,.4)',  text:'#fbbf24' },
+  red:    { bg:'rgba(244,63,94,.12)',   border:'rgba(244,63,94,.4)',   text:'#f87171' },
+};
+
 const ROW1 = [
   { href: '/dashboard',  label: 'Wallet',      key: 'wallet' },
   { href: '/market',     label: 'Market',      key: 'market' },
@@ -31,6 +38,7 @@ const ALL = [...ROW1, ...ROW2, ...GAMES.map((g, i) => ({ ...g, key: `game-${i}` 
 export default function Nav({ active, right }) {
   const [open, setOpen] = useState(false);
   const [gamesOpen, setGamesOpen] = useState(false);
+  const [announcement, setAnnouncement] = useState(null);
   const gamesRef = useRef(null);
   const pathname = usePathname();
   const isGameActive = GAMES.some(g => g.href === pathname);
@@ -40,6 +48,11 @@ export default function Nav({ active, right }) {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
+  useEffect(() => {
+    fetch('/api/market').then(r => r.ok ? r.json() : null).then(d => {
+      if (d?.announcement) setAnnouncement({ text: d.announcement, color: d.announcementColor || 'blue' });
+    }).catch(() => {});
+  }, [pathname]);
 
   return (
     <>
@@ -182,6 +195,20 @@ export default function Nav({ active, right }) {
           </div>
         )}
       </nav>
+
+      {announcement && (() => {
+        const c = ANNOUNCE_COLORS[announcement.color] || ANNOUNCE_COLORS.blue;
+        return (
+          <div style={{
+            background: c.bg, border: `1px solid ${c.border}`, borderRadius: 12,
+            padding: '10px 18px', marginBottom: 14,
+            display: 'flex', alignItems: 'center', gap: 10,
+          }}>
+            <span style={{ fontSize: 16, flexShrink: 0 }}>📢</span>
+            <span style={{ fontSize: 13, color: c.text, fontWeight: 600 }}>{announcement.text}</span>
+          </div>
+        );
+      })()}
     </>
   );
 }
