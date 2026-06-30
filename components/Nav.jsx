@@ -23,6 +23,7 @@ const GAMES = [
   { href: '/games/crypto-crush',  label: 'Crypto Crush',  icon: '💎' },
   { href: '/games/higher-lower',  label: 'Higher / Lower', icon: '📈' },
   { href: '/games/miner-runner',  label: 'Miner Runner',  icon: '⛏' },
+  { href: '/games/bull-bear',     label: 'Bull or Bear',  icon: '🐂' },
 ];
 
 const ROW2 = [
