@@ -2456,20 +2456,76 @@ export default function Dashboard() {
                     }}>+ Add</button>
                   </div>
                   {dcaStatus && <div className={`trade-status ${dcaStatus.type}`} style={{marginBottom:10}}>{dcaStatus.msg}</div>}
-                  {dcaOrders.length > 0 && (
-                    <div style={{display:'flex',flexDirection:'column',gap:6}}>
-                      {dcaOrders.map(o=>(
-                        <div key={o.id} style={{display:'flex',alignItems:'center',justifyContent:'space-between',background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:10,padding:'8px 14px'}}>
-                          <div>
-                            <span style={{fontWeight:600,fontSize:12}}>{o.coin}</span>
-                            <span style={{fontSize:11,color:'var(--muted)',marginLeft:8}}>${parseFloat(o.amount_usd).toLocaleString()} · {o.frequency}</span>
-                            <span style={{fontSize:10,color:'var(--muted)',marginLeft:8}}>{o.runs_count} runs · next {new Date(o.next_run_at).toLocaleDateString()}</span>
-                          </div>
-                          <button onClick={async()=>{await fetch('/api/dca',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:o.id})});setDcaOrders(p=>p.filter(x=>x.id!==o.id));}} style={{background:'none',border:'none',color:'var(--muted)',cursor:'pointer',fontSize:16,lineHeight:1}}>✕</button>
+                  {dcaOrders.length > 0 && (() => {
+                    // Build a 28-day calendar from today
+                    const today = new Date(); today.setHours(0,0,0,0);
+                    const days = Array.from({length:28},(_,i)=>{ const d=new Date(today); d.setDate(d.getDate()+i); return d; });
+                    const DAY_NAMES=['Su','Mo','Tu','We','Th','Fr','Sa'];
+                    const COIN_PALETTE=['#00e5a0','#3b82f6','#f59e0b','#f43f5e','#8b5cf6','#06b6d4','#f97316'];
+                    const coinColors = {};
+                    dcaOrders.forEach((o,i)=>{ coinColors[o.id]=COIN_PALETTE[i%COIN_PALETTE.length]; });
+                    // For each day, collect which orders fire
+                    const dayEvents = days.map(day=>{
+                      const hits=dcaOrders.filter(o=>{
+                        const next=new Date(o.next_run_at); next.setHours(0,0,0,0);
+                        if(o.frequency==='daily') return day>=next;
+                        if(o.frequency==='weekly'){
+                          const diff=Math.round((day-next)/(86400000));
+                          return diff>=0 && diff%7===0;
+                        }
+                        return false;
+                      });
+                      return hits;
+                    });
+                    return (
+                      <div style={{marginBottom:16}}>
+                        {/* Calendar grid */}
+                        <div style={{fontSize:10,color:'var(--muted)',letterSpacing:1,textTransform:'uppercase',marginBottom:8}}>Next 4 weeks</div>
+                        <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:3,marginBottom:14}}>
+                          {DAY_NAMES.map(d=>(
+                            <div key={d} style={{textAlign:'center',fontSize:9,color:'var(--muted)',paddingBottom:4,letterSpacing:.5}}>{d}</div>
+                          ))}
+                          {days.map((day,i)=>{
+                            const hits=dayEvents[i];
+                            const isToday=i===0;
+                            return (
+                              <div key={i} style={{
+                                minHeight:36,borderRadius:8,
+                                background: isToday ? 'rgba(0,229,160,.08)' : hits.length ? 'rgba(255,255,255,.03)' : 'transparent',
+                                border: isToday ? '1px solid rgba(0,229,160,.3)' : '1px solid transparent',
+                                display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'flex-start',
+                                padding:'3px 2px',gap:2,position:'relative',
+                              }}>
+                                <span style={{fontSize:9,color:isToday?'var(--accent)':'var(--muted)',fontWeight:isToday?700:400}}>{day.getDate()}</span>
+                                {hits.map(o=>(
+                                  <div key={o.id} title={`${o.coin} $${o.amount_usd}`} style={{
+                                    width:'100%',height:4,borderRadius:2,
+                                    background:coinColors[o.id],opacity:.85,
+                                  }}/>
+                                ))}
+                              </div>
+                            );
+                          })}
                         </div>
-                      ))}
-                    </div>
-                  )}
+                        {/* Legend + order list */}
+                        <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                          {dcaOrders.map(o=>(
+                            <div key={o.id} style={{display:'flex',alignItems:'center',justifyContent:'space-between',background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:10,padding:'8px 14px'}}>
+                              <div style={{display:'flex',alignItems:'center',gap:10}}>
+                                <div style={{width:10,height:10,borderRadius:3,background:coinColors[o.id],flexShrink:0}}/>
+                                <div>
+                                  <span style={{fontWeight:600,fontSize:12}}>{o.coin}</span>
+                                  <span style={{fontSize:11,color:'var(--muted)',marginLeft:8}}>${parseFloat(o.amount_usd).toLocaleString()} · {o.frequency}</span>
+                                  <span style={{fontSize:10,color:'var(--muted)',marginLeft:8}}>{o.runs_count} run{o.runs_count!==1?'s':''} · next {new Date(o.next_run_at).toLocaleDateString()}</span>
+                                </div>
+                              </div>
+                              <button onClick={async()=>{await fetch('/api/dca',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:o.id})});setDcaOrders(p=>p.filter(x=>x.id!==o.id));}} style={{background:'none',border:'none',color:'var(--muted)',cursor:'pointer',fontSize:16,lineHeight:1,flexShrink:0}}>✕</button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             )}
