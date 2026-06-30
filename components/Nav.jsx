@@ -36,10 +36,18 @@ const ROW2 = [
 
 const ALL = [...ROW1, ...ROW2, ...GAMES.map((g, i) => ({ ...g, key: `game-${i}` }))];
 
+const fmtTickerPrice = (p) => {
+  if (p >= 1000) return '$' + p.toLocaleString('en-US', { maximumFractionDigits: 0 });
+  if (p >= 1)    return '$' + p.toFixed(2);
+  if (p >= 0.01) return '$' + p.toFixed(4);
+  return '$' + p.toFixed(6);
+};
+
 export default function Nav({ active, right }) {
   const [open, setOpen] = useState(false);
   const [gamesOpen, setGamesOpen] = useState(false);
   const [announcement, setAnnouncement] = useState(null);
+  const [ticker, setTicker] = useState([]);
   const gamesRef = useRef(null);
   const pathname = usePathname();
   const isGameActive = GAMES.some(g => g.href === pathname);
@@ -54,6 +62,12 @@ export default function Nav({ active, right }) {
       if (d?.announcement) setAnnouncement({ text: d.announcement, color: d.announcementColor || 'blue' });
     }).catch(() => {});
   }, [pathname]);
+  useEffect(() => {
+    const load = () => fetch('/api/ticker').then(r => r.ok ? r.json() : null).then(d => { if (Array.isArray(d) && d.length) setTicker(d); }).catch(() => {});
+    load();
+    const iv = setInterval(load, 60000);
+    return () => clearInterval(iv);
+  }, []);
 
   return (
     <>
@@ -126,6 +140,20 @@ export default function Nav({ active, right }) {
           .ccnav-burger{display:flex;align-items:center}
         }
         @media(min-width:701px){.ccnav-drawer{display:none!important}}
+        /* ── Price ticker ── */
+        .ccticker{overflow:hidden;height:28px;display:flex;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:10px;position:relative}
+        .ccticker::before,.ccticker::after{content:'';position:absolute;top:0;bottom:0;width:40px;z-index:2;pointer-events:none}
+        .ccticker::before{left:0;background:linear-gradient(to right,var(--surface),transparent)}
+        .ccticker::after{right:0;background:linear-gradient(to left,var(--surface),transparent)}
+        .ccticker-track{display:flex;gap:0;animation:tickerScroll 60s linear infinite;white-space:nowrap;will-change:transform}
+        .ccticker-track:hover{animation-play-state:paused}
+        @keyframes tickerScroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+        .ccticker-item{display:inline-flex;align-items:center;gap:5px;padding:0 18px;font-size:11px;font-family:'DM Mono',monospace;flex-shrink:0}
+        .ccticker-sym{font-weight:700;color:var(--text);letter-spacing:.5px}
+        .ccticker-price{color:var(--muted)}
+        .ccticker-up{color:#00e5a0;font-weight:600}
+        .ccticker-down{color:#f43f5e;font-weight:600}
+        .ccticker-dot{color:var(--border);margin:0 2px}
       ` }} />
 
       <nav className="ccnav">
@@ -196,6 +224,30 @@ export default function Nav({ active, right }) {
           </div>
         )}
       </nav>
+
+      {ticker.length > 0 && (() => {
+        // Duplicate items for seamless infinite scroll
+        const items = [...ticker, ...ticker];
+        return (
+          <div className="ccticker">
+            <div className="ccticker-track">
+              {items.map((c, i) => {
+                const up = c.change24h >= 0;
+                return (
+                  <span key={i} className="ccticker-item">
+                    <span className="ccticker-sym">{c.symbol}</span>
+                    <span className="ccticker-price">{fmtTickerPrice(c.price)}</span>
+                    <span className={up ? 'ccticker-up' : 'ccticker-down'}>
+                      {up ? '▲' : '▼'}{Math.abs(c.change24h).toFixed(2)}%
+                    </span>
+                    <span className="ccticker-dot">·</span>
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
 
       {announcement && (() => {
         const c = ANNOUNCE_COLORS[announcement.color] || ANNOUNCE_COLORS.blue;
