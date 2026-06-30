@@ -125,6 +125,8 @@ export default function ProfilePage() {
         .stat{background:var(--surface2);border-radius:12px;padding:10px 12px;text-align:center}
         .stat-lbl{font-size:10px;color:var(--muted);margin-bottom:4px}
         .stat-val{font-family:'Syne',sans-serif;font-weight:700;font-size:13px}
+        @keyframes glowPulse{0%,100%{opacity:.7;transform:scale(1)}50%{opacity:1;transform:scale(1.04)}}
+        @keyframes glowSpin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
       `}</style>
       <Nav />
 
@@ -134,13 +136,71 @@ export default function ProfilePage() {
 
       {/* Hero */}
       <div className="card">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20 }}>
-          <div style={{ width: 48, height: 48, borderRadius: 14, background: isPos ? 'rgba(0,229,160,.15)' : 'rgba(244,63,94,.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>
-            {student.isBot ? '🤖' : '👤'}
-          </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginBottom: 20 }}>
+          {/* Avatar with glow ring */}
+          {(() => {
+            const glowColor = isPos ? '#00e5a0' : '#f43f5e';
+            const glowShadow = isPos
+              ? '0 0 0 3px rgba(0,229,160,.25), 0 0 20px rgba(0,229,160,.35), 0 0 40px rgba(0,229,160,.15)'
+              : '0 0 0 3px rgba(244,63,94,.25), 0 0 20px rgba(244,63,94,.35), 0 0 40px rgba(244,63,94,.15)';
+            const isSelf = session?.user?.email?.toLowerCase() === student.email?.toLowerCase();
+            const googleImg = isSelf ? session?.user?.image : null;
+            const initials = student.name?.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || '?';
+            return (
+              <div style={{ position: 'relative', flexShrink: 0 }}>
+                {/* Spinning glow ring */}
+                <div style={{
+                  position: 'absolute', inset: -4, borderRadius: '50%',
+                  background: `conic-gradient(${glowColor}, transparent 60%, ${glowColor})`,
+                  animation: 'glowSpin 4s linear infinite',
+                  opacity: Math.min(1, Math.abs(ret) / 20 + 0.3),
+                }} />
+                {/* Avatar */}
+                <div style={{
+                  position: 'relative', width: 72, height: 72, borderRadius: '50%',
+                  background: googleImg ? 'transparent' : `linear-gradient(135deg, ${glowColor}33, ${glowColor}11)`,
+                  border: `2px solid ${glowColor}66`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  overflow: 'hidden',
+                  boxShadow: glowShadow,
+                  animation: 'glowPulse 3s ease-in-out infinite',
+                }}>
+                  {student.isBot ? (
+                    <span style={{ fontSize: 34 }}>🤖</span>
+                  ) : googleImg ? (
+                    <img src={googleImg} alt={student.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    <span style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 26, color: glowColor }}>{initials}</span>
+                  )}
+                </div>
+                {/* Performance badge */}
+                <div style={{
+                  position: 'absolute', bottom: -2, right: -4,
+                  background: 'var(--surface)', border: `1.5px solid ${glowColor}`,
+                  borderRadius: 8, padding: '2px 5px', fontSize: 10, fontWeight: 700,
+                  color: glowColor, lineHeight: 1.2,
+                }}>
+                  {isPos ? '+' : ''}{ret.toFixed(1)}%
+                </div>
+              </div>
+            );
+          })()}
           <div>
             <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 22 }}>{student.name}</div>
             <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>Portfolio Overview</div>
+            {badges.length > 0 && (
+              <div style={{ display: 'flex', gap: 4, marginTop: 6, flexWrap: 'wrap' }}>
+                {badges.slice(0, 5).map(b => {
+                  const def = BADGE_DEFS[b.badge_id] || { emoji: '🏅' };
+                  return (
+                    <span key={b.badge_id} title={b.badge_id.replace(/_/g,' ')} style={{ fontSize: 16 }}>
+                      {def.emoji}
+                    </span>
+                  );
+                })}
+                {badges.length > 5 && <span style={{ fontSize: 10, color: 'var(--muted)', alignSelf: 'center' }}>+{badges.length - 5}</span>}
+              </div>
+            )}
           </div>
         </div>
 
