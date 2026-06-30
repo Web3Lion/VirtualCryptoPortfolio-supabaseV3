@@ -11,11 +11,45 @@ const SOURCE_COLORS = {
   'Bitcoin.com':'#f59e0b','CryptoNews':'#e53e3e','The Block':'#2d3748','Manual':'#00a651',
 };
 
+function NewsFallback({ color, source, height }) {
+  const initial = (source || 'C')[0].toUpperCase();
+  const c = color || '#00e5a0';
+  const pts = [[0,72],[20,58],[40,65],[60,40],[80,48],[100,28],[120,36],[140,16],[160,10]];
+  const linePath = pts.map(([x,y], i) => `${i===0?'M':'L'}${x},${y}`).join(' ');
+  const fillPath = `${linePath} L160,80 L0,80 Z`;
+  return (
+    <div style={{ width:'100%', height, background:'linear-gradient(160deg,#0a0f1a,#0f172a)', position:'relative', overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center' }}>
+      <svg width="100%" height="100%" style={{ position:'absolute', inset:0, opacity:.07 }} preserveAspectRatio="xMidYMid slice">
+        {[25,50,75].map(p => <line key={`h${p}`} x1="0" y1={`${p}%`} x2="100%" y2={`${p}%`} stroke="#94a3b8" strokeWidth="1"/>)}
+        {[20,40,60,80].map(p => <line key={`v${p}`} x1={`${p}%`} y1="0" x2={`${p}%`} y2="100%" stroke="#94a3b8" strokeWidth="1"/>)}
+      </svg>
+      <svg viewBox="0 0 160 80" preserveAspectRatio="none" style={{ position:'absolute', bottom:0, left:0, width:'100%', height:'60%', opacity:.55 }}>
+        <defs>
+          <linearGradient id={`nfg-${initial}-${c.slice(1)}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={c} stopOpacity=".35"/>
+            <stop offset="100%" stopColor={c} stopOpacity="0"/>
+          </linearGradient>
+        </defs>
+        <path d={fillPath} fill={`url(#nfg-${initial}-${c.slice(1)})`}/>
+        <path d={linePath} fill="none" stroke={c} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+      <div style={{ position:'relative', zIndex:1, width:50, height:50, borderRadius:'50%', background:`${c}18`, border:`2px solid ${c}40`, display:'flex', alignItems:'center', justifyContent:'center', fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:22, color:c }}>
+        {initial}
+      </div>
+      <div style={{ position:'absolute', bottom:8, left:0, right:0, textAlign:'center', fontSize:9, letterSpacing:2, textTransform:'uppercase', color:`${c}70`, fontFamily:"'DM Mono',monospace" }}>
+        {source || 'Crypto News'}
+      </div>
+    </div>
+  );
+}
+
 function ArticleTile({ article, featured=false }) {
+  const [imgFailed, setImgFailed] = useState(false);
   const color = SOURCE_COLORS[article.source] || '#00a651';
   const date  = (article.published_at || article.pushed_at)
     ? new Date(article.published_at || article.pushed_at).toLocaleDateString('en-US',{month:'short',day:'numeric'})
     : '';
+  const imgHeight = featured ? 180 : 150;
   return (
     <a href={article.url} target="_blank" rel="noopener noreferrer" style={{
       display:'block', textDecoration:'none',
@@ -25,10 +59,10 @@ function ArticleTile({ article, featured=false }) {
     onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-3px)';e.currentTarget.style.boxShadow='0 12px 32px rgba(0,0,0,.2)';}}
     onMouseLeave={e=>{e.currentTarget.style.transform='';e.currentTarget.style.boxShadow='';}}
     >
-      <div style={{width:'100%',height:featured?180:150,overflow:'hidden',background:'var(--surface2)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:40}}>
-        {article.image_url
-          ? <img src={article.image_url} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>{e.target.style.display='none';e.target.parentElement.innerText='📰';}}/>
-          : '📰'}
+      <div style={{width:'100%',height:imgHeight,overflow:'hidden',flexShrink:0}}>
+        {article.image_url && !imgFailed
+          ? <img src={article.image_url} alt="" style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}} onError={() => setImgFailed(true)}/>
+          : <NewsFallback color={color} source={article.source} height={imgHeight} />}
       </div>
       <div style={{padding:featured?'16px 18px':'14px 16px'}}>
         <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
