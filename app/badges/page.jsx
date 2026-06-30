@@ -91,6 +91,14 @@ const ALL_BADGES = [
   {id:'crush_veteran',  cat:'games',      emoji:'🕹️',name:'Crush Veteran',     hint:'Play 10 Crypto Crush games'},
   {id:'crush_daily_max',cat:'games',      emoji:'⭐',name:'Daily Maxer',       hint:'Earn the full daily token cap in Crypto Crush'},
   {id:'crush_grinder',  cat:'games',      emoji:'🎰',name:'Crush Grinder',     hint:'Play Crypto Crush on 3 different days'},
+  // Miner Runner
+  {id:'miner_rookie',   cat:'games',      emoji:'🏃',name:'Miner Rookie',      hint:'Play your first Miner Runner game'},
+  {id:'miner_500',      cat:'games',      emoji:'⛏',name:'Cave Explorer',     hint:'Score 500+ in a single Miner run (~10s)'},
+  {id:'miner_1500',     cat:'games',      emoji:'💣',name:'Deep Miner',        hint:'Score 1,500+ — survive past Level 2'},
+  {id:'miner_4000',     cat:'games',      emoji:'🌋',name:'Miner Legend',      hint:'Score 4,000+ — survive past Level 5'},
+  {id:'miner_veteran',  cat:'games',      emoji:'🎮',name:'Miner Veteran',     hint:'Play 10 Miner Runner games'},
+  {id:'miner_daily_max',cat:'games',      emoji:'⭐',name:'Full Shift',        hint:'Hit the daily token cap in Miner Runner'},
+  {id:'miner_grinder',  cat:'games',      emoji:'🔄',name:'Miner Grinder',     hint:'Play Miner Runner on 3 different days'},
 ];
 
 const CAT_COLORS = {

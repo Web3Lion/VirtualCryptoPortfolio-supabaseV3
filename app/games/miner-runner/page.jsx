@@ -253,12 +253,23 @@ export default function MinerRunner() {
   const [gameState, setGameState] = useState("idle"); // idle | running | dead
   const [score, setScore] = useState(0);
   const [highScore, setHighScore] = useState(0);
+  const [classId, setClassId] = useState(null);
+  const [reward, setReward] = useState(null); // { tokensAwarded, newBadges }
+  const [levelReached, setLevelReached] = useState(1);
 
   useEffect(() => {
     applyTheme(getTheme());
     const stored = parseInt(localStorage.getItem("miner_runner_hs") || "0");
     setHighScore(stored);
   }, []);
+
+  // Fetch classId once authenticated
+  useEffect(() => {
+    if (status !== 'authenticated') return;
+    fetch('/api/me').then(r => r.ok ? r.json() : null).then(d => {
+      if (d?.classes?.[0]?.id) setClassId(d.classes[0].id);
+    }).catch(() => {});
+  }, [status]);
 
   const initGame = useCallback(() => {
     gameRef.current = {
@@ -414,13 +425,26 @@ export default function MinerRunner() {
           spawnParticles(m.x + MINER_W / 2, m.y + MINER_H / 2, "#f59e0b");
           spawnParticles(c.x + COIN_W / 2, c.y + COIN_H / 2, "#fbbf24");
           const finalScore = Math.floor(g.score);
+          const finalLevel = g.difficultyLevel;
           setScore(finalScore);
+          setLevelReached(finalLevel);
           setHighScore(prev => {
             const next = Math.max(prev, finalScore);
             localStorage.setItem("miner_runner_hs", String(next));
             return next;
           });
+          setReward(null);
           setGameState("dead");
+          // Submit score for tokens + badges
+          if (classId && finalScore > 0) {
+            fetch('/api/games/miner-runner', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ classId, score: finalScore, level: finalLevel }),
+            }).then(r => r.ok ? r.json() : null).then(d => {
+              if (d && (d.tokensAwarded > 0 || d.newBadges?.length > 0)) setReward(d);
+            }).catch(() => {});
+          }
           return;
         }
       }
@@ -504,7 +528,7 @@ export default function MinerRunner() {
 
     animRef.current = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(animRef.current);
-  }, [gameState, spawnParticles]);
+  }, [gameState, spawnParticles, classId]);
 
   // Draw idle/dead screen
   useEffect(() => {
@@ -599,23 +623,47 @@ export default function MinerRunner() {
 
         {/* Score bar */}
         <div style={{ display: 'flex', gap: 16, marginBottom: 16 }}>
-          <div
-            style={{ flex: 1, borderRadius: 12, padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: "var(--surface)" }}
-          >
+          <div style={{ flex: 1, borderRadius: 12, padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: "var(--surface)" }}>
             <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: "var(--muted)" }}>Score</span>
             <span style={{ fontSize: 20, fontWeight: 700, fontFamily: 'monospace', color: "var(--text)" }}>
               {score.toString().padStart(6, "0")}
             </span>
           </div>
-          <div
-            style={{ flex: 1, borderRadius: 12, padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: "var(--surface)" }}
-          >
+          <div style={{ flex: 1, borderRadius: 12, padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: "var(--surface)" }}>
             <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: "var(--muted)" }}>Best</span>
             <span style={{ fontSize: 20, fontWeight: 700, fontFamily: 'monospace', color: "#f59e0b" }}>
               {highScore.toString().padStart(6, "0")}
             </span>
           </div>
+          {gameState === 'running' && (
+            <div style={{ flex: 1, borderRadius: 12, padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: "var(--surface)" }}>
+              <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: "var(--muted)" }}>Level</span>
+              <span style={{ fontSize: 20, fontWeight: 700, fontFamily: 'monospace', color: "#00e5a0" }}>
+                {gameRef.current?.difficultyLevel ?? 1}
+              </span>
+            </div>
+          )}
         </div>
+
+        {/* Reward banner — shown after death */}
+        {gameState === 'dead' && reward && (
+          <div style={{ marginBottom: 16, background: 'rgba(0,229,160,.08)', border: '1px solid rgba(0,229,160,.3)', borderRadius: 14, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 24 }}>⛏</span>
+            <div style={{ flex: 1 }}>
+              {reward.tokensAwarded > 0 && (
+                <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 14, color: '#00e5a0' }}>
+                  +{reward.tokensAwarded} tokens earned
+                  <span style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 400, marginLeft: 8 }}>Reached Level {levelReached}</span>
+                </div>
+              )}
+              {reward.newBadges?.length > 0 && (
+                <div style={{ fontSize: 12, color: '#f59e0b', marginTop: 2 }}>
+                  🏅 New badge{reward.newBadges.length > 1 ? 's' : ''}: {reward.newBadges.map(b => b.replace('miner_', '').replace(/_/g, ' ')).join(', ')}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Canvas */}
         <div style={{ position: 'relative', borderRadius: 16, overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0,0,0,.5)', display: 'flex', justifyContent: 'center', border: '2px solid var(--border, #1e293b)' }}>

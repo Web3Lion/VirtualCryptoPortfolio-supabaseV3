@@ -31,6 +31,7 @@ const ROW2 = [
   { href: '/badges',  label: 'Badges', key: 'badges' },
   { href: '/news',    label: 'News',   key: 'news' },
   { href: '/rewards', label: 'Store',  key: 'store' },
+  { href: '/spin',    label: '🎡 Spin', key: 'spin' },
 ];
 
 const ALL = [...ROW1, ...ROW2, ...GAMES.map((g, i) => ({ ...g, key: `game-${i}` }))];
