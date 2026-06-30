@@ -12,6 +12,12 @@ const ALL_TABLES = [
   'badges','news_articles','pushed_articles',
   'class_reward_config','class_reward_ledger',
   'pending_orders','staking_positions','staking_config',
+  'dca_orders','options_positions',
+  'tournaments','tournament_snapshots',
+  'assignments','assignment_completions',
+  'trade_reactions',
+  'weekly_challenges','weekly_challenge_completions',
+  'higher_lower_predictions',
   'learn_modules','learn_lessons','learn_blocks','learn_questions','learn_options','learn_attempts',
 ];
 

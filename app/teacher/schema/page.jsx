@@ -10,13 +10,15 @@ const TABLE_GROUPS = [
   { label: 'Social',       tables: ['invitations','badges','news_articles','pushed_articles'] },
   { label: 'Rewards',      tables: ['class_reward_config','class_reward_ledger'] },
   { label: 'Limit Orders', tables: ['pending_orders'] },
-  { label: 'Staking',      tables: ['staking_positions','staking_config'] },
-  { label: 'DCA',          tables: ['dca_orders'] },
-  { label: 'Options',      tables: ['options_positions'] },
-  { label: 'Tournaments',  tables: ['tournaments','tournament_snapshots'] },
-  { label: 'Assignments',  tables: ['assignments','assignment_completions'] },
-  { label: 'Reactions',    tables: ['trade_reactions'] },
-  { label: 'Learning',     tables: ['learn_modules','learn_lessons','learn_blocks','learn_questions','learn_options','learn_attempts'] },
+  { label: 'Staking',           tables: ['staking_positions','staking_config'] },
+  { label: 'DCA',              tables: ['dca_orders'] },
+  { label: 'Options',          tables: ['options_positions'] },
+  { label: 'Tournaments',      tables: ['tournaments','tournament_snapshots'] },
+  { label: 'Assignments',      tables: ['assignments','assignment_completions'] },
+  { label: 'Reactions',        tables: ['trade_reactions'] },
+  { label: 'Weekly Challenges',tables: ['weekly_challenges','weekly_challenge_completions'] },
+  { label: 'Higher / Lower',   tables: ['higher_lower_predictions'] },
+  { label: 'Learning',         tables: ['learn_modules','learn_lessons','learn_blocks','learn_questions','learn_options','learn_attempts'] },
 ];
 
 export default function SchemaPage() {
