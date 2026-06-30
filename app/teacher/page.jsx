@@ -529,7 +529,12 @@ export default function Teacher() {
         .skeleton{background:linear-gradient(90deg,var(--surface) 25%,var(--surface2) 50%,var(--surface) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:8px}
         @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
         @keyframes spin{to{transform:rotate(360deg)}}
-        @media(max-width:640px){.stats-grid{grid-template-columns:1fr 1fr}.controls-grid{grid-template-columns:1fr}}
+        @media(max-width:640px){
+          .stats-grid{grid-template-columns:1fr 1fr}
+          .controls-grid{grid-template-columns:1fr}
+          .form-row{grid-template-columns:1fr}
+          .page{padding:16px 12px}
+        }
       `}</style>
 
       <div className="page">

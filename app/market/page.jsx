@@ -365,6 +365,14 @@ export default function Market() {
         .legend{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;font-size:10px}
         .legend-item{display:flex;align-items:center;gap:4px;color:var(--muted)}
         .legend-dot{width:10px;height:10px;border-radius:3px}
+        @media(max-width:600px){
+          .page{padding:16px 10px}
+          .mkt-hide-mobile{display:none}
+          .mkt-row td{padding:10px 10px}
+          .mkt-table th{padding:10px 10px}
+          .coin-sym{font-size:12px}
+          .sector-tag{display:none}
+        }
       `}</style>
 
       <div className="page">
@@ -542,11 +550,11 @@ export default function Market() {
                     <tr>
                       <th onClick={() => toggleSort('sym')}>Coin <SI col="sym"/></th>
                       <th onClick={() => toggleSort('price')}>Price <SI col="price"/></th>
-                      <th onClick={() => toggleSort('change1h')}>1H <SI col="change1h"/></th>
+                      <th className="mkt-hide-mobile" onClick={() => toggleSort('change1h')}>1H <SI col="change1h"/></th>
                       <th onClick={() => toggleSort('change24h')}>24H <SI col="change24h"/></th>
-                      <th onClick={() => toggleSort('change7d')}>7D <SI col="change7d"/></th>
-                      <th onClick={() => toggleSort('marketCap')}>Mkt Cap <SI col="marketCap"/></th>
-                      <th onClick={() => toggleSort('volume24h')}>Volume <SI col="volume24h"/></th>
+                      <th className="mkt-hide-mobile" onClick={() => toggleSort('change7d')}>7D <SI col="change7d"/></th>
+                      <th className="mkt-hide-mobile" onClick={() => toggleSort('marketCap')}>Mkt Cap <SI col="marketCap"/></th>
+                      <th className="mkt-hide-mobile" onClick={() => toggleSort('volume24h')}>Volume <SI col="volume24h"/></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -565,10 +573,10 @@ export default function Market() {
                           <span className="sector-tag">{p.sector || getSector(p.sym)}</span>
                         </td>
                         <td style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700 }}>{fmtPrice(p.price)}</td>
-                        <td style={{ color: chgColor(p.change1h), fontWeight: 500 }}>{fmtChg(p.change1h)}</td>
+                        <td className="mkt-hide-mobile" style={{ color: chgColor(p.change1h), fontWeight: 500 }}>{fmtChg(p.change1h)}</td>
                         <td style={{ color: chgColor(p.change24h), fontWeight: 500 }}>{fmtChg(p.change24h)}</td>
-                        <td style={{ color: chgColor(p.change7d), fontWeight: 500 }}>{fmtChg(p.change7d)}</td>
-                        <td style={{ color: 'var(--muted)' }}>{fmtMcap(p.marketCap)}</td>
+                        <td className="mkt-hide-mobile" style={{ color: chgColor(p.change7d), fontWeight: 500 }}>{fmtChg(p.change7d)}</td>
+                        <td className="mkt-hide-mobile" style={{ color: 'var(--muted)' }}>{fmtMcap(p.marketCap)}</td>
                         <td style={{ color: 'var(--muted)' }}>{fmtMcap(p.volume24h)}</td>
                       </tr>
                     ))}

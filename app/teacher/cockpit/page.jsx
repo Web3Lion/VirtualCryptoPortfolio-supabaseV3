@@ -318,6 +318,13 @@ export default function TeacherCockpit() {
         .divider{height:1px;background:linear-gradient(90deg,transparent,#1a1f2e,transparent);margin:4px 0}
         select.class-select{background:#0a0d16;border:1px solid #1a1f2e;color:#94a3b8;padding:5px 10px;border-radius:8px;font-family:'DM Mono',monospace;font-size:11px;outline:none;cursor:pointer}
         select.class-select:focus{border-color:#374151}
+        @media(max-width:640px){
+          .cockpit{padding:12px 10px}
+          .grid-2{grid-template-columns:1fr}
+          .grid-3{grid-template-columns:1fr 1fr}
+          .warning-strip{padding:14px 16px;gap:12px}
+          .odo-bar{padding:12px 16px;gap:16px}
+        }
       `}</style>
 
       {/* Scanline overlay (subtle) */}

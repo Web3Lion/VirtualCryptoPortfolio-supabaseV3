@@ -325,6 +325,7 @@ export default function CryptoCrush() {
 
         /* ── Stats bar ── */
         .stats-bar{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px}
+        @media(max-width:480px){.stats-bar{grid-template-columns:1fr 1fr}.page{padding:16px 10px}}
         .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;text-align:center}
         .stat-val{font-family:'Syne',sans-serif;font-weight:800;font-size:24px;line-height:1}
         .stat-lbl{font-size:9px;color:var(--muted);margin-top:4px;letter-spacing:1.5px;text-transform:uppercase}
