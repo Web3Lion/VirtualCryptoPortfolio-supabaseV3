@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import CoinLogo from "@/components/CoinLogo";
 import { useParams } from "next/navigation";
 
 const fmtUSD = n => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n || 0);
@@ -94,7 +95,7 @@ export default function SharePage() {
                   <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:14,marginBottom:14}}>Holdings</div>
                   {holdings.map((h,i) => (
                     <div className="holding-row" key={i}>
-                      <div style={{width:34,height:34,borderRadius:9,background:`${coinColor(h.coin)}22`,color:coinColor(h.coin),display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontFamily:"'Syne',sans-serif",fontWeight:700}}>{h.coin.slice(0,3)}</div>
+                      <CoinLogo symbol={h.coin} size={34} />
                       <div>
                         <div style={{fontSize:12,fontWeight:600}}>{h.coin}</div>
                         <div style={{fontSize:10,color:'#475569'}}>{h.qty.toFixed(6)} @ ${h.avgBuy.toLocaleString()}</div>

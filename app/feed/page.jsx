@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Nav from '@/components/Nav';
+import CoinLogo from '@/components/CoinLogo';
 import { applyTheme, getTheme } from '@/lib/theme';
 
 const EMOJIS = ['🚀', '🔥', '💎', '👀', '📉', '🤝'];
@@ -102,6 +103,7 @@ function TradeCard({ item, onReact }) {
           <div style={{ fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap' }}>
             <span style={{ color: item.isMine ? 'var(--accent)' : 'var(--text)' }}>{item.isMine ? 'You' : item.name}</span>
             <span style={{ color: 'var(--muted)', fontWeight: 400, fontSize: 12 }}>{item.actionLabel}</span>
+            <CoinLogo symbol={item.coin} size={16} style={{ verticalAlign: 'middle' }} />
             <span style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, color: st.color }}>{item.coin}</span>
             {item.value > 0 && <span style={{ color: 'var(--muted)', fontSize: 11 }}>· {fmtVal(item.value)}</span>}
           </div>

@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Nav from "@/components/Nav";
+import CoinLogo from "@/components/CoinLogo";
 import { STAKEABLE_COINS, TIER_META } from "@/lib/staking";
 
 const fmt = (n, dec = 2) => isNaN(+n) ? '0' : (+n).toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec });
@@ -43,7 +44,7 @@ function ClaimableCard({ pos, onClaim, claiming }) {
         Ready to Claim
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 6 }}>
-        <span style={{ fontSize: 28 }}>{info.emoji || '🪙'}</span>
+        <CoinLogo symbol={pos.coin} size={36} />
         <div style={{ flex: 1 }}>
           <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 16 }}>{pos.coin}</div>
           <TierBadge tier={info.tier || 'flexible'} />
@@ -95,7 +96,7 @@ function ActiveCard({ pos, onUnstake, unstaking }) {
   return (
     <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 20, padding: 20, display: 'flex', flexDirection: 'column', gap: 10 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <span style={{ fontSize: 28 }}>{info.emoji || '🪙'}</span>
+        <CoinLogo symbol={pos.coin} size={36} />
         <div style={{ flex: 1 }}>
           <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 15 }}>{pos.coin}</div>
           <TierBadge tier={info.tier || 'flexible'} />
@@ -158,7 +159,7 @@ function UnclaimedRewardCard({ pos, onClaim, claiming }) {
 
   return (
     <div style={{ background: 'var(--surface)', border: '1px solid rgba(0,229,160,.3)', borderRadius: 16, padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-      <span style={{ fontSize: 24 }}>{info.emoji || '🪙'}</span>
+      <CoinLogo symbol={pos.coin} size={32} />
       <div style={{ flex: 1, minWidth: 120 }}>
         <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 13 }}>{pos.coin} Staking Rewards</div>
         <div style={{ fontSize: 11, color: 'var(--muted)' }}>
@@ -189,7 +190,7 @@ function StakeCard({ item, onStake, staking }) {
       onMouseEnter={e => e.currentTarget.style.borderColor = tier.color + '55'}
       onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <span style={{ fontSize: 28 }}>{item.emoji}</span>
+        <CoinLogo symbol={item.coin} size={36} />
         <div style={{ flex: 1 }}>
           <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 15 }}>{item.name}</div>
           <div style={{ display: 'flex', gap: 6, marginTop: 3, alignItems: 'center' }}>

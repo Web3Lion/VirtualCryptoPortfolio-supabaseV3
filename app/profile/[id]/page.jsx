@@ -4,6 +4,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import Nav from '@/components/Nav';
+import CoinLogo from '@/components/CoinLogo';
 import { applyTheme, getTheme } from '@/lib/theme';
 
 const BADGE_DEFS = {
@@ -199,8 +200,8 @@ export default function ProfilePage() {
             {holdings.filter(h => Math.abs(h.qty) > 0).map(h => {
               const hp = h.plPct >= 0;
               return (
-                <div key={h.coin} style={{ display: 'grid', gridTemplateColumns: '10px 1fr auto auto', alignItems: 'center', gap: 12, background: 'var(--surface2)', borderRadius: 12, padding: '10px 14px' }}>
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: coinColor(h.coin) }} />
+                <div key={h.coin} style={{ display: 'grid', gridTemplateColumns: '26px 1fr auto auto', alignItems: 'center', gap: 12, background: 'var(--surface2)', borderRadius: 12, padding: '10px 14px' }}>
+                  <CoinLogo symbol={h.coin} size={26} />
                   <div>
                     <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 13 }}>{h.isShort ? '⬇ ' : ''}{h.coin}</div>
                     <div style={{ fontSize: 10, color: 'var(--muted)' }}>{Math.abs(h.qty).toFixed(4)} @ {fmtUSD(h.avgBuy)}</div>
