@@ -260,11 +260,22 @@ export default function Leaderboard() {
         .card-sub{font-size:11px;color:var(--muted);margin-bottom:18px}
         .charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px}
         .chart-inner{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
-        .podium{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px;align-items:end}
-        .podium-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:20px;text-align:center}
-        .podium-card.first{border-color:rgba(245,158,11,.7);box-shadow:0 8px 32px rgba(245,158,11,.25);transform:scale(1.06);padding:28px 20px;background:linear-gradient(160deg,var(--surface),rgba(245,158,11,.08))}
-        .podium-card.second{border-color:rgba(148,163,184,.5);box-shadow:0 4px 16px rgba(148,163,184,.12);background:linear-gradient(160deg,var(--surface),rgba(148,163,184,.05))}
-        .podium-card.third{border-color:rgba(180,100,40,.5);box-shadow:0 4px 16px rgba(180,100,40,.12);background:linear-gradient(160deg,var(--surface),rgba(180,100,40,.05))}
+        .podium{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px;align-items:end}
+        .podium-card{background:var(--surface);border:1px solid var(--border);border-radius:20px 20px 0 0;padding:20px 16px 16px;text-align:center;position:relative;overflow:hidden}
+        .podium-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+        .podium-card.first{border-color:rgba(245,158,11,.6);background:linear-gradient(170deg,rgba(245,158,11,.1) 0%,var(--surface) 50%)}
+        .podium-card.first::before{background:linear-gradient(90deg,transparent,#f59e0b,transparent)}
+        .podium-card.second{border-color:rgba(148,163,184,.4);background:linear-gradient(170deg,rgba(148,163,184,.06) 0%,var(--surface) 50%)}
+        .podium-card.second::before{background:linear-gradient(90deg,transparent,#94a3b8,transparent)}
+        .podium-card.third{border-color:rgba(180,100,40,.4);background:linear-gradient(170deg,rgba(180,100,40,.07) 0%,var(--surface) 50%)}
+        .podium-card.third::before{background:linear-gradient(90deg,transparent,#b46428,transparent)}
+        .podium-step{border-radius:0 0 12px 12px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:22px;letter-spacing:-1px}
+        .podium-step.first{height:72px;background:linear-gradient(180deg,rgba(245,158,11,.25),rgba(245,158,11,.1));border:1px solid rgba(245,158,11,.4);border-top:none;color:#f59e0b;box-shadow:0 8px 32px rgba(245,158,11,.2)}
+        .podium-step.second{height:52px;background:linear-gradient(180deg,rgba(148,163,184,.15),rgba(148,163,184,.06));border:1px solid rgba(148,163,184,.3);border-top:none;color:#94a3b8;box-shadow:0 6px 20px rgba(148,163,184,.1)}
+        .podium-step.third{height:36px;background:linear-gradient(180deg,rgba(180,100,40,.15),rgba(180,100,40,.06));border:1px solid rgba(180,100,40,.3);border-top:none;color:#b46428;box-shadow:0 4px 14px rgba(180,100,40,.1)}
+        @keyframes crownFloat{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-4px) rotate(3deg)}}
+        @keyframes goldPulse{0%,100%{box-shadow:0 0 0 0 rgba(245,158,11,.4),0 8px 32px rgba(245,158,11,.2)}50%{box-shadow:0 0 0 6px rgba(245,158,11,.0),0 8px 32px rgba(245,158,11,.35)}}
+        @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
         .lb-table{width:100%;border-collapse:collapse}
         .lb-table th{font-size:9px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;padding:10px 14px;text-align:left;border-bottom:1px solid var(--border)}
         .lb-row{border-bottom:1px solid rgba(30,41,59,.4);transition:background .15s}
@@ -296,22 +307,70 @@ export default function Leaderboard() {
             <><div className="skeleton" style={{height:180,marginBottom:20}}/><div className="skeleton" style={{height:400}}/></>
           ) : (
             <>
-              {humans.length >= 3 && (
-                <div className="podium">
-                  {[1,0,2].map(i => {
-                    const s = humans[i]; if(!s) return <div key={i}/>;
-                    const ret = clean(s.returnPct), isPos = ret >= 0;
-                    return (
-                      <div key={i} className={`podium-card ${i===0?'first':i===1?'second':'third'}`}>
-                        <div style={{fontSize:32,marginBottom:8}}>{medals[i]}</div>
-                        <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:14,marginBottom:4}}>{s.flair && <span style={{marginRight:4}}>{s.flair}</span>}{s.name}</div>
-                        <div style={{fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:22,color:isPos?'var(--up)':'var(--down)',marginBottom:4}}>{fmtUSD(s.total)}</div>
-                        <div style={{fontSize:12,fontWeight:500,color:isPos?'var(--up)':'var(--down)'}}>{fmtPct(ret)}</div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+              {humans.length >= 3 && (() => {
+                const PODIUM_META = [
+                  { rank: 2, accent: '#94a3b8', label: '2ND', cls: 'second' },
+                  { rank: 1, accent: '#f59e0b', label: '1ST', cls: 'first'  },
+                  { rank: 3, accent: '#b46428', label: '3RD', cls: 'third'  },
+                ];
+                return (
+                  <div className="podium">
+                    {PODIUM_META.map(({ rank, accent, label, cls }) => {
+                      const s = humans[rank - 1]; if (!s) return <div key={rank} />;
+                      const ret = clean(s.returnPct), isPos = ret >= 0;
+                      const initials = s.name?.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || '?';
+                      const isFirst = rank === 1;
+                      return (
+                        <div key={rank} style={{ display: 'flex', flexDirection: 'column' }}>
+                          <div className={`podium-card ${cls}`} style={isFirst ? { animation: 'goldPulse 2.5s ease-in-out infinite' } : {}}>
+                            {/* Crown for 1st */}
+                            {isFirst && (
+                              <div style={{ fontSize: 28, lineHeight: 1, marginBottom: 6, display: 'inline-block', animation: 'crownFloat 3s ease-in-out infinite' }}>👑</div>
+                            )}
+                            {/* Avatar ring */}
+                            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10, marginTop: isFirst ? 0 : 8 }}>
+                              <div style={{
+                                width: isFirst ? 68 : 56, height: isFirst ? 68 : 56, borderRadius: '50%',
+                                background: `${accent}22`, border: `2.5px solid ${accent}`,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                fontFamily: "'Syne',sans-serif", fontWeight: 800,
+                                fontSize: isFirst ? 24 : 20, color: accent,
+                                boxShadow: `0 0 16px ${accent}44`,
+                                flexShrink: 0,
+                              }}>
+                                {s.isBot ? '🤖' : initials}
+                              </div>
+                            </div>
+                            {/* Name */}
+                            <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: isFirst ? 14 : 12, marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {s.flair && <span style={{ marginRight: 4 }}>{s.flair}</span>}{s.name}
+                            </div>
+                            {/* Value */}
+                            <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: isFirst ? 20 : 16, color: isPos ? 'var(--up)' : 'var(--down)', marginBottom: 2 }}>
+                              {fmtUSD(s.total)}
+                            </div>
+                            {/* Return */}
+                            <div style={{ fontSize: 11, fontWeight: 700, color: isPos ? 'var(--up)' : 'var(--down)', marginBottom: 6 }}>
+                              {fmtPct(ret)}
+                            </div>
+                            {/* Extras */}
+                            <div style={{ display: 'flex', justifyContent: 'center', gap: 6, flexWrap: 'wrap' }}>
+                              {s.streak >= 2 && (
+                                <span style={{ fontSize: 9, fontWeight: 700, color: '#fb923c', background: 'rgba(251,146,60,.12)', border: '1px solid rgba(251,146,60,.25)', borderRadius: 6, padding: '2px 6px' }}>🔥{s.streak}</span>
+                              )}
+                              {s.coinCount > 0 && (
+                                <span style={{ fontSize: 9, color: 'var(--muted)', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 6, padding: '2px 6px' }}>{s.coinCount} coins</span>
+                              )}
+                            </div>
+                          </div>
+                          {/* Pedestal step */}
+                          <div className={`podium-step ${cls}`}>{label}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
               <div className="card" style={{overflowX:'auto',padding:0}}>
                 <table className="lb-table">
                   <thead>
