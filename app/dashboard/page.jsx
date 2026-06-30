@@ -2914,15 +2914,35 @@ export default function Dashboard() {
                                 width: 80,
                               }}
                             />
-                            <span
-                              style={{
-                                fontSize: 10,
-                                color: "var(--muted)",
-                                marginLeft: "auto",
-                              }}
-                            >
+                            <span style={{ fontSize: 10, color: "var(--muted)", marginLeft: "auto" }}>
                               Showing {limited.length} of {combined.length}
                             </span>
+                            <button
+                              onClick={() => {
+                                const rows = [['Date','Action','Coin','Qty','Price','Total','Fee','P/L']];
+                                filtered.forEach(t => {
+                                  if (t._isReward) return;
+                                  rows.push([
+                                    new Date(t.createdAt).toISOString(),
+                                    t.action,
+                                    t.coin || '',
+                                    parseFloat(t.quantity || 0).toFixed(8),
+                                    parseFloat(t.price || 0).toFixed(4),
+                                    parseFloat(t.gross_value || 0).toFixed(2),
+                                    parseFloat(t.fee || 0).toFixed(2),
+                                    t.pl != null ? parseFloat(t.pl).toFixed(2) : '',
+                                  ]);
+                                });
+                                const csv = rows.map(r => r.map(v => `"${v}"`).join(',')).join('\n');
+                                const a = document.createElement('a');
+                                a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+                                a.download = `my-trades-${new Date().toISOString().slice(0,10)}.csv`;
+                                a.click();
+                              }}
+                              style={{ padding:'3px 9px', borderRadius:7, border:'1px solid var(--border)', background:'transparent', color:'var(--muted)', fontFamily:"'DM Mono',monospace", fontSize:10, cursor:'pointer' }}
+                            >
+                              ⬇ CSV
+                            </button>
                           </div>
                           {limited.map((t, i) => {
                             if (t._isReward) {
