@@ -137,16 +137,23 @@ export default function Badges() {
         .progress-bar-fill{height:100%;border-radius:8px;background:linear-gradient(90deg,var(--accent),#3b82f6);transition:width .8s ease}
         .cat-section{margin-bottom:32px}
         .cat-title{font-family:'Syne',sans-serif;font-weight:700;font-size:16px;margin-bottom:14px;display:flex;align-items:center;gap:8px;color:var(--text)}
-        .badge-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
-        .badge-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px;text-align:center;transition:all .2s;position:relative}
-        .badge-card.earned{background:rgba(0,229,160,.08);border-color:var(--accent);box-shadow:0 0 12px rgba(0,229,160,.1)}
-        .badge-card.locked{opacity:1;border:1px dashed rgba(128,128,128,.35)} .badge-card.locked .badge-emoji{opacity:.25;filter:grayscale(1)} .badge-card.locked .badge-name{color:#94a3b8} .badge-card.locked .badge-hint{color:#94a3b8}
-        .badge-emoji{font-size:32px;margin-bottom:8px;display:block}
-        .badge-name{font-family:'Syne',sans-serif;font-weight:700;font-size:11px;margin-bottom:4px;color:var(--text)}
-        .badge-hint{font-size:10px;color:#94a3b8;line-height:1.5}
-        .earned-check{position:absolute;top:8px;right:8px;font-size:14px}
+        .badge-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:10px}
+        .badge-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px 12px 14px;text-align:center;transition:transform .2s,box-shadow .2s;position:relative;overflow:hidden;cursor:default}
+        .badge-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;opacity:0;transition:opacity .2s}
+        .badge-card.earned::before{opacity:1}
+        .badge-card:hover{transform:translateY(-2px)}
+        .badge-card.earned:hover{box-shadow:0 8px 24px rgba(0,0,0,.25)}
+        .badge-card.locked{border-style:dashed;border-color:rgba(148,163,184,.2)}
+        .badge-icon{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 10px;font-size:26px;transition:box-shadow .2s;position:relative}
+        .badge-card.locked .badge-icon{filter:grayscale(1);opacity:.35}
+        .badge-name{font-family:'Syne',sans-serif;font-weight:700;font-size:11px;margin-bottom:4px}
+        .badge-card.locked .badge-name{color:var(--muted)}
+        .badge-hint{font-size:9px;color:var(--muted);line-height:1.5}
+        .earned-tag{display:inline-block;font-size:8px;fontWeight:700;letter-spacing:1.5px;text-transform:uppercase;padding:2px 7px;border-radius:20px;margin-top:8px}
+        .lock-overlay{position:absolute;top:6px;right:8px;font-size:11px;opacity:.4}
         .skeleton{background:linear-gradient(90deg,var(--surface) 25%,var(--surface2) 50%,var(--surface) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:8px}
         @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+        @keyframes badgePop{0%{transform:scale(.8);opacity:0}60%{transform:scale(1.08)}100%{transform:scale(1);opacity:1}}
       `}</style>
       <div className="page">
         <Nav active="badges" />
@@ -168,31 +175,64 @@ export default function Badges() {
           </div>
         )}
 
-        {cats.map(cat=>(
-          <div className="cat-section" key={cat}>
-            <div className="cat-title">
-              <span style={{width:12,height:12,borderRadius:3,background:CAT_COLORS[cat],display:'inline-block'}}/>
-              {CAT_LABELS[cat]}
-              <span style={{fontSize:11,color:"#94a3b8",fontWeight:400}}>
-                ({ALL_BADGES.filter(b=>b.cat===cat&&earned.includes(b.id)).length}/{ALL_BADGES.filter(b=>b.cat===cat).length})
-              </span>
+        {cats.map(cat=>{
+          const catColor = CAT_COLORS[cat];
+          const catBadges = ALL_BADGES.filter(b=>b.cat===cat);
+          const catEarned = catBadges.filter(b=>earned.includes(b.id)).length;
+          const catPct = Math.round((catEarned/catBadges.length)*100);
+          return (
+            <div className="cat-section" key={cat}>
+              {/* Section header */}
+              <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:14}}>
+                <div style={{width:4,height:22,borderRadius:2,background:catColor,flexShrink:0}}/>
+                <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:15,color:'var(--text)'}}>{CAT_LABELS[cat]}</div>
+                <div style={{flex:1,height:1,background:`linear-gradient(90deg,${catColor}40,transparent)`,marginLeft:4}}/>
+                <div style={{fontSize:10,color:'var(--muted)',background:'var(--surface)',border:'1px solid var(--border)',borderRadius:20,padding:'2px 8px',flexShrink:0}}>
+                  {catEarned}/{catBadges.length}
+                  {catPct === 100 && <span style={{marginLeft:5,color:catColor}}>✓</span>}
+                </div>
+              </div>
+              <div className="badge-grid">
+                {catBadges.map(badge=>{
+                  const isEarned = earned.includes(badge.id);
+                  return (
+                    <div key={badge.id} className={`badge-card ${isEarned?'earned':'locked'}`}
+                      style={isEarned ? {
+                        borderColor:`${catColor}60`,
+                        background:`linear-gradient(160deg,${catColor}0d,var(--surface) 60%)`,
+                        boxShadow:`0 0 0 1px ${catColor}30`,
+                        '--before-bg': `linear-gradient(90deg,transparent,${catColor},transparent)`,
+                      } : {}}>
+                      {/* Top accent line for earned */}
+                      {isEarned && <div style={{position:'absolute',top:0,left:0,right:0,height:2,background:`linear-gradient(90deg,transparent,${catColor},transparent)`}}/>}
+                      {/* Lock icon for locked */}
+                      {!isEarned && <span className="lock-overlay">🔒</span>}
+                      {/* Icon circle */}
+                      <div className="badge-icon" style={isEarned ? {
+                        background:`${catColor}20`,
+                        border:`2px solid ${catColor}50`,
+                        boxShadow:`0 0 16px ${catColor}30`,
+                        animation:'badgePop .4s ease both',
+                      } : {
+                        background:'var(--surface2)',
+                        border:'2px solid var(--border)',
+                      }}>
+                        {badge.emoji}
+                      </div>
+                      <div className="badge-name" style={isEarned?{color:'var(--text)'}:{}}>{badge.name}</div>
+                      <div className="badge-hint">{badge.hint}</div>
+                      {isEarned && (
+                        <div className="earned-tag" style={{background:`${catColor}20`,color:catColor,border:`1px solid ${catColor}40`}}>
+                          EARNED
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-            <div className="badge-grid">
-              {ALL_BADGES.filter(b=>b.cat===cat).map(badge=>{
-                const isEarned = earned.includes(badge.id);
-                return (
-                  <div key={badge.id} className={`badge-card ${isEarned?'earned':'locked'}`}
-                    style={isEarned?{borderColor:CAT_COLORS[badge.cat]}:{}}>
-                    {isEarned&&<span className="earned-check">✓</span>}
-                    <span className="badge-emoji">{isEarned?badge.emoji:'🔒'}</span>
-                    <div className="badge-name">{badge.name}</div>
-                    <div className="badge-hint">{badge.hint}</div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </>
   );
