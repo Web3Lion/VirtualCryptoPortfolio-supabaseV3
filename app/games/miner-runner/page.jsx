@@ -18,7 +18,9 @@ const MINER_X = 90;
 const COIN_W = 40;
 const COIN_H = 40;
 const INITIAL_SPEED = 5;
-const SPEED_INCREMENT = 0.0008;
+const SPEED_INCREMENT = 0.0004; // gentle continuous ramp
+const LEVEL_UP_EVERY = 20 * 60; // frames (20 s × 60 fps)
+const LEVEL_SPEED_BUMP = 0.45;  // added to speed on each level-up
 
 // ─── Draw helpers ──────────────────────────────────────────────────────────────
 function drawMiner(ctx, x, y, frame, isDead) {
@@ -269,6 +271,9 @@ export default function MinerRunner() {
       groundOffset: 0,
       nextCoinIn: 80,
       dead: false,
+      difficultyLevel: 1,
+      nextLevelFrame: LEVEL_UP_EVERY,
+      levelUpFlash: 0,
     };
   }, []);
 
@@ -348,6 +353,16 @@ export default function MinerRunner() {
       g.speed += SPEED_INCREMENT;
       g.groundOffset += g.speed;
 
+      // ── Step difficulty every 20 s ──────────────────────────────────────────
+      if (g.frame >= g.nextLevelFrame) {
+        g.difficultyLevel++;
+        g.speed += LEVEL_SPEED_BUMP;
+        g.nextLevelFrame += LEVEL_UP_EVERY;
+        g.levelUpFlash = 100; // show "LEVEL UP!" for ~1.7 s
+        spawnParticles(W / 2, H / 2, "#00e5a0");
+      }
+      if (g.levelUpFlash > 0) g.levelUpFlash--;
+
       // Miner physics
       const m = g.miner;
       m.vy += GRAVITY;
@@ -359,24 +374,26 @@ export default function MinerRunner() {
         m.jumpsLeft = 2;
       }
 
-      // Spawn coins
+      // Spawn coins — gap and pattern difficulty scale with difficultyLevel
       g.nextCoinIn--;
       if (g.nextCoinIn <= 0) {
-        // Sometimes spawn 2 coins stacked or side by side
+        const lvl = g.difficultyLevel;
         const pattern = Math.random();
-        if (pattern < 0.15 && g.score > 300) {
-          // Double coin (jump over both)
+        const hardChance = Math.min(0.5, 0.05 + lvl * 0.06); // up to 50% hard at lvl ~8
+        if (pattern < hardChance * 0.5 && lvl >= 2) {
+          // Side-by-side (need to time two jumps)
           g.coins.push({ x: W + 20, y: GROUND_Y + MINER_H - COIN_H, frame: 0 });
           g.coins.push({ x: W + 20 + COIN_W + 10, y: GROUND_Y + MINER_H - COIN_H, frame: 0 });
-        } else if (pattern < 0.3 && g.score > 500) {
-          // Stacked coin (need to jump higher)
+        } else if (pattern < hardChance && lvl >= 3) {
+          // Stacked (need a well-timed high jump)
           g.coins.push({ x: W + 20, y: GROUND_Y + MINER_H - COIN_H, frame: 0 });
           g.coins.push({ x: W + 20, y: GROUND_Y + MINER_H - COIN_H * 2 - 8, frame: 0 });
         } else {
           g.coins.push({ x: W + 20, y: GROUND_Y + MINER_H - COIN_H, frame: 0 });
         }
-        const minGap = Math.max(40, 100 - g.score * 0.05);
-        g.nextCoinIn = minGap + Math.random() * 80;
+        const minGap = Math.max(28, 90 - lvl * 7);
+        const randGap = Math.max(15, 65 - lvl * 5);
+        g.nextCoinIn = minGap + Math.random() * randGap;
       }
 
       // Move coins
@@ -428,25 +445,57 @@ export default function MinerRunner() {
       drawMiner(ctx, m.x, m.y, g.frame, false);
       drawParticles(ctx, g.particles);
 
-      // Score HUD
-      ctx.fillStyle = "rgba(0,0,0,0.4)";
-      ctx.roundRect(W - 180, 12, 165, 38, 8);
+      // ── HUD ────────────────────────────────────────────────────────────────
+      // Score panel
+      ctx.fillStyle = "rgba(0,0,0,0.45)";
+      ctx.roundRect(W - 185, 12, 170, 38, 8);
       ctx.fill();
       ctx.fillStyle = "#f59e0b";
       ctx.font = "bold 14px monospace";
       ctx.textAlign = "right";
       ctx.textBaseline = "top";
-      ctx.fillText(`SCORE  ${Math.floor(g.score).toString().padStart(6, "0")}`, W - 20, 20);
+      ctx.fillText(`SCORE  ${Math.floor(g.score).toString().padStart(6, "0")}`, W - 22, 20);
 
-      // Speed badge
-      if (g.speed > INITIAL_SPEED + 2) {
-        const lvl = Math.floor((g.speed - INITIAL_SPEED) / 2);
-        ctx.fillStyle = "rgba(239,68,68,0.85)";
-        ctx.roundRect(W - 180, 56, 80, 24, 6);
-        ctx.fill();
-        ctx.fillStyle = "#fff";
-        ctx.font = "bold 12px monospace";
-        ctx.fillText(`LVL ${lvl}`, W - 110, 60);
+      // Level badge (top-left)
+      const lvlColor = g.difficultyLevel <= 2 ? "#22d3ee"
+                     : g.difficultyLevel <= 4 ? "#00e5a0"
+                     : g.difficultyLevel <= 6 ? "#f59e0b"
+                     : "#ef4444";
+      ctx.fillStyle = `${lvlColor}cc`;
+      ctx.roundRect(14, 12, 78, 28, 6);
+      ctx.fill();
+      ctx.fillStyle = "#fff";
+      ctx.font = "bold 13px monospace";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      ctx.fillText(`LVL  ${g.difficultyLevel}`, 22, 26);
+
+      // 20-second countdown bar (below level badge)
+      const barW = 78;
+      const framesLeft = g.nextLevelFrame - g.frame;
+      const barFill = 1 - framesLeft / LEVEL_UP_EVERY;
+      ctx.fillStyle = "rgba(0,0,0,0.4)";
+      ctx.roundRect(14, 44, barW, 6, 3);
+      ctx.fill();
+      ctx.fillStyle = lvlColor;
+      ctx.roundRect(14, 44, Math.max(4, barW * barFill), 6, 3);
+      ctx.fill();
+
+      // "LEVEL UP!" flash
+      if (g.levelUpFlash > 0) {
+        const alpha = Math.min(1, g.levelUpFlash / 30);
+        const scale = 1 + (1 - alpha) * 0.4;
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.translate(W / 2, H / 2 - 40);
+        ctx.scale(scale, scale);
+        ctx.font = "bold 36px monospace";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = "#00e5a0";
+        ctx.fillText(`LEVEL ${g.difficultyLevel}!`, 0, 0);
+        ctx.restore();
+        ctx.globalAlpha = 1;
       }
 
       setScore(Math.floor(g.score));
