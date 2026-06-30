@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Nav from "@/components/Nav";
+import CoinLogo from "@/components/CoinLogo";
 import { applyTheme, getTheme } from "@/lib/theme";
 
 const fmtUSD = n => { const x=parseFloat(n); return isNaN(x)?'$0.00':new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(x); };
@@ -550,7 +551,7 @@ export default function Leaderboard() {
                         const isPos = h.plPct >= 0;
                         return (
                           <div key={h.coin} style={{display:'grid',gridTemplateColumns:'auto 1fr auto auto',alignItems:'center',gap:12,background:'var(--surface2)',borderRadius:12,padding:'10px 14px'}}>
-                            <div style={{width:8,height:8,borderRadius:'50%',background:getCoinColor(h.coin),flexShrink:0}}/>
+                            <CoinLogo symbol={h.coin} size={24} />
                             <div>
                               <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:13,color:'var(--text)'}}>{h.isShort?'⬇ ':'+'}{h.coin}</div>
                               <div style={{fontSize:10,color:'var(--muted)'}}>{Math.abs(h.qty).toFixed(4)} @ {fmtUSD(h.avgBuy)}</div>

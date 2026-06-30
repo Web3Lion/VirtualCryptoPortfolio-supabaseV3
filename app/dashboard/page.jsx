@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Nav from "@/components/Nav";
 import BadgeToast from "@/components/BadgeToast";
+import CoinLogo from "@/components/CoinLogo";
 import { applyTheme, getTheme } from "@/lib/theme";
 
 const fmtUSD = (n) => {
@@ -1333,14 +1334,8 @@ export default function Dashboard() {
                   <>
                     {holdingsWithVal.map((h, i) => (
                       <div className="holding-row" key={i} style={h.isShort ? {borderLeft:'2px solid rgba(251,146,60,.4)',background:'rgba(251,146,60,.04)'} : h.marginBorrowed>0 ? {borderLeft:'2px solid rgba(96,165,250,.4)',background:'rgba(96,165,250,.04)'} : {}}>
-                        <div
-                          className="coin-icon"
-                          style={{
-                            background: h.isShort ? 'rgba(251,146,60,.15)' : `${getCoinColor(h.ticker)}22`,
-                            color: h.isShort ? '#fb923c' : getCoinColor(h.ticker),
-                          }}
-                        >
-                          {h.ticker.slice(0, 3)}
+                        <div className="coin-icon" style={{ background: 'transparent', padding: 0 }}>
+                          <CoinLogo symbol={h.ticker} size={32} />
                         </div>
                         <div>
                           <div style={{display:'flex',alignItems:'center',gap:6}}>

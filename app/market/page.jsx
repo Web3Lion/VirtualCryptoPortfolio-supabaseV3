@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Nav from "@/components/Nav";
+import CoinLogo from "@/components/CoinLogo";
 import { applyTheme, getTheme } from "@/lib/theme";
 
 // ── Technical indicator calculations ────────────────────────────
@@ -569,8 +570,13 @@ export default function Market() {
                           .finally(() => setHistoryLoading(false));
                       }}>
                         <td>
-                          <span className="coin-sym">{p.sym}</span>
-                          <span className="sector-tag">{p.sector || getSector(p.sym)}</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <CoinLogo symbol={p.sym} size={22} />
+                            <div>
+                              <span className="coin-sym">{p.sym}</span>
+                              <span className="sector-tag">{p.sector || getSector(p.sym)}</span>
+                            </div>
+                          </div>
                         </td>
                         <td style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700 }}>{fmtPrice(p.price)}</td>
                         <td className="mkt-hide-mobile" style={{ color: chgColor(p.change1h), fontWeight: 500 }}>{fmtChg(p.change1h)}</td>
