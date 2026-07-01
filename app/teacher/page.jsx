@@ -96,6 +96,9 @@ export default function Teacher() {
   const [assignmentDesc, setAssignmentDesc] = useState('');
   const [assignmentDue, setAssignmentDue] = useState('');
   const [assignmentLoading, setAssignmentLoading] = useState(false);
+  const [pinnedMsg, setPinnedMsg] = useState('');
+  const [currentPinned, setCurrentPinned] = useState(null);
+  const [pinnedSaving, setPinnedSaving] = useState(false);
   const [weeklyChallenges, setWeeklyChallenges] = useState([]);
   const [wcTitle, setWcTitle] = useState('');
   const [wcDesc, setWcDesc] = useState('');
@@ -702,7 +705,10 @@ export default function Teacher() {
                     ].map(([k,emoji,label,desc])=>(
                       <button key={k} title={desc} onClick={()=>{
                         setControlsTab(k);
-                        if(k==='events'&&activeClass?.id) fetch(`/api/assignments?classId=${activeClass.id}`).then(r=>r.ok?r.json():[]).then(d=>Array.isArray(d)&&setAssignments(d)).catch(()=>{});
+                        if(k==='events'&&activeClass?.id) {
+                          fetch(`/api/assignments?classId=${activeClass.id}`).then(r=>r.ok?r.json():[]).then(d=>Array.isArray(d)&&setAssignments(d)).catch(()=>{});
+                          fetch(`/api/teacher/pinned-post?classId=${activeClass.id}`).then(r=>r.ok?r.json():null).then(d=>{ if(d) { setCurrentPinned(d.pinned); setPinnedMsg(d.pinned?.message||''); } }).catch(()=>{});
+                        }
                         if(k==='challenges'&&activeClass?.id) fetch(`/api/teacher/weekly-challenge?classId=${activeClass.id}`).then(r=>r.ok?r.json():{challenges:[]}).then(d=>setWeeklyChallenges(d.challenges||[])).catch(()=>{});
                       }} style={{flex:1,padding:'8px 6px',borderRadius:8,border:'none',fontFamily:"'DM Mono',monospace",fontSize:11,cursor:'pointer',transition:'all .15s',background:controlsTab===k?'var(--surface2)':'transparent',color:controlsTab===k?'var(--gold)':'var(--muted)',fontWeight:controlsTab===k?700:400,whiteSpace:'nowrap'}}>
                         {emoji} {label}
@@ -822,6 +828,50 @@ export default function Teacher() {
 
                     {/* ══ EVENTS ══ */}
                     {controlsTab==='events' && <>
+                    {/* Pinned Post */}
+                    <div className="ctrl-card" style={{gridColumn:'1/-1',border:'1px solid rgba(245,158,11,.25)',background:'rgba(245,158,11,.04)'}}>
+                      <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:8}}>
+                        <div className="ctrl-title" style={{marginBottom:0}}>📌 Pinned Post</div>
+                        <span style={{fontSize:10,color:'var(--muted)'}}>Shown at the top of the class feed for all students</span>
+                        {currentPinned && <span style={{fontSize:10,background:'rgba(245,158,11,.15)',color:'#f59e0b',borderRadius:20,padding:'2px 8px',fontWeight:700,marginLeft:'auto'}}>LIVE</span>}
+                      </div>
+                      <textarea
+                        rows={3}
+                        placeholder="e.g. 🔔 Quiz on Friday — make sure your portfolio is diversified across at least 3 sectors by then!"
+                        value={pinnedMsg}
+                        onChange={e=>setPinnedMsg(e.target.value)}
+                        maxLength={400}
+                        style={{width:'100%',background:'var(--surface)',border:'1px solid var(--border)',borderRadius:8,padding:'10px 12px',color:'var(--text)',fontSize:12,fontFamily:"'DM Mono',monospace",resize:'vertical',marginBottom:8,boxSizing:'border-box'}}
+                      />
+                      <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
+                        <button className="btn btn-accent" style={{fontSize:11}} disabled={pinnedSaving||!pinnedMsg.trim()} onClick={async()=>{
+                          setPinnedSaving(true);
+                          const res=await fetch('/api/teacher/pinned-post',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({classId:activeClass?.id,message:pinnedMsg.trim()})});
+                          const d=await res.json();
+                          if(res.ok){setCurrentPinned({message:pinnedMsg.trim(),updatedAt:new Date().toISOString()});setActionMsg({type:'success',msg:'📌 Post pinned!'});}
+                          else setActionMsg({type:'error',msg:d.error||'Failed'});
+                          setTimeout(()=>setActionMsg(null),3000);
+                          setPinnedSaving(false);
+                        }}>{pinnedSaving?'Saving…':'📌 Pin Post'}</button>
+                        {currentPinned && (
+                          <button className="btn btn-muted" style={{fontSize:11}} onClick={async()=>{
+                            setPinnedSaving(true);
+                            await fetch('/api/teacher/pinned-post',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({classId:activeClass?.id,message:''})});
+                            setCurrentPinned(null);setPinnedMsg('');
+                            setActionMsg({type:'success',msg:'📌 Post cleared'});
+                            setTimeout(()=>setActionMsg(null),3000);
+                            setPinnedSaving(false);
+                          }}>✕ Clear Pin</button>
+                        )}
+                        <span style={{fontSize:10,color:'var(--muted)',marginLeft:'auto'}}>{pinnedMsg.length}/400</span>
+                      </div>
+                      {currentPinned && (
+                        <div style={{marginTop:10,padding:'10px 14px',background:'rgba(245,158,11,.08)',border:'1px solid rgba(245,158,11,.2)',borderRadius:10}}>
+                          <div style={{fontSize:10,color:'#f59e0b',fontWeight:700,marginBottom:4}}>Currently pinned:</div>
+                          <div style={{fontSize:12,color:'var(--text)',lineHeight:1.5,whiteSpace:'pre-wrap'}}>{currentPinned.message}</div>
+                        </div>
+                      )}
+                    </div>
                     {/* Assignments — full width */}
                     <div className="ctrl-card" style={{gridColumn:'1/-1',border:'1px solid rgba(96,165,250,.25)',background:'rgba(96,165,250,.04)'}}>
                       <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:6}}>

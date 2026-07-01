@@ -20,7 +20,7 @@ export async function GET(request) {
 
   const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-  const [tradesRes, badgesRes, challengesRes] = await Promise.all([
+  const [tradesRes, badgesRes, challengesRes, pinnedRes] = await Promise.all([
     db.from('trades')
       .select('id, student_id, action, coin, quantity, price, gross_value, reasoning, created_at, students(name, is_bot)')
       .eq('class_id', classId).gte('created_at', cutoff)
@@ -34,6 +34,9 @@ export async function GET(request) {
       .eq('class_id', classId).gte('created_at', cutoff)
       .like('reason', 'daily_challenge:%')
       .order('created_at', { ascending: false }).limit(10),
+    db.from('class_reward_config')
+      .select('pinned_message, pinned_updated_at')
+      .eq('class_id', classId).single(),
   ]);
 
   // Fetch reactions for all trade IDs in one query
@@ -102,5 +105,11 @@ export async function GET(request) {
   });
 
   items.sort((a, b) => b.ts.localeCompare(a.ts));
-  return Response.json({ items: items.slice(0, 40), currentStudentId: student.id });
+
+  const pinnedData = pinnedRes?.data;
+  const pinned = pinnedData?.pinned_message
+    ? { message: pinnedData.pinned_message, updatedAt: pinnedData.pinned_updated_at }
+    : null;
+
+  return Response.json({ items: items.slice(0, 40), currentStudentId: student.id, pinned });
 }

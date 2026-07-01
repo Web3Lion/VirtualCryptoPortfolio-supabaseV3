@@ -179,10 +179,46 @@ function ChallengeCard({ item }) {
   );
 }
 
+function PinnedPostCard({ pinned, onDismiss }) {
+  return (
+    <div style={{
+      background: 'rgba(245,158,11,.06)',
+      border: '1px solid rgba(245,158,11,.3)',
+      borderRadius: 14, padding: '14px 16px', marginBottom: 12,
+      position: 'relative',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+        <div style={{
+          width: 34, height: 34, borderRadius: 10, flexShrink: 0,
+          background: 'rgba(245,158,11,.15)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17,
+        }}>📌</div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 10, color: '#f59e0b', fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>
+            Pinned · from your teacher
+          </div>
+          <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.55, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+            {pinned.message}
+          </div>
+          {pinned.updatedAt && (
+            <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 5 }}>{timeAgo(pinned.updatedAt)}</div>
+          )}
+        </div>
+        <button onClick={onDismiss} style={{
+          background: 'transparent', border: 'none', color: 'var(--muted)',
+          cursor: 'pointer', fontSize: 16, lineHeight: 1, padding: '0 2px', flexShrink: 0,
+        }} title="Dismiss">×</button>
+      </div>
+    </div>
+  );
+}
+
 export default function FeedPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [items, setItems] = useState([]);
+  const [pinned, setPinned] = useState(null);
+  const [pinnedDismissed, setPinnedDismissed] = useState(false);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState(null);
 
@@ -195,6 +231,8 @@ export default function FeedPage() {
       if (res.ok) {
         const d = await res.json();
         setItems(d.items || []);
+        if (d.pinned) { setPinned(d.pinned); setPinnedDismissed(false); }
+        else setPinned(null);
         setLastUpdated(new Date());
       }
     } catch (_) {}
@@ -242,6 +280,10 @@ export default function FeedPage() {
           ↻ Refresh
         </button>
       </div>
+
+      {pinned && !pinnedDismissed && (
+        <PinnedPostCard pinned={pinned} onDismiss={() => setPinnedDismissed(true)} />
+      )}
 
       {items.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '64px 0', color: 'var(--muted)', fontSize: 13 }}>
