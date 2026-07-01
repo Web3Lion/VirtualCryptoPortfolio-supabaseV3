@@ -48,6 +48,8 @@ export default function Teacher() {
   const [migratingHigherLower, setMigratingHigherLower] = useState(false);
   const [gameRewardsMigrated, setGameRewardsMigrated] = useState(true);
   const [migratingGameRewards, setMigratingGameRewards] = useState(false);
+  const [aiConfigMigrated, setAiConfigMigrated] = useState(true);
+  const [migratingAiConfig, setMigratingAiConfig] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [refreshCooldown, setRefreshCooldown] = useState(null);
   const [refreshCountdown, setRefreshCountdown] = useState('');
@@ -167,6 +169,7 @@ export default function Teacher() {
           if(rewardRes.ok) setRewardConfig(await rewardRes.json());
           fetch('/api/admin/migrate-higher-lower').then(r=>r.ok?r.json():null).then(d=>{ if(d && !d.tableExists) setHigherLowerTableReady(false); }).catch(()=>{});
           fetch('/api/admin/migrate-game-rewards').then(r=>r.ok?r.json():null).then(d=>{ if(d && !d.migrated) setGameRewardsMigrated(false); }).catch(()=>{});
+          fetch('/api/admin/migrate-ai-config').then(r=>r.ok?r.json():null).then(d=>{ if(d && !d.migrated) setAiConfigMigrated(false); }).catch(()=>{});
           fetch(`/api/teacher/bot?classId=${active.id}`).then(r=>r.ok?r.json():null).then(d=>{ if(d){ setBotConfig({...d.config, seedMoney: d.config.seedMoney || d.stats?.seedMoney || 10000}); setBotStats(d.stats); } }).catch(()=>{});
         }
       }
@@ -412,6 +415,16 @@ export default function Teacher() {
     if(res.ok) { setGameRewardsMigrated(true); setActionMsg({type:'success',msg:'✅ Per-game reward settings enabled'}); }
     else setActionMsg({type:'error',msg:data.sql ? `Run this SQL in Supabase SQL Editor:\n${data.sql}` : data.error||'Migration failed'});
     setMigratingGameRewards(false);
+    setTimeout(()=>setActionMsg(null),10000);
+  };
+
+  const runAiConfigMigration = async () => {
+    setMigratingAiConfig(true);
+    const res = await fetch('/api/admin/migrate-ai-config',{method:'POST'});
+    const data = await res.json();
+    if(res.ok) { setAiConfigMigrated(true); setActionMsg({type:'success',msg:'✅ AI Coach settings enabled'}); }
+    else setActionMsg({type:'error',msg:data.sql ? `Run this SQL in Supabase SQL Editor:\n${data.sql}` : data.error||'Migration failed'});
+    setMigratingAiConfig(false);
     setTimeout(()=>setActionMsg(null),10000);
   };
 
@@ -1107,6 +1120,80 @@ export default function Teacher() {
                         </button>
                         <button className="btn btn-gold" onClick={saveRewardConfig} disabled={rewardSaving}>
                           {rewardSaving?'Saving...':'💾 Save Settings'}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* ── AI Trade Coach ── */}
+                    <div className="ctrl-card" style={{gridColumn:'1/-1',border:'1px solid rgba(139,92,246,.25)',background:'rgba(139,92,246,.04)'}}>
+                      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6,flexWrap:'wrap',gap:8}}>
+                        <div style={{display:'flex',alignItems:'center',gap:10}}>
+                          <div className="ctrl-title" style={{marginBottom:0}}>🤖 AI Trade Coach</div>
+                          <div className={`status-pill ${rewardConfig.ai_coach_enabled?'on':'off'}`} style={{margin:0}}>{rewardConfig.ai_coach_enabled?'🟢 ENABLED':'⚪ DISABLED'}</div>
+                        </div>
+                        {!aiConfigMigrated && (
+                          <div style={{display:'flex',alignItems:'center',gap:8,background:'rgba(245,158,11,.08)',border:'1px solid rgba(245,158,11,.3)',borderRadius:8,padding:'6px 10px'}}>
+                            <span style={{fontSize:11,color:'#fbbf24'}}>⚠ DB upgrade needed</span>
+                            <button className="btn" style={{background:'rgba(245,158,11,.2)',color:'#fbbf24',border:'1px solid rgba(245,158,11,.4)',fontSize:11,padding:'3px 10px'}} onClick={runAiConfigMigration} disabled={migratingAiConfig}>
+                              {migratingAiConfig?'Migrating…':'🔧 Run Migration'}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      <div className="ctrl-desc" style={{marginBottom:14}}>
+                        Students can tap 🤖 on any trade in their history to get an AI-generated insight. Powered by Groq (free Llama 3.3 70B). Requires a <code style={{fontSize:10,background:'var(--surface2)',padding:'1px 5px',borderRadius:4}}>GROQ_API_KEY</code> environment variable.
+                      </div>
+
+                      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
+                        <div>
+                          <div className="tools-label" style={{marginBottom:6}}>Daily Quota per Student</div>
+                          <div style={{display:'flex',alignItems:'center',gap:8}}>
+                            <input type="number" min={1} max={100} className="text-input" style={{width:80,marginBottom:0}}
+                              value={rewardConfig.ai_coach_daily_quota}
+                              onChange={e=>setRewardConfig(c=>({...c,ai_coach_daily_quota:Math.max(1,parseInt(e.target.value)||5)}))}
+                              disabled={!rewardConfig.ai_coach_enabled} />
+                            <span style={{fontSize:11,color:'var(--muted)'}}>queries/day (class Groq key)</span>
+                          </div>
+                          <div style={{fontSize:10,color:'var(--muted)',marginTop:4}}>How many AI insights each student gets per day using the class Groq API key</div>
+                        </div>
+
+                        <div>
+                          <div className="tools-label" style={{marginBottom:6}}>Allow Student API Key</div>
+                          <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:4}}>
+                            <button
+                              onClick={()=>setRewardConfig(c=>({...c,ai_allow_student_key:!c.ai_allow_student_key}))}
+                              disabled={!rewardConfig.ai_coach_enabled}
+                              style={{fontSize:11,padding:'5px 14px',borderRadius:20,border:'none',cursor:rewardConfig.ai_coach_enabled?'pointer':'not-allowed',
+                                background: rewardConfig.ai_allow_student_key ? 'rgba(0,229,160,.15)' : 'rgba(100,116,139,.15)',
+                                color: rewardConfig.ai_allow_student_key ? '#00e5a0' : 'var(--muted)',fontWeight:700}}>
+                              {rewardConfig.ai_allow_student_key ? '🟢 ALLOWED' : '⚪ NOT ALLOWED'}
+                            </button>
+                          </div>
+                          <div style={{fontSize:10,color:'var(--muted)'}}>Students can enter their own Gemini API key in their dashboard settings to bypass the class quota</div>
+                        </div>
+
+                        {rewardConfig.ai_allow_student_key && (
+                          <div style={{gridColumn:'1/-1'}}>
+                            <div className="tools-label" style={{marginBottom:6}}>Student Key Daily Limit</div>
+                            <div style={{display:'flex',alignItems:'center',gap:8}}>
+                              <input type="number" min={0} max={1000} className="text-input" style={{width:80,marginBottom:0}}
+                                value={rewardConfig.ai_student_key_limit}
+                                onChange={e=>setRewardConfig(c=>({...c,ai_student_key_limit:Math.max(0,parseInt(e.target.value)||0)}))}
+                                disabled={!rewardConfig.ai_coach_enabled} />
+                              <span style={{fontSize:11,color:'var(--muted)'}}>queries/day — <strong>0 = unlimited</strong></span>
+                            </div>
+                            <div style={{fontSize:10,color:'var(--muted)',marginTop:4}}>Cap on daily AI queries for students using their own Gemini key. Set to 0 for no limit.</div>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="btn-row">
+                        <button className={`btn ${rewardConfig.ai_coach_enabled?'btn-red':'btn-green'}`}
+                          onClick={()=>setRewardConfig(c=>({...c,ai_coach_enabled:!c.ai_coach_enabled}))}>
+                          {rewardConfig.ai_coach_enabled?'Disable AI Coach':'Enable AI Coach'}
+                        </button>
+                        <button className="btn btn-gold" onClick={saveRewardConfig} disabled={rewardSaving}>
+                          {rewardSaving?'Saving...':'💾 Save'}
                         </button>
                       </div>
                     </div>

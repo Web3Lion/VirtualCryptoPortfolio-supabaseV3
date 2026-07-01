@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -248,6 +248,12 @@ export default function Dashboard() {
   const [rewardLedger, setRewardLedger] = useState(null);
   const [rewardLessons, setRewardLessons] = useState([]);
   const [rewardModules, setRewardModules] = useState([]);
+  const [aiConfig, setAiConfig] = useState({ ai_coach_enabled: false, ai_allow_student_key: false });
+  const [aiInsights, setAiInsights] = useState({});
+  const [aiHasKey, setAiHasKey] = useState(false);
+  const [aiKeyInput, setAiKeyInput] = useState('');
+  const [aiKeySaving, setAiKeySaving] = useState(false);
+  const [aiKeyPanelOpen, setAiKeyPanelOpen] = useState(false);
   const [stakingData, setStakingData] = useState(null);
   const [dcaOrders, setDcaOrders] = useState([]);
   const [dcaForm, setDcaForm] = useState({ coin: '', amountUsd: '', frequency: 'daily' });
@@ -316,10 +322,12 @@ export default function Dashboard() {
         const me = await meRes.json();
         setClassId(me?.classes?.[0]?.id);
         if (me?.classes?.[0]?.id) {
-        fetchDailyChallenge(me.classes[0].id);
-        fetchWeeklyChallenge(me.classes[0].id);
-        fetchLoginStreak(me.classes[0].id);
-      }
+          fetchDailyChallenge(me.classes[0].id);
+          fetchWeeklyChallenge(me.classes[0].id);
+          fetchLoginStreak(me.classes[0].id);
+          fetch(`/api/teacher/rewards?classId=${me.classes[0].id}`).then(r => r.ok ? r.json() : null).then(cfg => { if (cfg) setAiConfig(cfg); }).catch(() => {});
+          fetch('/api/ai/student-key').then(r => r.ok ? r.json() : null).then(d => { if (d) setAiHasKey(d.hasKey); }).catch(() => {});
+        }
       }
       if (stRes.ok) setStakingData(await stRes.json());
     } catch (e) {
@@ -2842,6 +2850,55 @@ export default function Dashboard() {
               const totalTax = stGains * ST_RATE + ltGains * LT_RATE;
               return (
               <div className="panel">
+                {/* AI Coach student key panel */}
+                {aiConfig?.ai_coach_enabled && aiConfig?.ai_allow_student_key && (
+                  <div style={{background:'rgba(139,92,246,.06)',border:'1px solid rgba(139,92,246,.2)',borderRadius:14,padding:'12px 16px',marginBottom:14}}>
+                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,cursor:'pointer'}} onClick={()=>setAiKeyPanelOpen(o=>!o)}>
+                      <div style={{display:'flex',alignItems:'center',gap:8}}>
+                        <span style={{fontSize:14}}>🤖</span>
+                        <span style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:12,color:'#a78bfa'}}>AI Trade Coach</span>
+                        <span style={{fontSize:10,background: aiHasKey ? 'rgba(0,229,160,.15)' : 'rgba(139,92,246,.15)',color: aiHasKey ? '#00e5a0' : '#a78bfa',borderRadius:20,padding:'2px 8px',fontWeight:700}}>
+                          {aiHasKey ? '🔑 Personal key active' : `${aiConfig.ai_coach_daily_quota||5} free queries/day`}
+                        </span>
+                      </div>
+                      <span style={{fontSize:11,color:'var(--muted)'}}>{aiKeyPanelOpen?'▲':'▼'} {aiHasKey ? 'manage key' : 'add your key'}</span>
+                    </div>
+                    {aiKeyPanelOpen && (
+                      <div style={{marginTop:12,paddingTop:12,borderTop:'1px solid rgba(139,92,246,.2)'}}>
+                        <div style={{fontSize:11,color:'var(--muted)',marginBottom:8}}>
+                          Enter your <strong>Google Gemini API key</strong> to unlock unlimited AI insights (free at <code style={{fontSize:10}}>aistudio.google.com</code>). Your key is stored privately and only used for your requests.
+                        </div>
+                        <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+                          <input
+                            type="password"
+                            placeholder={aiHasKey ? '••••••••••••••••••• (key saved)' : 'AIza…'}
+                            value={aiKeyInput}
+                            onChange={e=>setAiKeyInput(e.target.value)}
+                            style={{flex:1,minWidth:200,padding:'7px 12px',borderRadius:8,border:'1px solid rgba(139,92,246,.3)',background:'var(--surface)',color:'var(--text)',fontSize:12,fontFamily:"'DM Mono',monospace"}}
+                          />
+                          <button onClick={async()=>{
+                            setAiKeySaving(true);
+                            const res = await fetch('/api/ai/student-key',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:aiKeyInput||null})});
+                            const d = await res.json();
+                            if(d.success){setAiHasKey(d.hasKey);setAiKeyInput('');}
+                            setAiKeySaving(false);
+                          }} disabled={aiKeySaving}
+                            style={{padding:'7px 16px',borderRadius:8,border:'none',background:'rgba(139,92,246,.3)',color:'#c4b5fd',fontWeight:700,fontSize:12,cursor:'pointer'}}>
+                            {aiKeySaving?'Saving…':aiHasKey?'Update':'Save Key'}
+                          </button>
+                          {aiHasKey && (
+                            <button onClick={async()=>{
+                              await fetch('/api/ai/student-key',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:null})});
+                              setAiHasKey(false);setAiKeyInput('');
+                            }} style={{padding:'7px 12px',borderRadius:8,border:'1px solid rgba(244,63,94,.3)',background:'transparent',color:'#f87171',fontSize:12,cursor:'pointer'}}>
+                              Remove
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
                 {/* Tax summary card */}
                 {totalTax > 0 && (
                   <div style={{background:'rgba(245,158,11,.07)',border:'1px solid rgba(245,158,11,.3)',borderRadius:14,padding:'14px 18px',marginBottom:14}}>
@@ -3041,7 +3098,8 @@ export default function Dashboard() {
                             const rowBorderColor = isBullRun ? 'rgba(245,158,11,.45)' : isFlashSale ? 'rgba(251,146,60,.45)' : 'var(--border)';
                             const rowBg = isBullRun ? 'rgba(245,158,11,.04)' : isFlashSale ? 'rgba(251,146,60,.04)' : undefined;
                             return (
-                              <div className="history-row" key={i} style={{border:`1px solid ${rowBorderColor}`,background:rowBg}}>
+                              <React.Fragment key={i}>
+                              <div className="history-row" style={{border:`1px solid ${rowBorderColor}`,background:rowBg}}>
                                 <div
                                   className={`tx-icon ${
                                     isBuy || isCover ? "tx-buy" : "tx-sell"
@@ -3143,8 +3201,37 @@ export default function Dashboard() {
                                       </div>
                                     );
                                   })()}
+                                  {/* AI Coach button */}
+                                  {aiConfig?.ai_coach_enabled && (
+                                    <button
+                                      onClick={async () => {
+                                        const key = `trade-${i}`;
+                                        if (aiInsights[key]?.text) { setAiInsights(m => ({...m, [key]: undefined})); return; }
+                                        setAiInsights(m => ({...m, [key]: { loading: true }}));
+                                        const buysBefore = (tradeHistory||[]).filter(b=>b.action==='BUY'&&b.coin===t.coin&&b.createdAt<t.createdAt);
+                                        const firstBuy = buysBefore[buysBefore.length-1];
+                                        const holdDays = firstBuy ? Math.round((new Date(t.createdAt)-new Date(firstBuy.createdAt))/(1000*86400)) : undefined;
+                                        const res = await fetch('/api/ai/trade-coach',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({classId, trade:{ action:t.action, symbol:t.coin, price:t.price, qty:t.quantity, total:t.gross_value||t.grossValue, pl:t.pl, plPct:t.pl&&t.price?((t.pl/(t.price*t.quantity))*100):undefined, holdDays, change24h:prices[t.coin]?.change_24h }})});
+                                        const d = await res.json();
+                                        if (d.busy) setAiInsights(m => ({...m, [key]: { busy: true, text: d.message }}));
+                                        else if (d.insight) setAiInsights(m => ({...m, [key]: { text: d.insight }}));
+                                        else setAiInsights(m => ({...m, [key]: { text: d.error||'Unable to generate insight.' }}));
+                                      }}
+                                      style={{marginTop:6,fontSize:10,padding:'3px 8px',borderRadius:6,border:'1px solid rgba(139,92,246,.3)',background:'rgba(139,92,246,.08)',color:'#a78bfa',cursor:'pointer',display:'block',marginLeft:'auto'}}
+                                    >
+                                      {aiInsights[`trade-${i}`]?.loading ? '🤖 …' : aiInsights[`trade-${i}`]?.text ? '✕ close' : '🤖 Analyze'}
+                                    </button>
+                                  )}
                                 </div>
                               </div>
+                              {/* AI insight card */}
+                              {aiConfig?.ai_coach_enabled && aiInsights[`trade-${i}`]?.text && (
+                                <div style={{marginTop:-4,marginBottom:8,background: aiInsights[`trade-${i}`]?.busy ? 'rgba(100,116,139,.08)' : 'rgba(139,92,246,.07)',border:`1px solid ${aiInsights[`trade-${i}`]?.busy ? 'rgba(100,116,139,.25)' : 'rgba(139,92,246,.25)'}`,borderRadius:10,padding:'10px 14px',fontSize:12,lineHeight:1.6,color:'var(--text)'}}>
+                                  <span style={{fontSize:11,fontWeight:700,color:'#a78bfa',marginRight:8}}>🤖 AI Coach</span>
+                                  {aiInsights[`trade-${i}`].text}
+                                </div>
+                              )}
+                              </React.Fragment>
                             );
                           })}
                         </>

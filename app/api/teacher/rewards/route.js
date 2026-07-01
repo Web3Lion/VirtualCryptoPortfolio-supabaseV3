@@ -19,6 +19,10 @@ const DEFAULTS = {
   bull_bear_enabled: true,
   bull_bear_tokens_per_correct: 5,
   bull_bear_max_tokens_per_day: 50,
+  ai_coach_enabled: false,
+  ai_coach_daily_quota: 5,
+  ai_allow_student_key: false,
+  ai_student_key_limit: 0,
 };
 
 export async function GET(request) {
@@ -60,6 +64,10 @@ export async function POST(request) {
     bull_bear_enabled:              bool('bull_bear_enabled', true),
     bull_bear_tokens_per_correct:   int('bull_bear_tokens_per_correct', 1, 5),
     bull_bear_max_tokens_per_day:   int('bull_bear_max_tokens_per_day', 1, 50),
+    ai_coach_enabled:               bool('ai_coach_enabled', false),
+    ai_coach_daily_quota:           int('ai_coach_daily_quota', 1, 5),
+    ai_allow_student_key:           bool('ai_allow_student_key', false),
+    ai_student_key_limit:           int('ai_student_key_limit', 0, 0),
     updated_at: new Date().toISOString(),
   }, { onConflict: 'class_id' });
 
