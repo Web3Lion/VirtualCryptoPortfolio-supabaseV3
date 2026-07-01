@@ -255,6 +255,7 @@ export default function Dashboard() {
   const [aiKeyInput, setAiKeyInput] = useState('');
   const [aiKeySaving, setAiKeySaving] = useState(false);
   const [aiKeyPanelOpen, setAiKeyPanelOpen] = useState(false);
+  const [aiKeyEditing, setAiKeyEditing] = useState(false);
   const [stakingData, setStakingData] = useState(null);
   const [dcaOrders, setDcaOrders] = useState([]);
   const [dcaForm, setDcaForm] = useState({ coin: '', amountUsd: '', frequency: 'daily' });
@@ -326,8 +327,20 @@ export default function Dashboard() {
           fetchDailyChallenge(me.classes[0].id);
           fetchWeeklyChallenge(me.classes[0].id);
           fetchLoginStreak(me.classes[0].id);
-          fetch(`/api/teacher/rewards?classId=${me.classes[0].id}`).then(r => r.ok ? r.json() : null).then(cfg => { if (cfg) setAiConfig(cfg); }).catch(() => {});
-          fetch('/api/ai/student-key').then(r => r.ok ? r.json() : null).then(d => { if (d) setAiHasKey(d.hasKey); }).catch(() => {});
+          fetch(`/api/teacher/rewards?classId=${me.classes[0].id}`).then(r => r.ok ? r.json() : null).then(cfg => {
+            if (cfg) {
+              setAiConfig(cfg);
+              // Auto-open panel if AI is enabled, student keys allowed, and student hasn't added one yet
+              if (cfg.ai_coach_enabled && cfg.ai_allow_student_key) {
+                fetch('/api/ai/student-key').then(r => r.ok ? r.json() : null).then(d => {
+                  if (d) {
+                    setAiHasKey(d.hasKey);
+                    if (!d.hasKey) setAiKeyPanelOpen(true);
+                  }
+                }).catch(() => {});
+              }
+            }
+          }).catch(() => {});
         }
       }
       if (stRes.ok) setStakingData(await stRes.json());
@@ -2855,49 +2868,105 @@ export default function Dashboard() {
               <div className="panel">
                 {/* AI Coach student key panel */}
                 {aiConfig?.ai_coach_enabled && aiConfig?.ai_allow_student_key && (
-                  <div style={{background:'rgba(139,92,246,.06)',border:'1px solid rgba(139,92,246,.2)',borderRadius:14,padding:'12px 16px',marginBottom:14}}>
+                  <div style={{background: aiHasKey ? 'rgba(0,229,160,.05)' : 'rgba(139,92,246,.06)', border:`1px solid ${aiHasKey ? 'rgba(0,229,160,.25)' : 'rgba(139,92,246,.2)'}`,borderRadius:14,padding:'14px 16px',marginBottom:14}}>
+                    {/* Header row */}
                     <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,cursor:'pointer'}} onClick={()=>setAiKeyPanelOpen(o=>!o)}>
                       <div style={{display:'flex',alignItems:'center',gap:8}}>
-                        <span style={{fontSize:14}}>🤖</span>
-                        <span style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:12,color:'#a78bfa'}}>AI Trade Coach</span>
-                        <span style={{fontSize:10,background: aiHasKey ? 'rgba(0,229,160,.15)' : 'rgba(139,92,246,.15)',color: aiHasKey ? '#00e5a0' : '#a78bfa',borderRadius:20,padding:'2px 8px',fontWeight:700}}>
-                          {aiHasKey ? '🔑 Personal key active' : `${aiConfig.ai_coach_daily_quota||5} free queries/day`}
-                        </span>
+                        <span style={{fontSize:15}}>🤖</span>
+                        <span style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:13,color: aiHasKey ? '#00e5a0' : '#a78bfa'}}>AI Trade Coach</span>
+                        {aiHasKey ? (
+                          <span style={{fontSize:10,background:'rgba(0,229,160,.15)',color:'#00e5a0',borderRadius:20,padding:'2px 10px',fontWeight:700,display:'flex',alignItems:'center',gap:4}}>
+                            ✓ Your Gemini key is active
+                          </span>
+                        ) : (
+                          <span style={{fontSize:10,background:'rgba(139,92,246,.15)',color:'#a78bfa',borderRadius:20,padding:'2px 10px',fontWeight:700}}>
+                            {aiConfig.ai_coach_daily_quota||5} free queries/day
+                          </span>
+                        )}
                       </div>
-                      <span style={{fontSize:11,color:'var(--muted)'}}>{aiKeyPanelOpen?'▲':'▼'} {aiHasKey ? 'manage key' : 'add your key'}</span>
+                      <span style={{fontSize:11,color:'var(--muted)',flexShrink:0}}>{aiKeyPanelOpen ? '▲ hide' : `▼ ${aiHasKey ? 'manage' : 'add your key'}`}</span>
                     </div>
+
                     {aiKeyPanelOpen && (
-                      <div style={{marginTop:12,paddingTop:12,borderTop:'1px solid rgba(139,92,246,.2)'}}>
-                        <div style={{fontSize:11,color:'var(--muted)',marginBottom:8}}>
-                          Enter your <strong>Google Gemini API key</strong> to unlock unlimited AI insights (free at <code style={{fontSize:10}}>aistudio.google.com</code>). Your key is stored privately and only used for your requests.
-                        </div>
-                        <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-                          <input
-                            type="password"
-                            placeholder={aiHasKey ? '••••••••••••••••••• (key saved)' : 'AIza…'}
-                            value={aiKeyInput}
-                            onChange={e=>setAiKeyInput(e.target.value)}
-                            style={{flex:1,minWidth:200,padding:'7px 12px',borderRadius:8,border:'1px solid rgba(139,92,246,.3)',background:'var(--surface)',color:'var(--text)',fontSize:12,fontFamily:"'DM Mono',monospace"}}
-                          />
-                          <button onClick={async()=>{
-                            setAiKeySaving(true);
-                            const res = await fetch('/api/ai/student-key',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:aiKeyInput||null})});
-                            const d = await res.json();
-                            if(d.success){setAiHasKey(d.hasKey);setAiKeyInput('');}
-                            setAiKeySaving(false);
-                          }} disabled={aiKeySaving}
-                            style={{padding:'7px 16px',borderRadius:8,border:'none',background:'rgba(139,92,246,.3)',color:'#c4b5fd',fontWeight:700,fontSize:12,cursor:'pointer'}}>
-                            {aiKeySaving?'Saving…':aiHasKey?'Update':'Save Key'}
-                          </button>
-                          {aiHasKey && (
-                            <button onClick={async()=>{
-                              await fetch('/api/ai/student-key',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:null})});
-                              setAiHasKey(false);setAiKeyInput('');
-                            }} style={{padding:'7px 12px',borderRadius:8,border:'1px solid rgba(244,63,94,.3)',background:'transparent',color:'#f87171',fontSize:12,cursor:'pointer'}}>
-                              Remove
-                            </button>
-                          )}
-                        </div>
+                      <div style={{marginTop:14,paddingTop:14,borderTop:`1px solid ${aiHasKey ? 'rgba(0,229,160,.2)' : 'rgba(139,92,246,.2)'}`}}>
+
+                        {/* Key already saved — locked state */}
+                        {aiHasKey && !aiKeyEditing ? (
+                          <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
+                            <div style={{flex:1,display:'flex',alignItems:'center',gap:10,padding:'9px 14px',borderRadius:10,border:'1px solid rgba(0,229,160,.25)',background:'rgba(0,229,160,.06)'}}>
+                              <span style={{fontSize:16}}>✅</span>
+                              <div>
+                                <div style={{fontSize:12,fontWeight:700,color:'#00e5a0'}}>Gemini API key saved</div>
+                                <div style={{fontSize:10,color:'var(--muted)',marginTop:1}}>Your key is stored securely and used for all your AI trade insights.</div>
+                              </div>
+                            </div>
+                            <div style={{display:'flex',gap:8}}>
+                              <button onClick={()=>{ setAiKeyEditing(true); setAiKeyInput(''); }}
+                                style={{padding:'7px 14px',borderRadius:8,border:'1px solid rgba(139,92,246,.3)',background:'transparent',color:'#a78bfa',fontSize:12,cursor:'pointer',fontWeight:600}}>
+                                ✏️ Change Key
+                              </button>
+                              <button onClick={async()=>{
+                                await fetch('/api/ai/student-key',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:null})});
+                                setAiHasKey(false); setAiKeyInput(''); setAiKeyEditing(false);
+                              }} style={{padding:'7px 14px',borderRadius:8,border:'1px solid rgba(244,63,94,.3)',background:'transparent',color:'#f87171',fontSize:12,cursor:'pointer'}}>
+                                Remove
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          /* No key or editing mode */
+                          <div>
+                            {/* Instructions */}
+                            <div style={{background:'var(--surface2)',borderRadius:10,padding:'12px 14px',marginBottom:12}}>
+                              <div style={{fontSize:11,fontWeight:700,color:'#a78bfa',marginBottom:8}}>How to get your free Gemini API key:</div>
+                              {[
+                                ['1', 'Go to', 'aistudio.google.com', 'https://aistudio.google.com/app/apikey'],
+                                ['2', 'Sign in with your Google account', null, null],
+                                ['3', 'Click "Get API key" → "Create API key in new project"', null, null],
+                                ['4', 'Copy the key (starts with AIza…) and paste it below', null, null],
+                              ].map(([n, text, link, href]) => (
+                                <div key={n} style={{display:'flex',gap:8,alignItems:'flex-start',marginBottom:5}}>
+                                  <span style={{fontSize:10,fontWeight:800,color:'#a78bfa',minWidth:16,marginTop:1}}>{n}.</span>
+                                  <span style={{fontSize:11,color:'var(--muted)',lineHeight:1.4}}>
+                                    {text}{link && <> <a href={href} target="_blank" rel="noopener noreferrer" style={{color:'#a78bfa',fontWeight:600}}>{link}</a></>}
+                                  </span>
+                                </div>
+                              ))}
+                              <div style={{fontSize:10,color:'var(--muted)',marginTop:6,paddingTop:6,borderTop:'1px solid var(--border)'}}>
+                                ✓ Free tier — no credit card needed &nbsp;·&nbsp; ✓ Your key is stored only in this app and never shared
+                              </div>
+                            </div>
+
+                            {/* Input row */}
+                            <div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center'}}>
+                              <input
+                                type="password"
+                                placeholder="AIza…"
+                                value={aiKeyInput}
+                                onChange={e=>setAiKeyInput(e.target.value)}
+                                autoFocus={aiKeyEditing}
+                                style={{flex:1,minWidth:200,padding:'9px 12px',borderRadius:9,border:'1px solid rgba(139,92,246,.4)',background:'var(--surface)',color:'var(--text)',fontSize:13,fontFamily:"'DM Mono',monospace",outline:'none'}}
+                              />
+                              <button onClick={async()=>{
+                                if (!aiKeyInput.trim()) return;
+                                setAiKeySaving(true);
+                                const res = await fetch('/api/ai/student-key',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:aiKeyInput.trim()})});
+                                const d = await res.json();
+                                if(d.success){ setAiHasKey(true); setAiKeyInput(''); setAiKeyEditing(false); }
+                                setAiKeySaving(false);
+                              }} disabled={aiKeySaving || !aiKeyInput.trim()}
+                                style={{padding:'9px 18px',borderRadius:9,border:'none',background: aiKeyInput.trim() ? '#7c3aed' : 'rgba(139,92,246,.2)',color: aiKeyInput.trim() ? '#fff' : '#a78bfa',fontWeight:700,fontSize:13,cursor: aiKeyInput.trim() ? 'pointer' : 'not-allowed',transition:'all .15s'}}>
+                                {aiKeySaving ? 'Saving…' : 'Save Key'}
+                              </button>
+                              {aiKeyEditing && (
+                                <button onClick={()=>{ setAiKeyEditing(false); setAiKeyInput(''); }}
+                                  style={{padding:'9px 14px',borderRadius:9,border:'1px solid var(--border)',background:'transparent',color:'var(--muted)',fontSize:12,cursor:'pointer'}}>
+                                  Cancel
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

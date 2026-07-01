@@ -1141,7 +1141,7 @@ export default function Teacher() {
                         )}
                       </div>
                       <div className="ctrl-desc" style={{marginBottom:14}}>
-                        Students can tap 🤖 on any trade in their history to get an AI-generated insight. Powered by Groq (free Llama 3.3 70B). Requires a <code style={{fontSize:10,background:'var(--surface2)',padding:'1px 5px',borderRadius:4}}>GROQ_API_KEY</code> environment variable.
+                        Students can tap 🤖 on any trade in their history to get an AI-generated insight. Powered by <strong>Google Gemini 1.5 Flash</strong> (free tier — get a key at <code style={{fontSize:10}}>aistudio.google.com</code>). Add <code style={{fontSize:10,background:'var(--surface2)',padding:'1px 5px',borderRadius:4}}>GEMINI_API_KEY</code> to your server environment variables to activate the class key. Students can also use their own Gemini key (enable below).
                       </div>
 
                       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
@@ -1152,9 +1152,9 @@ export default function Teacher() {
                               value={rewardConfig.ai_coach_daily_quota}
                               onChange={e=>setRewardConfig(c=>({...c,ai_coach_daily_quota:Math.max(1,parseInt(e.target.value)||5)}))}
                               disabled={!rewardConfig.ai_coach_enabled} />
-                            <span style={{fontSize:11,color:'var(--muted)'}}>queries/day (class Groq key)</span>
+                            <span style={{fontSize:11,color:'var(--muted)'}}>queries/day (class Gemini key)</span>
                           </div>
-                          <div style={{fontSize:10,color:'var(--muted)',marginTop:4}}>How many AI insights each student gets per day using the class Groq API key</div>
+                          <div style={{fontSize:10,color:'var(--muted)',marginTop:4}}>How many AI insights each student gets per day using the class GEMINI_API_KEY</div>
                         </div>
 
                         <div>
