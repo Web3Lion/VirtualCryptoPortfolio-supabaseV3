@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Nav from "@/components/Nav";
 import CoinLogo from "@/components/CoinLogo";
+import GlossaryTerm from "@/components/GlossaryTerm";
 import { STAKEABLE_COINS, TIER_META } from "@/lib/staking";
 
 const fmt = (n, dec = 2) => isNaN(+n) ? '0' : (+n).toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec });
@@ -50,7 +51,7 @@ function ClaimableCard({ pos, onClaim, claiming }) {
           <TierBadge tier={info.tier || 'flexible'} />
         </div>
         <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: 9, color: 'var(--muted)', letterSpacing: 1, textTransform: 'uppercase' }}>APY</div>
+          <div style={{ fontSize: 9, color: 'var(--muted)', letterSpacing: 1, textTransform: 'uppercase' }}><GlossaryTerm term="APY">APY</GlossaryTerm></div>
           <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 18, color: tier.color }}>{fmtPct(pos.apy)}</div>
         </div>
       </div>
@@ -103,7 +104,7 @@ function ActiveCard({ pos, onUnstake, unstaking }) {
         </div>
         <div style={{ textAlign: 'right' }}>
           <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 17, color: tier.color }}>{fmtPct(pos.apy)}</div>
-          <div style={{ fontSize: 9, color: 'var(--muted)' }}>APY</div>
+          <div style={{ fontSize: 9, color: 'var(--muted)' }}><GlossaryTerm term="APY">APY</GlossaryTerm></div>
         </div>
       </div>
 
@@ -195,7 +196,7 @@ function StakeCard({ item, onStake, staking }) {
           <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 15 }}>{item.name}</div>
           <div style={{ display: 'flex', gap: 6, marginTop: 3, alignItems: 'center' }}>
             <TierBadge tier={item.tier} />
-            <span style={{ fontSize: 11, color: tier.color, fontWeight: 700 }}>{fmtPct(item.apy)} APY</span>
+            <span style={{ fontSize: 11, color: tier.color, fontWeight: 700 }}>{fmtPct(item.apy)} <GlossaryTerm term="APY">APY</GlossaryTerm></span>
           </div>
         </div>
       </div>

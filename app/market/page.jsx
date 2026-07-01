@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Nav from "@/components/Nav";
 import CoinLogo from "@/components/CoinLogo";
+import GlossaryTerm from "@/components/GlossaryTerm";
 import { applyTheme, getTheme } from "@/lib/theme";
 
 // ── Technical indicator calculations ────────────────────────────
@@ -554,8 +555,8 @@ export default function Market() {
                       <th className="mkt-hide-mobile" onClick={() => toggleSort('change1h')}>1H <SI col="change1h"/></th>
                       <th onClick={() => toggleSort('change24h')}>24H <SI col="change24h"/></th>
                       <th className="mkt-hide-mobile" onClick={() => toggleSort('change7d')}>7D <SI col="change7d"/></th>
-                      <th className="mkt-hide-mobile" onClick={() => toggleSort('marketCap')}>Mkt Cap <SI col="marketCap"/></th>
-                      <th className="mkt-hide-mobile" onClick={() => toggleSort('volume24h')}>Volume <SI col="volume24h"/></th>
+                      <th className="mkt-hide-mobile" onClick={() => toggleSort('marketCap')}><GlossaryTerm term="Market Cap">Mkt Cap</GlossaryTerm> <SI col="marketCap"/></th>
+                      <th className="mkt-hide-mobile" onClick={() => toggleSort('volume24h')}><GlossaryTerm term="Volume">Volume</GlossaryTerm> <SI col="volume24h"/></th>
                     </tr>
                   </thead>
                   <tbody>

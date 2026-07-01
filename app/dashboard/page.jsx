@@ -6,6 +6,7 @@ import Link from "next/link";
 import Nav from "@/components/Nav";
 import BadgeToast from "@/components/BadgeToast";
 import CoinLogo from "@/components/CoinLogo";
+import GlossaryTerm from "@/components/GlossaryTerm";
 import { applyTheme, getTheme } from "@/lib/theme";
 
 const fmtUSD = (n) => {
@@ -1421,8 +1422,8 @@ export default function Dashboard() {
                             >
                               {h.ticker}
                             </div>
-                            {h.isShort && <span style={{fontSize:9,background:'rgba(251,146,60,.2)',color:'#fb923c',borderRadius:4,padding:'1px 5px',letterSpacing:'1px'}}>SHORT</span>}
-                            {!h.isShort && h.marginBorrowed>0 && <span style={{fontSize:9,background:'rgba(96,165,250,.2)',color:'#60a5fa',borderRadius:4,padding:'1px 5px',letterSpacing:'1px'}}>LEVERAGED</span>}
+                            {h.isShort && <span style={{fontSize:9,background:'rgba(251,146,60,.2)',color:'#fb923c',borderRadius:4,padding:'1px 5px',letterSpacing:'1px'}}><GlossaryTerm term="Short">SHORT</GlossaryTerm></span>}
+                            {!h.isShort && h.marginBorrowed>0 && <span style={{fontSize:9,background:'rgba(96,165,250,.2)',color:'#60a5fa',borderRadius:4,padding:'1px 5px',letterSpacing:'1px'}}><GlossaryTerm term="Leveraged">LEVERAGED</GlossaryTerm></span>}
                           </div>
                           <div
                             style={{
@@ -1803,13 +1804,13 @@ export default function Dashboard() {
                   {analyticsData !== null && (() => {
                     const combined = { ...portfolio, ...analyticsData };
                     const metrics = [
-                      { key:'sharpeRatio',  label:'Sharpe Ratio',       fmt: v=>v.toFixed(2),       good: v=>v>=1,              bad: v=>v<0,        desc:'Annualized risk-adjusted return. >1 is good, >2 is great.' },
-                      { key:'sortinoRatio', label:'Sortino Ratio',      fmt: v=>v.toFixed(2),       good: v=>v>=1,              bad: v=>v<0,        desc:'Like Sharpe but only penalizes downside volatility.' },
-                      { key:'maxDrawdown',  label:'Max Drawdown',       fmt: v=>`-${v.toFixed(1)}%`, good: v=>v<10,             bad: v=>v>20,       desc:'Largest peak-to-trough drop in portfolio value.' },
-                      { key:'winRate',      label:'Win Rate',           fmt: v=>`${v.toFixed(1)}%`,  good: v=>v>=50,            bad: v=>v<40,       desc:'% of fully-closed coin positions that were profitable.' },
-                      { key:'volatility',   label:'Volatility (ann.)',  fmt: v=>`${v.toFixed(1)}%`,  good: v=>v<30,             bad: v=>v>80,       desc:'Annualized standard deviation of daily returns. Lower = more stable.' },
-                      { key:'calmarRatio',  label:'Calmar Ratio',       fmt: v=>v.toFixed(2),       good: v=>v>1,               bad: v=>v<0,        desc:'Total return divided by max drawdown. Higher = better risk efficiency.' },
-                      { key:'beta',         label:'Beta vs BTC',        fmt: v=>v.toFixed(2),       good: v=>Math.abs(v)<0.8,   bad: v=>Math.abs(v)>2, desc:'Sensitivity to BTC moves. 1 = moves with BTC, >1 = amplified, <0 = inverse.' },
+                      { key:'sharpeRatio',  label:'Sharpe Ratio',       glossary:'Sharpe Ratio',  fmt: v=>v.toFixed(2),       good: v=>v>=1,              bad: v=>v<0,        desc:'Annualized risk-adjusted return. >1 is good, >2 is great.' },
+                      { key:'sortinoRatio', label:'Sortino Ratio',       glossary:null,            fmt: v=>v.toFixed(2),       good: v=>v>=1,              bad: v=>v<0,        desc:'Like Sharpe but only penalizes downside volatility.' },
+                      { key:'maxDrawdown',  label:'Max Drawdown',        glossary:'Max Drawdown',  fmt: v=>`-${v.toFixed(1)}%`, good: v=>v<10,             bad: v=>v>20,       desc:'Largest peak-to-trough drop in portfolio value.' },
+                      { key:'winRate',      label:'Win Rate',            glossary:'Win Rate',      fmt: v=>`${v.toFixed(1)}%`,  good: v=>v>=50,            bad: v=>v<40,       desc:'% of fully-closed coin positions that were profitable.' },
+                      { key:'volatility',   label:'Volatility (ann.)',   glossary:'Volatility',    fmt: v=>`${v.toFixed(1)}%`,  good: v=>v<30,             bad: v=>v>80,       desc:'Annualized standard deviation of daily returns. Lower = more stable.' },
+                      { key:'calmarRatio',  label:'Calmar Ratio',        glossary:null,            fmt: v=>v.toFixed(2),       good: v=>v>1,               bad: v=>v<0,        desc:'Total return divided by max drawdown. Higher = better risk efficiency.' },
+                      { key:'beta',         label:'Beta vs BTC',         glossary:'Beta',          fmt: v=>v.toFixed(2),       good: v=>Math.abs(v)<0.8,   bad: v=>Math.abs(v)>2, desc:'Sensitivity to BTC moves. 1 = moves with BTC, >1 = amplified, <0 = inverse.' },
                     ].filter(m => combined[m.key] != null);
                     if (!metrics.length) return <div className="empty">Need at least 5 days of portfolio history to compute analytics.</div>;
                     return metrics.map(m => {
@@ -1818,7 +1819,9 @@ export default function Dashboard() {
                       return (
                         <div key={m.key} style={{display:'flex',alignItems:'center',gap:16,padding:'14px 0',borderBottom:'1px solid var(--border)'}}>
                           <div style={{flex:1}}>
-                            <div style={{fontSize:13,fontWeight:700,color:'var(--text)',marginBottom:3}}>{m.label}</div>
+                            <div style={{fontSize:13,fontWeight:700,color:'var(--text)',marginBottom:3}}>
+                              {m.glossary ? <GlossaryTerm term={m.glossary} placement="above">{m.label}</GlossaryTerm> : m.label}
+                            </div>
                             <div style={{fontSize:11,color:'#94a3b8',lineHeight:1.5}}>{m.desc}</div>
                           </div>
                           <div style={{fontSize:22,fontWeight:800,color,fontFamily:"'Syne',sans-serif",minWidth:70,textAlign:'right'}}>{m.fmt(val)}</div>
@@ -2171,7 +2174,7 @@ export default function Dashboard() {
                                     marginBottom: 2,
                                   }}
                                 >
-                                  P/L
+                                  <GlossaryTerm term="P/L">P/L</GlossaryTerm>
                                 </div>
                                 <div
                                   style={{
@@ -2493,7 +2496,7 @@ export default function Dashboard() {
 
                 {/* DCA */}
                 <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:20,padding:22,marginTop:16}}>
-                  <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:15,marginBottom:4}}>🔄 Dollar-Cost Averaging</div>
+                  <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:15,marginBottom:4}}>🔄 <GlossaryTerm term="DCA">Dollar-Cost Averaging</GlossaryTerm></div>
                   <div style={{fontSize:11,color:'var(--muted)',marginBottom:14}}>Auto-buy a fixed $ amount on a schedule. Executes daily at 4pm UTC.</div>
                   <div className="dca-form-grid">
                     <div>
@@ -2607,9 +2610,9 @@ export default function Dashboard() {
                     <div className="card" style={{marginBottom:16}}>
                       <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:15,marginBottom:4}}>📊 Buy Option Contract</div>
                       <div style={{fontSize:11,color:'var(--muted)',marginBottom:12}}>
-                        <strong>Call</strong> = right to BUY at strike price (profit if price rises) ·
-                        <strong> Put</strong> = right to SELL at strike price (profit if price falls).
-                        You pay a premium upfront. Auto-exercises at expiry if in-the-money.
+                        <strong><GlossaryTerm term="Call">Call</GlossaryTerm></strong> = right to BUY at <GlossaryTerm term="Strike Price">strike price</GlossaryTerm> (profit if price rises) ·
+                        <strong> <GlossaryTerm term="Put">Put</GlossaryTerm></strong> = right to SELL at strike price (profit if price falls).
+                        You pay a <GlossaryTerm term="Premium">premium</GlossaryTerm> upfront. Auto-exercises at <GlossaryTerm term="Expiry">expiry</GlossaryTerm> if <GlossaryTerm term="In the Money">in-the-money</GlossaryTerm>.
                       </div>
                       <div style={{fontSize:11,color:'var(--gold)',background:'rgba(245,158,11,.08)',border:'1px solid rgba(245,158,11,.2)',borderRadius:8,padding:'7px 12px',marginBottom:16}}>
                         ⏰ Expired contracts are settled the following morning. You can also close any open position early at its current market value.
