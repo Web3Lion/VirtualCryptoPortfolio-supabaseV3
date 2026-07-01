@@ -127,7 +127,7 @@ export default function Home() {
         .stat-val{font-family:'Syne',sans-serif;font-weight:800;font-size:18px;color:#e2e8f0;letter-spacing:-0.5px}
         .stat-lbl{font-size:9px;color:#334155;letter-spacing:1.5px;text-transform:uppercase;margin-top:2px}
 
-        .disclaimer{font-size:10px;color:#334155;margin-top:16px;line-height:1.7}
+        .disclaimer{font-size:11px;color:#64748b;margin-top:16px;line-height:1.7;padding:12px 14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;text-align:center}
 
         @media(max-width:400px){.card{padding:36px 24px}.logo{font-size:26px}}
       `}</style>
@@ -180,7 +180,7 @@ export default function Home() {
           </button>
 
           <div className="disclaimer">
-            Educational simulator only · No real money involved<br/>Not financial advice
+            ⚠️ <strong style={{color:'#94a3b8'}}>Not financial advice.</strong> CryptoClassroom is an educational simulator for entertainment and learning purposes only. No real money is used. Past simulated performance does not reflect real-world results. Always consult a qualified financial advisor before making real investment decisions.
           </div>
         </div>
 

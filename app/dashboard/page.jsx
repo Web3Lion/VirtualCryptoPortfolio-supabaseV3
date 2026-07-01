@@ -256,6 +256,9 @@ export default function Dashboard() {
   const [aiKeySaving, setAiKeySaving] = useState(false);
   const [aiKeyPanelOpen, setAiKeyPanelOpen] = useState(false);
   const [aiKeyEditing, setAiKeyEditing] = useState(false);
+  const [portfolioReview, setPortfolioReview] = useState(null);
+  const [portfolioReviewLoading, setPortfolioReviewLoading] = useState(false);
+  const [seedMoney, setSeedMoney] = useState(10000);
   const [stakingData, setStakingData] = useState(null);
   const [dcaOrders, setDcaOrders] = useState([]);
   const [dcaForm, setDcaForm] = useState({ coin: '', amountUsd: '', frequency: 'daily' });
@@ -323,6 +326,7 @@ export default function Dashboard() {
       if (meRes.ok) {
         const me = await meRes.json();
         setClassId(me?.classes?.[0]?.id);
+        if (me?.classes?.[0]?.seed_money) setSeedMoney(me.classes[0].seed_money);
         if (me?.classes?.[0]?.id) {
           fetchDailyChallenge(me.classes[0].id);
           fetchWeeklyChallenge(me.classes[0].id);
@@ -408,6 +412,44 @@ export default function Dashboard() {
       setRefreshCooldown(data.canRefresh ? null : new Date(data.nextRefreshAt));
     }
   }, []);
+
+  const handlePortfolioReview = useCallback(async (holdingsSnap) => {
+    if (!portfolio) return;
+    setPortfolioReviewLoading(true);
+    setPortfolioReview(null);
+    const totalVal = portfolio.cash + portfolio.holdingsValue;
+    const portfolioPayload = {
+      totalValue: totalVal,
+      seedMoney,
+      returnPct: seedMoney > 0 ? ((totalVal - seedMoney) / seedMoney) * 100 : 0,
+      cash: portfolio.cash,
+      cashPct: totalVal > 0 ? (portfolio.cash / totalVal) * 100 : 0,
+      holdings: (holdingsSnap || []).filter(h => !h.isShort).map(h => ({
+        symbol: h.ticker,
+        value: h.curVal || 0,
+        pct: totalVal > 0 ? ((h.curVal || 0) / totalVal) * 100 : 0,
+      })),
+      sectors: [],
+      hasLeverage: (holdingsSnap || []).some(h => h.marginBorrowed > 0),
+      hasShorts: (holdingsSnap || []).some(h => h.isShort),
+      hasDca: false,
+      coinCount: (holdingsSnap || []).filter(h => !h.isShort).length,
+    };
+    try {
+      const res = await fetch('/api/ai/portfolio-review', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ classId, portfolio: portfolioPayload }),
+      });
+      const d = await res.json();
+      if (d.busy) setPortfolioReview({ busy: true, message: d.message });
+      else if (d.review) setPortfolioReview(d.review);
+      else setPortfolioReview({ error: d.error || 'Something went wrong — try again.' });
+    } catch {
+      setPortfolioReview({ error: 'Network error — try again.' });
+    }
+    setPortfolioReviewLoading(false);
+  }, [portfolio, classId, seedMoney]);
 
   const handlePriceRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -1346,7 +1388,6 @@ export default function Dashboard() {
                 {/* ── Mini portfolio chart ── */}
                 {(() => {
                   const totalVal = portfolio ? portfolio.cash + portfolio.holdingsValue : 0;
-                  const seedMoney = me?.classes?.[0]?.seed_money || 10000;
                   const ret = totalVal ? ((totalVal - seedMoney) / seedMoney) * 100 : 0;
                   const isPos = ret >= 0;
                   const miniFirst = miniChartData?.[0]?.v;
@@ -1403,9 +1444,97 @@ export default function Dashboard() {
                           ))}
                         </div>
                       )}
+                      {/* AI Portfolio Review button */}
+                      {aiConfig?.ai_coach_enabled && (
+                        <div style={{marginTop:14,paddingTop:12,borderTop:'1px solid var(--border)'}}>
+                          <button
+                            onClick={() => handlePortfolioReview(holdingsWithVal)}
+                            disabled={portfolioReviewLoading}
+                            style={{
+                              display:'flex',alignItems:'center',gap:8,
+                              padding:'8px 16px',borderRadius:10,
+                              border:'1px solid rgba(139,92,246,.35)',
+                              background: portfolioReviewLoading ? 'rgba(139,92,246,.08)' : 'rgba(139,92,246,.12)',
+                              color:'#a78bfa',fontSize:12,fontWeight:700,cursor: portfolioReviewLoading ? 'not-allowed' : 'pointer',
+                              width:'100%',justifyContent:'center',transition:'background .15s',
+                            }}>
+                            {portfolioReviewLoading
+                              ? <><span style={{animation:'spin 1s linear infinite',display:'inline-block'}}>⟳</span> Analyzing portfolio…</>
+                              : <><span>🤖</span> AI Portfolio Review</>}
+                          </button>
+                        </div>
+                      )}
                     </div>
                   );
                 })()}
+                {/* Portfolio Review Result Card */}
+                {portfolioReview && (
+                  <div style={{background:'rgba(139,92,246,.06)',border:'1px solid rgba(139,92,246,.25)',borderRadius:16,padding:'18px 18px',marginBottom:16,marginTop:-8}}>
+                    {portfolioReview.busy ? (
+                      <div style={{fontSize:12,color:'#a78bfa',textAlign:'center',padding:'8px 0'}}>🤖 {portfolioReview.message}</div>
+                    ) : portfolioReview.error ? (
+                      <div style={{fontSize:12,color:'#f87171',textAlign:'center',padding:'8px 0'}}>⚠ {portfolioReview.error}</div>
+                    ) : (
+                      <>
+                        {/* Header: grade + title */}
+                        <div style={{display:'flex',alignItems:'center',gap:14,marginBottom:14}}>
+                          <div style={{
+                            fontFamily:"'Syne',sans-serif",fontWeight:900,fontSize:40,lineHeight:1,
+                            color: ['A+','A','A-'].includes(portfolioReview.grade) ? '#00e5a0'
+                                 : ['B+','B','B-'].includes(portfolioReview.grade) ? '#22d3ee'
+                                 : ['C+','C','C-'].includes(portfolioReview.grade) ? '#fbbf24'
+                                 : portfolioReview.grade === 'D' ? '#fb923c' : '#ef4444',
+                          }}>{portfolioReview.grade}</div>
+                          <div style={{flex:1}}>
+                            <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:13,color:'#a78bfa',marginBottom:3}}>AI Portfolio Review</div>
+                            <div style={{fontSize:11,color:'var(--muted)',lineHeight:1.5}}>{portfolioReview.summary}</div>
+                          </div>
+                          <button onClick={() => setPortfolioReview(null)} style={{background:'transparent',border:'none',color:'var(--muted)',fontSize:16,cursor:'pointer',padding:'0 4px',lineHeight:1}}>×</button>
+                        </div>
+                        {/* Score bars */}
+                        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px 16px',marginBottom:14}}>
+                          {[
+                            {key:'diversification', label:'Diversification'},
+                            {key:'riskManagement', label:'Risk Management'},
+                            {key:'strategy', label:'Strategy'},
+                            {key:'performance', label:'Performance'},
+                          ].map(({key, label}) => {
+                            const v = portfolioReview.scores?.[key] || 0;
+                            const barColor = v >= 8 ? '#00e5a0' : v >= 6 ? '#22d3ee' : v >= 4 ? '#fbbf24' : '#ef4444';
+                            return (
+                              <div key={key}>
+                                <div style={{display:'flex',justifyContent:'space-between',marginBottom:3}}>
+                                  <span style={{fontSize:10,color:'var(--muted)',letterSpacing:.5}}>{label}</span>
+                                  <span style={{fontSize:10,fontWeight:700,color:barColor,fontFamily:"'Syne',sans-serif"}}>{v}/10</span>
+                                </div>
+                                <div style={{height:5,background:'var(--surface2)',borderRadius:3,overflow:'hidden'}}>
+                                  <div style={{height:'100%',width:`${v*10}%`,background:barColor,borderRadius:3,transition:'width .4s ease'}} />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        {/* Suggestions */}
+                        <div style={{background:'var(--surface2)',borderRadius:10,padding:'10px 14px'}}>
+                          <div style={{fontSize:10,fontWeight:700,color:'#a78bfa',marginBottom:7,letterSpacing:.5,textTransform:'uppercase'}}>Suggestions</div>
+                          {(portfolioReview.suggestions || []).map((s, i) => (
+                            <div key={i} style={{display:'flex',gap:8,alignItems:'flex-start',marginBottom: i < portfolioReview.suggestions.length-1 ? 6 : 0}}>
+                              <span style={{fontSize:10,color:'var(--accent)',marginTop:1,flexShrink:0}}>→</span>
+                              <span style={{fontSize:11,color:'var(--muted)',lineHeight:1.5}}>{s}</span>
+                            </div>
+                          ))}
+                        </div>
+                        {/* Refresh */}
+                        <div style={{textAlign:'right',marginTop:10}}>
+                          <button onClick={() => handlePortfolioReview(holdingsWithVal)}
+                            style={{fontSize:10,color:'var(--muted)',background:'transparent',border:'none',cursor:'pointer',padding:0}}>
+                            ↻ Refresh analysis
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
                 {portfolioError && (
                   <div style={{background:'rgba(244,63,94,.1)',border:'1px solid rgba(244,63,94,.4)',borderRadius:12,padding:'14px 18px',marginBottom:12}}>
                     <div style={{fontSize:12,fontWeight:700,color:'#f43f5e',marginBottom:4}}>⚠ Portfolio failed to load (HTTP {portfolioError.status})</div>
