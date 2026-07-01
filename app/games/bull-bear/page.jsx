@@ -37,13 +37,16 @@ function getRating(score) {
 export default function BullBearGame() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [phase, setPhase]       = useState('loading'); // loading | idle | playing | reveal | done
+  const [phase, setPhase]       = useState('loading');
   const [coins, setCoins]       = useState([]);
   const [deck, setDeck]         = useState([]);
   const [cardIdx, setCardIdx]   = useState(0);
-  const [guess, setGuess]       = useState(null);   // 'bull' | 'bear'
+  const [guess, setGuess]       = useState(null);
   const [score, setScore]       = useState(0);
   const [results, setResults]   = useState([]);
+  const [classId, setClassId]   = useState(null);
+  const [gameConfig, setGameConfig] = useState({ enabled: true, tokensPerCorrect: 5, maxPerDay: 50, tokensToday: 0 });
+  const [reward, setReward]     = useState(null);
 
   useEffect(() => { applyTheme(getTheme()); }, []);
   useEffect(() => { if (status === 'unauthenticated') router.replace('/'); }, [status, router]);
@@ -51,9 +54,17 @@ export default function BullBearGame() {
   const loadCoins = useCallback(async () => {
     setPhase('loading');
     try {
-      const d = await fetch('/api/ticker').then(r => r.ok ? r.json() : []);
-      // Filter to coins with meaningful 24h change data
-      const valid = (d || []).filter(c => c.change24h !== 0 && c.price > 0);
+      const [tickerRes, meRes] = await Promise.all([
+        fetch('/api/ticker').then(r => r.ok ? r.json() : []),
+        fetch('/api/me').then(r => r.ok ? r.json() : null),
+      ]);
+      const cid = meRes?.classId || meRes?.classes?.[0]?.id;
+      if (cid) {
+        setClassId(cid);
+        const cfg = await fetch(`/api/games/bull-bear?classId=${cid}`).then(r => r.ok ? r.json() : null);
+        if (cfg) setGameConfig(cfg);
+      }
+      const valid = (tickerRes || []).filter(c => c.change24h !== 0 && c.price > 0);
       setCoins(valid);
       setPhase('idle');
     } catch { setPhase('idle'); }
@@ -68,6 +79,7 @@ export default function BullBearGame() {
     setGuess(null);
     setScore(0);
     setResults([]);
+    setReward(null);
     setPhase('playing');
   }
 
@@ -81,8 +93,25 @@ export default function BullBearGame() {
     setPhase('reveal');
   }
 
-  function next() {
+  async function next() {
     if (cardIdx + 1 >= ROUNDS) {
+      // Submit results for tokens
+      if (classId && gameConfig.enabled) {
+        const finalScore = results.filter(r => r.correct).length + (results[results.length - 1]?.correct ? 0 : 0);
+        // score state may lag — count from results array directly
+        const correctCount = results.filter(r => r.correct).length;
+        try {
+          const res = await fetch('/api/games/bull-bear', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ classId, score: correctCount, total: ROUNDS }),
+          });
+          if (res.ok) {
+            const d = await res.json();
+            if (d.tokensAwarded > 0) setReward(d);
+          }
+        } catch {}
+      }
       setPhase('done');
     } else {
       setCardIdx(i => i + 1);
@@ -217,7 +246,13 @@ export default function BullBearGame() {
           <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 20, padding: '32px 24px', textAlign: 'center', marginBottom: 16 }}>
             <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 48, color: rating.color, marginBottom: 4 }}>{score}/{ROUNDS}</div>
             <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 20, color: rating.color, marginBottom: 4 }}>{rating.label}</div>
-            <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 24 }}>{Math.round((score / ROUNDS) * 100)}% accuracy</div>
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: reward ? 12 : 24 }}>{Math.round((score / ROUNDS) * 100)}% accuracy</div>
+            {reward && (
+              <div style={{ background: 'rgba(0,229,160,.1)', border: '1px solid rgba(0,229,160,.3)', borderRadius: 12, padding: '10px 16px', marginBottom: 16, animation: 'revealPop .4s ease both' }}>
+                <span style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 16, color: '#00e5a0' }}>+{reward.tokensAwarded} tokens</span>
+                <span style={{ fontSize: 12, color: 'var(--muted)', marginLeft: 8 }}>({gameConfig.tokensPerCorrect}/correct)</span>
+              </div>
+            )}
             <button onClick={startGame}
               style={{ background: 'var(--accent)', color: '#000', border: 'none', borderRadius: 12, padding: '12px 32px', fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 15, cursor: 'pointer' }}>
               Play Again

@@ -198,6 +198,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("holdings");
   const [chartRange, setChartRange] = useState("1W");
+  const [miniRange, setMiniRange]   = useState("1W");
   const [tradeForm, setTradeForm] = useState({
     action: "BUY",
     coin: "",
@@ -674,6 +675,7 @@ export default function Dashboard() {
   // Use intraday for short ranges, daily for longer
   const chartData = ["1D", "3D", "1W"].includes(chartRange) ? history.intraday : history.daily;
   const benchmarkData = ["1D", "3D", "1W"].includes(chartRange) ? history.intradayAvg : history.dailyAvg;
+  const miniChartData = ["1D", "1W"].includes(miniRange) ? history.intraday : history.daily;
 
   const watchlistWithStatus = watchlist.map((w) => {
     const currentPrice = prices[w.coin]?.price
@@ -1319,6 +1321,69 @@ export default function Dashboard() {
 
             {activeTab === "holdings" && (
               <div className="panel">
+                {/* ── Mini portfolio chart ── */}
+                {(() => {
+                  const totalVal = portfolio ? portfolio.cash + portfolio.holdingsValue : 0;
+                  const seedMoney = me?.classes?.[0]?.seed_money || 10000;
+                  const ret = totalVal ? ((totalVal - seedMoney) / seedMoney) * 100 : 0;
+                  const isPos = ret >= 0;
+                  const miniFirst = miniChartData?.[0]?.v;
+                  const miniLast  = miniChartData?.[miniChartData.length - 1]?.v;
+                  const periodRet = miniFirst && miniLast ? ((miniLast - miniFirst) / miniFirst * 100) : null;
+                  return (
+                    <div style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:16, padding:'16px 18px', marginBottom:16 }}>
+                      {/* Top row: value + range selector */}
+                      <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:12, gap:8, flexWrap:'wrap' }}>
+                        <div>
+                          <div style={{ fontSize:10, color:'var(--muted)', letterSpacing:2, textTransform:'uppercase', marginBottom:3 }}>Portfolio Value</div>
+                          <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:26, letterSpacing:-1, color:'var(--text)', lineHeight:1 }}>
+                            {fmtUSD(totalVal)}
+                          </div>
+                          <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:5, flexWrap:'wrap' }}>
+                            <span style={{ fontSize:12, fontWeight:700, color: isPos ? 'var(--up)' : 'var(--down)' }}>
+                              {isPos ? '▲' : '▼'} {Math.abs(ret).toFixed(2)}% all-time
+                            </span>
+                            {periodRet !== null && (
+                              <span style={{ fontSize:11, color:'var(--muted)' }}>
+                                · {periodRet >= 0 ? '+' : ''}{periodRet.toFixed(2)}% this {miniRange === '1D' ? 'day' : miniRange === '1W' ? 'week' : miniRange === '1M' ? 'month' : 'period'}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div style={{ display:'flex', gap:4 }}>
+                          {['1D','1W','1M','ALL'].map(r => (
+                            <button key={r} onClick={() => setMiniRange(r)} style={{
+                              padding:'3px 8px', borderRadius:6, border:'1px solid var(--border)',
+                              background: miniRange===r ? 'var(--accent)' : 'transparent',
+                              color: miniRange===r ? '#000' : 'var(--muted)',
+                              fontSize:10, fontFamily:"'DM Mono',monospace", cursor:'pointer',
+                              fontWeight: miniRange===r ? 700 : 400,
+                            }}>{r}</button>
+                          ))}
+                        </div>
+                      </div>
+                      {/* Chart */}
+                      <LineChart data={miniChartData} height={130} />
+                      {/* Bottom: cash / invested split */}
+                      {portfolio && (
+                        <div style={{ display:'flex', gap:12, marginTop:12, flexWrap:'wrap' }}>
+                          {[
+                            { label:'Cash', val: portfolio.cash, color:'#475569' },
+                            { label:'Invested', val: portfolio.holdingsValue, color:'var(--accent)' },
+                            { label:'P / L', val: totalVal - seedMoney, color: isPos ? 'var(--up)' : 'var(--down)' },
+                          ].map(s => (
+                            <div key={s.label} style={{ flex:1, minWidth:80 }}>
+                              <div style={{ fontSize:9, color:'var(--muted)', letterSpacing:1.5, textTransform:'uppercase', marginBottom:2 }}>{s.label}</div>
+                              <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:13, color:s.color }}>
+                                {s.val >= 0 || s.label !== 'P / L' ? '' : ''}{fmtUSD(s.val)}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
                 {portfolioError && (
                   <div style={{background:'rgba(244,63,94,.1)',border:'1px solid rgba(244,63,94,.4)',borderRadius:12,padding:'14px 18px',marginBottom:12}}>
                     <div style={{fontSize:12,fontWeight:700,color:'#f43f5e',marginBottom:4}}>⚠ Portfolio failed to load (HTTP {portfolioError.status})</div>

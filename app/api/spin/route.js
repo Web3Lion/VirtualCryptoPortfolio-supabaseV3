@@ -48,12 +48,13 @@ export async function GET() {
     .lt('created_at',  `${today}T23:59:59Z`)
     .single();
 
-  const { data: cfg } = await db.from('class_reward_config').select('enabled').eq('class_id', classId).single();
+  const { data: cfg } = await db.from('class_reward_config').select('enabled, spin_enabled').eq('class_id', classId).single();
+  const spinActive = !!cfg?.enabled && cfg?.spin_enabled !== false;
 
   return Response.json({
-    canSpin: !!cfg?.enabled && !existing,
+    canSpin: spinActive && !existing,
     spunToday: !!existing,
-    rewardsEnabled: !!cfg?.enabled,
+    rewardsEnabled: spinActive,
     prizes: PRIZES,
   });
 }
@@ -66,8 +67,8 @@ export async function POST() {
   const { studentId, classId } = await getStudentAndClass(session.user.email);
   if (!studentId || !classId) return Response.json({ error: 'Not in a class' }, { status: 400 });
 
-  const { data: cfg } = await db.from('class_reward_config').select('enabled').eq('class_id', classId).single();
-  if (!cfg?.enabled) return Response.json({ error: 'Rewards not enabled for this class' }, { status: 403 });
+  const { data: cfg } = await db.from('class_reward_config').select('enabled, spin_enabled').eq('class_id', classId).single();
+  if (!cfg?.enabled || cfg?.spin_enabled === false) return Response.json({ error: 'Spin wheel not enabled for this class' }, { status: 403 });
 
   const today = new Date().toISOString().slice(0, 10);
   const { data: existing } = await db.from('class_reward_ledger')

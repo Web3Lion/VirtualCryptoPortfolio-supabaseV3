@@ -36,7 +36,7 @@ export default function Teacher() {
   const [pickerCoins, setPickerCoins] = useState([]);
   const [pickerLoading, setPickerLoading] = useState(false);
   const [pickerSelected, setPickerSelected] = useState([]);
-  const [rewardConfig, setRewardConfig] = useState({ enabled: false, badge_reward_tokens: 50, lesson_reward_tokens: 25, crush_points_per_token: 100, crush_max_tokens_per_day: 50, higher_lower_tokens_per_correct: 10 });
+  const [rewardConfig, setRewardConfig] = useState({ enabled: false, badge_reward_tokens: 50, lesson_reward_tokens: 25, crush_enabled: true, crush_points_per_token: 100, crush_max_tokens_per_day: 50, higher_lower_enabled: true, higher_lower_tokens_per_correct: 10, miner_enabled: true, miner_points_per_token: 50, miner_max_tokens_per_day: 40, spin_enabled: true, bull_bear_enabled: true, bull_bear_tokens_per_correct: 5, bull_bear_max_tokens_per_day: 50 });
   const [rewardSaving, setRewardSaving] = useState(false);
   const [tradeSettings, setTradeSettings] = useState({ marginEnabled: false, marginMult: 2, shortEnabled: false });
   const [tradeSettingsSaving, setTradeSettingsSaving] = useState(false);
@@ -46,6 +46,8 @@ export default function Teacher() {
   const [migratingOrders, setMigratingOrders] = useState(false);
   const [higherLowerTableReady, setHigherLowerTableReady] = useState(true);
   const [migratingHigherLower, setMigratingHigherLower] = useState(false);
+  const [gameRewardsMigrated, setGameRewardsMigrated] = useState(true);
+  const [migratingGameRewards, setMigratingGameRewards] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [refreshCooldown, setRefreshCooldown] = useState(null);
   const [refreshCountdown, setRefreshCountdown] = useState('');
@@ -164,6 +166,7 @@ export default function Teacher() {
           }
           if(rewardRes.ok) setRewardConfig(await rewardRes.json());
           fetch('/api/admin/migrate-higher-lower').then(r=>r.ok?r.json():null).then(d=>{ if(d && !d.tableExists) setHigherLowerTableReady(false); }).catch(()=>{});
+          fetch('/api/admin/migrate-game-rewards').then(r=>r.ok?r.json():null).then(d=>{ if(d && !d.migrated) setGameRewardsMigrated(false); }).catch(()=>{});
           fetch(`/api/teacher/bot?classId=${active.id}`).then(r=>r.ok?r.json():null).then(d=>{ if(d){ setBotConfig({...d.config, seedMoney: d.config.seedMoney || d.stats?.seedMoney || 10000}); setBotStats(d.stats); } }).catch(()=>{});
         }
       }
@@ -316,7 +319,7 @@ export default function Teacher() {
 
   const saveRewardConfig = async () => {
     setRewardSaving(true);
-    const res = await fetch('/api/teacher/rewards',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({classId:activeClass.id,enabled:rewardConfig.enabled,badgeRewardTokens:rewardConfig.badge_reward_tokens,lessonRewardTokens:rewardConfig.lesson_reward_tokens,crushPointsPerToken:rewardConfig.crush_points_per_token,crushMaxTokensPerDay:rewardConfig.crush_max_tokens_per_day,higherLowerTokens:rewardConfig.higher_lower_tokens_per_correct})});
+    const res = await fetch('/api/teacher/rewards',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ classId:activeClass.id, ...rewardConfig })});
     if(res.ok) setActionMsg({type:'success',msg:'✅ ClassReward settings saved'});
     else setActionMsg({type:'error',msg:'Failed to save'});
     setRewardSaving(false);
@@ -400,6 +403,16 @@ export default function Teacher() {
     else setActionMsg({type:'error',msg:data.sql ? `Run this SQL in Supabase dashboard:\n${data.sql}` : data.error||'Migration failed'});
     setMigratingHigherLower(false);
     setTimeout(()=>setActionMsg(null),8000);
+  };
+
+  const runGameRewardsMigration = async () => {
+    setMigratingGameRewards(true);
+    const res = await fetch('/api/admin/migrate-game-rewards',{method:'POST'});
+    const data = await res.json();
+    if(res.ok) { setGameRewardsMigrated(true); setActionMsg({type:'success',msg:'✅ Per-game reward settings enabled'}); }
+    else setActionMsg({type:'error',msg:data.sql ? `Run this SQL in Supabase SQL Editor:\n${data.sql}` : data.error||'Migration failed'});
+    setMigratingGameRewards(false);
+    setTimeout(()=>setActionMsg(null),10000);
   };
 
   const saveTradeSettings = async () => {
@@ -1008,63 +1021,87 @@ export default function Teacher() {
                           <div style={{fontSize:10,color:'var(--muted)',marginTop:4}}>Default tokens awarded when a student passes a lesson quiz</div>
                         </div>
 
-                        {/* Crypto Crush settings */}
-                        <div style={{marginTop:16,paddingTop:16,borderTop:'1px solid var(--border)'}}>
-                          <div style={{fontSize:11,color:'var(--accent)',fontWeight:700,marginBottom:12,display:'flex',alignItems:'center',gap:6}}>🍬 Crypto Crush Game</div>
-                          <div style={{display:'grid',gap:10}}>
-                            <div>
-                              <div style={{fontSize:11,color:'var(--muted)',marginBottom:6}}>Points per Class Reward Token</div>
-                              <div style={{display:'flex',alignItems:'center',gap:10}}>
-                                <input type="number" min={10} className="text-input" style={{width:90,marginBottom:0}}
-                                  value={rewardConfig.crush_points_per_token}
-                                  onChange={e=>setRewardConfig(c=>({...c,crush_points_per_token:Math.max(10,parseInt(e.target.value)||100)}))}
-                                  disabled={!rewardConfig.enabled} />
-                                <span style={{fontSize:11,color:'var(--muted)'}}>pts = 1 token</span>
-                              </div>
-                              <div style={{fontSize:10,color:'var(--muted)',marginTop:4}}>How many Crypto Crush points converts to 1 Class Reward Token</div>
-                            </div>
-                            <div>
-                              <div style={{fontSize:11,color:'var(--muted)',marginBottom:6}}>Max Tokens per Day (per student)</div>
-                              <div style={{display:'flex',alignItems:'center',gap:10}}>
-                                <input type="number" min={1} className="text-input" style={{width:90,marginBottom:0}}
-                                  value={rewardConfig.crush_max_tokens_per_day}
-                                  onChange={e=>setRewardConfig(c=>({...c,crush_max_tokens_per_day:Math.max(1,parseInt(e.target.value)||50)}))}
-                                  disabled={!rewardConfig.enabled} />
-                                <span style={{fontSize:11,color:'var(--muted)'}}>tokens/day</span>
-                              </div>
-                              <div style={{fontSize:10,color:'var(--muted)',marginTop:4}}>Maximum tokens a student can earn from Crypto Crush per day</div>
-                            </div>
-                          </div>
-                        </div>
+                      </div>
 
-                        {/* Higher / Lower settings */}
-                        <div style={{marginTop:16,paddingTop:16,borderTop:'1px solid var(--border)',gridColumn:'1/-1'}}>
-                          <div style={{fontSize:11,color:'var(--accent)',fontWeight:700,marginBottom:12,display:'flex',alignItems:'center',gap:6}}>📈 Higher / Lower Game</div>
-                          <div style={{display:'grid',gap:10}}>
-                            <div>
-                              <div style={{fontSize:11,color:'var(--muted)',marginBottom:6}}>Tokens per Correct Prediction</div>
-                              <div style={{display:'flex',alignItems:'center',gap:10}}>
-                                <input type="number" min={1} max={500} className="text-input" style={{width:90,marginBottom:0}}
-                                  value={rewardConfig.higher_lower_tokens_per_correct}
-                                  onChange={e=>setRewardConfig(c=>({...c,higher_lower_tokens_per_correct:Math.max(1,parseInt(e.target.value)||10)}))}
-                                  disabled={!rewardConfig.enabled} />
-                                <span style={{fontSize:11,color:'var(--muted)'}}>tokens = {fmtUSD(rewardConfig.higher_lower_tokens_per_correct)}</span>
-                              </div>
-                              <div style={{fontSize:10,color:'var(--muted)',marginTop:4}}>Awarded when a student correctly predicts a coin&apos;s next-day direction (BTC, ETH, HBAR, SUI)</div>
-                            </div>
-                          </div>
-                          {!higherLowerTableReady && (
-                            <div style={{marginTop:12,background:'rgba(96,165,250,.06)',border:'1px solid rgba(96,165,250,.3)',borderRadius:10,padding:'10px 14px'}}>
-                              <div style={{fontSize:12,color:'#60a5fa',fontWeight:700,marginBottom:6}}>📈 Higher / Lower — Setup Required</div>
-                              <div style={{fontSize:11,color:'var(--muted)',marginBottom:8}}>Create the predictions table to enable this game.</div>
-                              <button className="btn" style={{background:'rgba(96,165,250,.2)',color:'#60a5fa',border:'1px solid rgba(96,165,250,.4)',fontSize:12}} onClick={runHigherLowerMigration} disabled={migratingHigherLower}>
-                                {migratingHigherLower?'Creating table…':'🔧 Create Predictions Table'}
+                      {/* ── Per-game settings ── */}
+                      <div style={{marginTop:20,paddingTop:20,borderTop:'1px solid var(--border)'}}>
+                        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14,flexWrap:'wrap',gap:8}}>
+                          <div style={{fontSize:11,color:'var(--muted)',letterSpacing:2,textTransform:'uppercase'}}>Game Settings</div>
+                          {!gameRewardsMigrated && (
+                            <div style={{display:'flex',alignItems:'center',gap:8,background:'rgba(245,158,11,.08)',border:'1px solid rgba(245,158,11,.3)',borderRadius:8,padding:'6px 10px'}}>
+                              <span style={{fontSize:11,color:'#fbbf24'}}>⚠ DB upgrade needed for per-game controls</span>
+                              <button className="btn" style={{background:'rgba(245,158,11,.2)',color:'#fbbf24',border:'1px solid rgba(245,158,11,.4)',fontSize:11,padding:'3px 10px'}} onClick={runGameRewardsMigration} disabled={migratingGameRewards}>
+                                {migratingGameRewards?'Migrating…':'🔧 Run Migration'}
                               </button>
                             </div>
                           )}
                         </div>
+                        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+
+                          {/* 🍬 Crypto Crush */}
+                          {[
+                            { key:'crush', icon:'🍬', label:'Crypto Crush', enabledKey:'crush_enabled', fields:[
+                              { lbl:'Pts per Token', stateKey:'crush_points_per_token', min:10, suffix:'pts = 1 token', tip:'Game score points required to earn 1 token' },
+                              { lbl:'Max Tokens/Day', stateKey:'crush_max_tokens_per_day', min:1, suffix:'tokens/day', tip:'Daily cap per student' },
+                            ]},
+                            { key:'miner', icon:'⛏', label:'Miner Runner', enabledKey:'miner_enabled', fields:[
+                              { lbl:'Pts per Token', stateKey:'miner_points_per_token', min:1, suffix:'pts = 1 token', tip:'Score points required to earn 1 token' },
+                              { lbl:'Max Tokens/Day', stateKey:'miner_max_tokens_per_day', min:1, suffix:'tokens/day', tip:'Daily cap per student' },
+                            ]},
+                            { key:'higher', icon:'📈', label:'Higher / Lower', enabledKey:'higher_lower_enabled', fields:[
+                              { lbl:'Tokens per Correct', stateKey:'higher_lower_tokens_per_correct', min:1, max:500, suffix:`= ${fmtUSD(rewardConfig.higher_lower_tokens_per_correct)}`, tip:'Awarded per correct next-day prediction' },
+                            ]},
+                            { key:'bull', icon:'🐂', label:'Bull or Bear', enabledKey:'bull_bear_enabled', fields:[
+                              { lbl:'Tokens per Correct', stateKey:'bull_bear_tokens_per_correct', min:1, max:100, suffix:`= ${fmtUSD(rewardConfig.bull_bear_tokens_per_correct)}`, tip:'Awarded per correct guess (10 per round max)' },
+                              { lbl:'Max Tokens/Day', stateKey:'bull_bear_max_tokens_per_day', min:1, suffix:'tokens/day', tip:'Daily cap per student' },
+                            ]},
+                            { key:'spin', icon:'🎡', label:'Daily Spin', enabledKey:'spin_enabled', fields:[] },
+                          ].map(game => {
+                            const gameOn = rewardConfig.enabled && rewardConfig[game.enabledKey] !== false;
+                            return (
+                              <div key={game.key} style={{background:'var(--surface2)',borderRadius:12,padding:'12px 14px',border:`1px solid ${gameOn ? 'rgba(0,229,160,.2)' : 'var(--border)'}`}}>
+                                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:game.fields.length ? 10 : 0}}>
+                                  <div style={{display:'flex',alignItems:'center',gap:6}}>
+                                    <span style={{fontSize:16}}>{game.icon}</span>
+                                    <span style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:12}}>{game.label}</span>
+                                  </div>
+                                  <button
+                                    onClick={()=>setRewardConfig(c=>({...c,[game.enabledKey]: !(c[game.enabledKey]!==false)}))}
+                                    disabled={!rewardConfig.enabled}
+                                    style={{fontSize:10,padding:'3px 10px',borderRadius:20,border:'none',cursor:rewardConfig.enabled?'pointer':'not-allowed',
+                                      background: gameOn ? 'rgba(0,229,160,.15)' : 'rgba(100,116,139,.15)',
+                                      color: gameOn ? '#00e5a0' : 'var(--muted)',fontWeight:700}}>
+                                    {gameOn ? '🟢 ON' : '⚪ OFF'}
+                                  </button>
+                                </div>
+                                {game.fields.map(f => (
+                                  <div key={f.stateKey} style={{marginTop:8}}>
+                                    <div style={{fontSize:10,color:'var(--muted)',marginBottom:4}}>{f.lbl}</div>
+                                    <div style={{display:'flex',alignItems:'center',gap:8}}>
+                                      <input type="number" min={f.min||1} max={f.max||9999} className="text-input" style={{width:80,marginBottom:0,fontSize:12,padding:'4px 8px'}}
+                                        value={rewardConfig[f.stateKey]}
+                                        onChange={e=>setRewardConfig(c=>({...c,[f.stateKey]:Math.max(f.min||1,parseInt(e.target.value)||1)}))}
+                                        disabled={!gameOn} />
+                                      <span style={{fontSize:10,color:'var(--muted)'}}>{f.suffix}</span>
+                                    </div>
+                                    {f.tip && <div style={{fontSize:9,color:'var(--muted)',marginTop:2,opacity:.7}}>{f.tip}</div>}
+                                  </div>
+                                ))}
+                                {game.key==='higher' && !higherLowerTableReady && (
+                                  <div style={{marginTop:10,background:'rgba(96,165,250,.06)',border:'1px solid rgba(96,165,250,.3)',borderRadius:8,padding:'8px 10px'}}>
+                                    <div style={{fontSize:10,color:'#60a5fa',fontWeight:700,marginBottom:4}}>Setup Required</div>
+                                    <button className="btn" style={{background:'rgba(96,165,250,.2)',color:'#60a5fa',border:'1px solid rgba(96,165,250,.4)',fontSize:11,padding:'4px 10px'}} onClick={runHigherLowerMigration} disabled={migratingHigherLower}>
+                                      {migratingHigherLower?'Creating…':'🔧 Create Table'}
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
-                      <div className="btn-row">
+
+                      <div className="btn-row" style={{marginTop:16}}>
                         <button className={`btn ${rewardConfig.enabled?'btn-red':'btn-green'}`} onClick={()=>setRewardConfig(c=>({...c,enabled:!c.enabled}))}>
                           {rewardConfig.enabled?'Disable ClassReward':'Enable ClassReward'}
                         </button>
