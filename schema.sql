@@ -207,6 +207,18 @@ CREATE TABLE IF NOT EXISTS student_ai_settings (
   updated_at    timestamptz DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS login_streaks (
+  student_id   uuid PRIMARY KEY REFERENCES students(id) ON DELETE CASCADE,
+  freeze_count integer NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS class_configs (
+  class_id uuid REFERENCES classes(id) ON DELETE CASCADE,
+  key      text NOT NULL,
+  value    text,
+  PRIMARY KEY (class_id, key)
+);
+
 CREATE TABLE IF NOT EXISTS class_reward_ledger (
   id         uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   student_id uuid REFERENCES students(id) ON DELETE CASCADE,
