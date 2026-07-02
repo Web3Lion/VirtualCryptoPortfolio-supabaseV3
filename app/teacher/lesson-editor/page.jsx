@@ -178,7 +178,7 @@ export default function LessonEditor() {
       return arr.map((b, idx) => ({ ...b, order_index: idx + 1 }));
     });
   };
-  const addBlock = () => setBlocks(bs => [...bs, { id: uid(), block_type: 'text', content: { text: '' }, order_index: bs.length + 1 }]);
+  const addBlock = (type) => setBlocks(bs => [...bs, { id: uid(), block_type: type, content: {}, order_index: bs.length + 1 }]);
 
   // Question helpers
   const updQ = (i, val) => setQuestions(qs => qs.map((q, idx) => idx === i ? val : q));
@@ -297,12 +297,28 @@ export default function LessonEditor() {
 
             {/* Content Blocks */}
             <div style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:18, padding:20, marginBottom:20 }}>
-              <div style={sectionHead}>
+              <div style={{ ...sectionHead, flexWrap:'wrap', gap:10 }}>
                 <span>Content Blocks ({blocks.length})</span>
-                <button onClick={addBlock} style={{ padding:'6px 16px', borderRadius:9, border:'1px solid rgba(0,229,160,.3)', background:'rgba(0,229,160,.1)', color:'var(--accent)', cursor:'pointer', fontSize:12, fontFamily:"'DM Mono',monospace" }}>+ Add Block</button>
+                <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+                  {[
+                    { type:'video',      label:'🎬 Add Video',   color:'rgba(56,189,248,.3)',  bg:'rgba(56,189,248,.1)',  text:'#38bdf8' },
+                    { type:'article',    label:'📰 Add Article', color:'rgba(251,191,36,.3)',  bg:'rgba(251,191,36,.1)',  text:'#fbbf24' },
+                    { type:'text',       label:'📝 Add Text',    color:'rgba(0,229,160,.3)',   bg:'rgba(0,229,160,.1)',   text:'var(--accent)' },
+                    { type:'heading',    label:'H Add Heading',  color:'rgba(148,163,184,.3)', bg:'rgba(148,163,184,.08)',text:'var(--muted)' },
+                  ].map(({ type, label, color, bg, text }) => (
+                    <button key={type} onClick={() => addBlock(type)} style={{ padding:'5px 14px', borderRadius:8, border:`1px solid ${color}`, background:bg, color:text, cursor:'pointer', fontSize:11, fontFamily:"'DM Mono',monospace", fontWeight:600, whiteSpace:'nowrap' }}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
               </div>
               <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
-                {blocks.length === 0 && <div style={{ fontSize:12, color:'var(--muted)', padding:'12px 0' }}>No content blocks yet — click Add Block to start.</div>}
+                {blocks.length === 0 && (
+                  <div style={{ textAlign:'center', padding:'28px 16px', border:'1px dashed var(--border)', borderRadius:12 }}>
+                    <div style={{ fontSize:11, color:'var(--muted)', marginBottom:4 }}>No content blocks yet</div>
+                    <div style={{ fontSize:11, color:'var(--muted)' }}>Use the buttons above to add a video, article, or text block.</div>
+                  </div>
+                )}
                 {blocks.map((b, i) => (
                   <BlockEditor
                     key={b.id || i}
@@ -320,15 +336,25 @@ export default function LessonEditor() {
 
             {/* Quiz Questions */}
             <div style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:18, padding:20, marginBottom:24 }}>
-              <div style={sectionHead}>
+              <div style={{ ...sectionHead, flexWrap:'wrap', gap:10 }}>
                 <span>Quiz Questions ({questions.length})</span>
-                <button onClick={addQ} style={{ padding:'6px 16px', borderRadius:9, border:'1px solid rgba(0,229,160,.3)', background:'rgba(0,229,160,.1)', color:'var(--accent)', cursor:'pointer', fontSize:12, fontFamily:"'DM Mono',monospace" }}>+ Add Question</button>
+                <button onClick={addQ} style={{ padding:'5px 18px', borderRadius:8, border:'1px solid rgba(167,139,250,.35)', background:'rgba(167,139,250,.1)', color:'#a78bfa', cursor:'pointer', fontSize:11, fontFamily:"'DM Mono',monospace", fontWeight:600 }}>+ Add Question</button>
               </div>
               <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
-                {questions.length === 0 && <div style={{ fontSize:12, color:'var(--muted)', padding:'12px 0' }}>No quiz questions yet.</div>}
+                {questions.length === 0 && (
+                  <div style={{ textAlign:'center', padding:'28px 16px', border:'1px dashed var(--border)', borderRadius:12 }}>
+                    <div style={{ fontSize:11, color:'var(--muted)', marginBottom:4 }}>No quiz questions yet</div>
+                    <div style={{ fontSize:11, color:'var(--muted)' }}>Click <strong style={{color:'#a78bfa'}}>+ Add Question</strong> to create a multiple-choice question for this lesson.</div>
+                  </div>
+                )}
                 {questions.map((q, i) => (
                   <QuestionEditor key={q.id || i} q={q} idx={i} onChange={v => updQ(i, v)} onDelete={() => delQ(i)} />
                 ))}
+                {questions.length > 0 && (
+                  <button onClick={addQ} style={{ padding:'9px 0', borderRadius:10, border:'1px dashed rgba(167,139,250,.4)', background:'transparent', color:'#a78bfa', cursor:'pointer', fontSize:12, fontFamily:"'DM Mono',monospace", marginTop:4 }}>
+                    + Add Another Question
+                  </button>
+                )}
               </div>
             </div>
 
