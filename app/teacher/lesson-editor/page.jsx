@@ -351,6 +351,13 @@ export default function LessonEditor() {
                   <input type="checkbox" id="published" checked={!!lessonData.is_published} onChange={e => updLesson({ is_published: e.target.checked })} style={{ width:16, height:16, accentColor:'var(--accent)', cursor:'pointer' }} />
                   <label htmlFor="published" style={{ fontSize:12, color:'var(--text)', cursor:'pointer' }}>Published (visible to students)</label>
                 </div>
+                <div style={{ display:'flex', alignItems:'center', gap:10, paddingTop:8 }}>
+                  <input type="checkbox" id="ai-tutor" checked={lessonData.ai_tutor_enabled !== false} onChange={e => updLesson({ ai_tutor_enabled: e.target.checked })} style={{ width:16, height:16, accentColor:'#a78bfa', cursor:'pointer' }} />
+                  <label htmlFor="ai-tutor" style={{ fontSize:12, color:'var(--text)', cursor:'pointer' }}>
+                    🤖 AI Tutor enabled
+                    <span style={{ fontSize:10, color:'var(--muted)', marginLeft:6 }}>(auto-disabled if class AI settings are off)</span>
+                  </label>
+                </div>
               </div>
             </div>
 

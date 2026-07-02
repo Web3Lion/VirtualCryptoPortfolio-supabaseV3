@@ -20,7 +20,7 @@ export async function GET(request) {
   if (lessonId) {
     // Full lesson fetch
     const { data: lesson, error: lErr } = await db.from('learn_lessons')
-      .select('id, module_id, title, description, order_index, tokens_reward, pass_threshold, questions_to_show, is_published')
+      .select('id, module_id, title, description, order_index, tokens_reward, pass_threshold, questions_to_show, is_published, ai_tutor_enabled')
       .eq('id', lessonId).single();
     if (lErr || !lesson) return Response.json({ error: 'Lesson not found' }, { status: 404 });
 
@@ -78,14 +78,16 @@ export async function PATCH(request) {
 
   // 1. Update lesson metadata
   if (lesson) {
-    const { error } = await db.from('learn_lessons').update({
+    const lessonUpdate = {
       title: lesson.title,
       description: lesson.description,
       tokens_reward: lesson.tokens_reward,
       pass_threshold: lesson.pass_threshold,
       questions_to_show: lesson.questions_to_show,
       is_published: lesson.is_published,
-    }).eq('id', lessonId);
+    };
+    if (lesson.ai_tutor_enabled !== undefined) lessonUpdate.ai_tutor_enabled = lesson.ai_tutor_enabled;
+    const { error } = await db.from('learn_lessons').update(lessonUpdate).eq('id', lessonId);
     if (error) errors.push(`lesson: ${error.message}`);
   }
 

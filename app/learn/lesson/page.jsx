@@ -331,7 +331,7 @@ function LessonPage() {
                 )}
 
                 {/* AI Lesson Tutor */}
-                {!tutorDisabled && (
+                {!tutorDisabled && lesson?.ai_tutor_enabled !== false && (
                   <div className="card" style={{ marginBottom: 16 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: tutorHistory.length ? 16 : 0 }}>
                       <span style={{ fontSize: 20 }}>🤖</span>

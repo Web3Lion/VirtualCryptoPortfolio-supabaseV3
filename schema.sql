@@ -371,6 +371,8 @@ CREATE TABLE IF NOT EXISTS learn_attempts (
 );
 CREATE INDEX IF NOT EXISTS learn_attempts_student_idx ON learn_attempts(student_id, class_id);
 
+-- ALTER TABLE learn_lessons ADD COLUMN IF NOT EXISTS ai_tutor_enabled boolean DEFAULT true;
+
 CREATE TABLE IF NOT EXISTS assignments (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   class_id    uuid NOT NULL,

@@ -53,8 +53,9 @@ export async function GET(request) {
   const studentIds = students.map(s => s.id);
 
   const FLAIR_EMOJI = { flair_star:'⭐', flair_fire:'🔥', flair_diamond:'💎', flair_crown:'👑' };
+  const TITLE_LABELS = { title_hodler:'HODLer', title_whale:'Whale', title_oracle:'Oracle' };
 
-  const [portfoliosRes, holdingsRes, tradesRes, pricesRes, snapshotsRes, flairRes, loginStreakRes] = await Promise.all([
+  const [portfoliosRes, holdingsRes, tradesRes, pricesRes, snapshotsRes, flairRes, loginStreakRes, titleRes] = await Promise.all([
     db.from('portfolios').select('student_id, cash, fees_paid').in('student_id', studentIds).eq('class_id', classId),
     db.from('holdings').select('student_id, coin, quantity, avg_buy_price').in('student_id', studentIds).eq('class_id', classId).gt('quantity', 0),
     db.from('trades').select('student_id, action, coin, gross_value, fee, created_at').in('student_id', studentIds).eq('class_id', classId),
@@ -63,12 +64,19 @@ export async function GET(request) {
     db.from('class_reward_ledger').select('student_id, reason, created_at').in('student_id', studentIds).eq('class_id', classId).like('reason', 'store:flair_%').order('created_at', { ascending: false }),
     db.from('class_reward_ledger').select('student_id, reason').in('student_id', studentIds).eq('class_id', classId)
       .or('reason.like.login_streak:%,reason.like.freeze_used:%,reason.eq.store:streak_freeze'),
+    db.from('class_reward_ledger').select('student_id, reason, created_at').in('student_id', studentIds).eq('class_id', classId).like('reason', 'store:title_%').order('created_at', { ascending: false }),
   ]);
 
-  // Most recent flair per student (purchases have negative tokens implied by reason pattern + order)
+  // Most recent flair per student
   const flairMap = {};
   (flairRes.data || []).forEach(f => {
     if (!flairMap[f.student_id]) flairMap[f.student_id] = FLAIR_EMOJI[f.reason.replace('store:', '')] || null;
+  });
+
+  // Most recent title per student
+  const titleMap = {};
+  (titleRes.data || []).forEach(t => {
+    if (!titleMap[t.student_id]) titleMap[t.student_id] = TITLE_LABELS[t.reason.replace('store:', '')] || null;
   });
 
   const portfolioMap = {};
@@ -202,6 +210,7 @@ export async function GET(request) {
       maxDrawdown:  calculateMaxDrawdown(snapshotsByStudent[student.id] || []),
       winRate:      calculateWinRate(tradesByStudent[student.id] || []),
       flair:        flairMap[student.id] || null,
+      activeTitle:  titleMap[student.id] || null,
       streak:       calcStreak(tradesByStudent[student.id] || []),
       loginStreak,
       loginStreakAtRisk,

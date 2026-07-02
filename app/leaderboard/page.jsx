@@ -187,6 +187,7 @@ export default function Leaderboard() {
   const [selectedStudent, setSelectedStudent] = useState(null); // { id, classId }
   const [studentProfile, setStudentProfile]   = useState(null);
   const [profileLoading, setProfileLoading]   = useState(false);
+  const [filter, setFilter]                   = useState('');
 
   useEffect(() => { applyTheme(getTheme()); }, []);
   useEffect(()=>{ if(status==='unauthenticated') router.replace('/'); },[status,router]);
@@ -236,6 +237,18 @@ export default function Leaderboard() {
 
   const medals = ['🥇','🥈','🥉'];
   const humans = (Array.isArray(students)?students:[]).filter(s => !s.isBot);
+  const filtered = filter ? humans.filter(s => s.name.toLowerCase().includes(filter.toLowerCase())) : humans;
+
+  // Class-wide stats
+  const classStats = (() => {
+    if (!humans.length) return null;
+    const avgReturn = humans.reduce((s, h) => s + h.returnPct, 0) / humans.length;
+    const totalTrades = humans.reduce((s, h) => s + h.tradeCount, 0);
+    const profitable = humans.filter(h => h.returnPct > 0).length;
+    const topStudent = humans[0];
+    const longestLoginStreak = Math.max(...humans.map(h => h.loginStreak || 0));
+    return { avgReturn, totalTrades, profitable, topStudent, longestLoginStreak };
+  })();
 
   // Prepare chart data
   const coinSlices   = (Array.isArray(charts?.coinAllocation)  ? charts.coinAllocation   : []).map(c => ({ label: c.coin,   value: c.value, color: getCoinColor(c.coin) }));
@@ -307,6 +320,23 @@ export default function Leaderboard() {
             <><div className="skeleton" style={{height:180,marginBottom:20}}/><div className="skeleton" style={{height:400}}/></>
           ) : (
             <>
+              {/* Class stats banner */}
+              {classStats && (
+                <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))',gap:10,marginBottom:20}}>
+                  {[
+                    ['Avg Return', classStats.avgReturn >= 0 ? `+${classStats.avgReturn.toFixed(1)}%` : `${classStats.avgReturn.toFixed(1)}%`, classStats.avgReturn >= 0 ? 'var(--up)' : 'var(--down)'],
+                    ['Total Trades', classStats.totalTrades.toLocaleString(), 'var(--text)'],
+                    ['In Profit', `${classStats.profitable} / ${humans.length}`, 'var(--accent)'],
+                    ['Top Streak', classStats.longestLoginStreak > 0 ? `🔥 ${classStats.longestLoginStreak} days` : '—', '#fb923c'],
+                  ].map(([label, val, color]) => (
+                    <div key={label} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:14,padding:'12px 16px',textAlign:'center'}}>
+                      <div style={{fontSize:10,color:'var(--muted)',letterSpacing:1,textTransform:'uppercase',marginBottom:6}}>{label}</div>
+                      <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:15,color}}>{val}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {humans.length >= 3 && (() => {
                 const PODIUM_META = [
                   { rank: 2, accent: '#94a3b8', label: '2ND', cls: 'second' },
@@ -341,10 +371,13 @@ export default function Leaderboard() {
                                 {s.isBot ? '🤖' : initials}
                               </div>
                             </div>
-                            {/* Name */}
+                            {/* Name + title */}
                             <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: isFirst ? 14 : 12, marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {s.flair && <span style={{ marginRight: 4 }}>{s.flair}</span>}{s.name}
                             </div>
+                            {s.activeTitle && (
+                              <div style={{ fontSize: 9, color: '#a78bfa', background: 'rgba(167,139,250,.15)', border: '1px solid rgba(167,139,250,.3)', borderRadius: 10, padding: '2px 7px', display: 'inline-block', marginBottom: 4 }}>{s.activeTitle}</div>
+                            )}
                             {/* Value */}
                             <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: isFirst ? 20 : 16, color: isPos ? 'var(--up)' : 'var(--down)', marginBottom: 2 }}>
                               {fmtUSD(s.total)}
@@ -357,6 +390,9 @@ export default function Leaderboard() {
                             <div style={{ display: 'flex', justifyContent: 'center', gap: 6, flexWrap: 'wrap' }}>
                               {s.streak >= 2 && (
                                 <span style={{ fontSize: 9, fontWeight: 700, color: '#fb923c', background: 'rgba(251,146,60,.12)', border: '1px solid rgba(251,146,60,.25)', borderRadius: 6, padding: '2px 6px' }}>🔥{s.streak}</span>
+                              )}
+                              {s.loginStreak >= 3 && (
+                                <span style={{ fontSize: 9, fontWeight: 700, color: '#60a5fa', background: 'rgba(96,165,250,.12)', border: '1px solid rgba(96,165,250,.25)', borderRadius: 6, padding: '2px 6px' }}>📅{s.loginStreak}</span>
                               )}
                               {s.coinCount > 0 && (
                                 <span style={{ fontSize: 9, color: 'var(--muted)', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 6, padding: '2px 6px' }}>{s.coinCount} coins</span>
@@ -371,19 +407,45 @@ export default function Leaderboard() {
                   </div>
                 );
               })()}
+              {/* Search filter */}
+              <div style={{marginBottom:12,display:'flex',alignItems:'center',gap:10}}>
+                <input
+                  value={filter} onChange={e=>setFilter(e.target.value)}
+                  placeholder="🔍 Filter students…"
+                  style={{padding:'8px 14px',borderRadius:10,border:'1px solid var(--border)',background:'var(--surface)',color:'var(--text)',fontFamily:"'DM Mono',monospace",fontSize:12,width:220,outline:'none'}}
+                />
+                {filter && <button onClick={()=>setFilter('')} style={{background:'none',border:'none',color:'var(--muted)',cursor:'pointer',fontSize:13}}>✕</button>}
+                <span style={{fontSize:11,color:'var(--muted)',marginLeft:'auto'}}>{filtered.length} student{filtered.length!==1?'s':''}</span>
+              </div>
+
               <div className="card" style={{overflowX:'auto',padding:0}}>
                 <table className="lb-table">
                   <thead>
-                    <tr><th style={{padding:'14px 16px'}}>Rank</th><th>Student</th><th>Portfolio</th><th>Return</th><th>P/L</th><th>Coins</th><th title="Annualized Sharpe Ratio">Sharpe ⓘ</th><th title="Sortino Ratio — only penalizes downside volatility">Sortino ⓘ</th><th title="Max Drawdown — largest peak-to-trough decline">Max DD ⓘ</th><th title="Win Rate — % of closed positions that were profitable">Win% ⓘ</th><th>Progress</th></tr>
+                    <tr>
+                      <th style={{padding:'14px 16px'}}>Rank</th>
+                      <th>Student</th>
+                      <th>Portfolio</th>
+                      <th>Return</th>
+                      <th>P/L</th>
+                      <th title="Number of coins held">Coins</th>
+                      <th title="Trading streak — consecutive days with a trade">Trade 🔥</th>
+                      <th title="Login streak — consecutive days logged in">Login 📅</th>
+                      <th title="Annualized Sharpe Ratio">Sharpe ⓘ</th>
+                      <th title="Sortino Ratio — only penalizes downside volatility">Sortino ⓘ</th>
+                      <th title="Max Drawdown — largest peak-to-trough decline">Max DD ⓘ</th>
+                      <th title="Win Rate — % of closed positions that were profitable">Win% ⓘ</th>
+                      <th>P/L Bar</th>
+                    </tr>
                   </thead>
                   <tbody>
-                    {students.map((s,i)=>{
+                    {filtered.map((s,i)=>{
                       const ret=clean(s.returnPct), pl=clean(s.pl), isPos=ret>=0;
-                      const color = STUDENT_COLORS[humans.indexOf(s) % STUDENT_COLORS.length];
+                      const globalRank = humans.indexOf(s);
+                      const color = STUDENT_COLORS[globalRank % STUDENT_COLORS.length];
                       return (
-                        <tr className="lb-row" key={i} onClick={()=>openStudentProfile(s)} style={{cursor:'pointer'}} title={`View ${s.name}'s portfolio`}>
+                        <tr className="lb-row" key={s.id} onClick={()=>openStudentProfile(s)} style={{cursor:'pointer'}} title={`View ${s.name}'s portfolio`}>
                           <td style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:16,color:'var(--muted)',width:40,paddingLeft:16}}>
-                            {i<3?medals[i]:i+1}
+                            {globalRank<3?medals[globalRank]:globalRank+1}
                             {s.rankChange != null && (
                               <div style={{fontSize:9,fontWeight:700,marginTop:2,color:s.rankChange>0?'#00e5a0':s.rankChange<0?'#f43f5e':'var(--border)'}}>
                                 {s.rankChange>0?`↑${s.rankChange}`:s.rankChange<0?`↓${Math.abs(s.rankChange)}`:'—'}
@@ -391,10 +453,16 @@ export default function Leaderboard() {
                             )}
                           </td>
                           <td>
-                            <div style={{display:'flex',alignItems:'center',gap:8}}>
+                            <div style={{display:'flex',alignItems:'center',gap:7,flexWrap:'wrap'}}>
                               <div style={{width:8,height:8,borderRadius:'50%',background:color,flexShrink:0}}/>
-                              <div style={{fontFamily:"'Syne',sans-serif",fontWeight:600,fontSize:13}}>{s.isBot?'🤖 ':''}{s.flair && <span style={{marginRight:3}}>{s.flair}</span>}{s.name}</div>
-                              {s.streak >= 2 && <span title={`${s.streak}-day trading streak`} style={{fontSize:10,fontFamily:"'DM Mono',monospace",fontWeight:700,color:'#fb923c',background:'rgba(251,146,60,.12)',border:'1px solid rgba(251,146,60,.25)',borderRadius:6,padding:'1px 5px',whiteSpace:'nowrap'}}>🔥{s.streak}</span>}
+                              <div>
+                                <div style={{fontFamily:"'Syne',sans-serif",fontWeight:600,fontSize:13,display:'flex',alignItems:'center',gap:5}}>
+                                  {s.isBot?'🤖 ':''}{s.flair && <span>{s.flair}</span>}{s.name}
+                                </div>
+                                {s.activeTitle && (
+                                  <span style={{fontSize:9,color:'#a78bfa',background:'rgba(167,139,250,.12)',border:'1px solid rgba(167,139,250,.25)',borderRadius:8,padding:'1px 6px'}}>{s.activeTitle}</span>
+                                )}
+                              </div>
                             </div>
                           </td>
                           <td style={{fontFamily:"'Syne',sans-serif",fontWeight:700}}>
@@ -403,8 +471,13 @@ export default function Leaderboard() {
                           </td>
                           <td style={{color:isPos?'var(--up)':'var(--down)',fontWeight:500}}>{fmtPct(ret)}</td>
                           <td style={{color:isPos?'var(--up)':'var(--down)'}}>{isPos?'+':''}{fmtUSD(pl)}</td>
-                          <td style={{color:'var(--muted)'}}>{fmtUSD(s.cash)}</td>
                           <td style={{color:'var(--muted)',textAlign:'center'}}>{s.coinCount||0}</td>
+                          <td style={{textAlign:'center'}}>
+                            {s.streak >= 2 ? <span style={{fontSize:11,fontWeight:700,color:'#fb923c'}}>🔥{s.streak}</span> : <span style={{color:'var(--border)',fontSize:11}}>—</span>}
+                          </td>
+                          <td style={{textAlign:'center'}}>
+                            {(s.loginStreak||0) >= 2 ? <span style={{fontSize:11,fontWeight:700,color: s.loginStreakAtRisk ? '#fbbf24' : '#60a5fa'}}>📅{s.loginStreak}{s.loginStreakAtRisk?' ⚠':''}</span> : <span style={{color:'var(--border)',fontSize:11}}>—</span>}
+                          </td>
                           <td style={{fontWeight:600,textAlign:'center',color:s.sharpeRatio==null?'var(--muted)':s.sharpeRatio>=1?'var(--up)':s.sharpeRatio>=0?'var(--text)':'var(--down)'}}>
                             {s.sharpeRatio!=null?s.sharpeRatio.toFixed(2):'—'}
                           </td>
@@ -542,16 +615,44 @@ export default function Leaderboard() {
             ) : studentProfile ? (
               <>
                 {/* Header */}
-                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20}}>
-                  <div>
-                    <div style={{fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:20,color:'var(--text)'}}>{studentProfile.student.isBot?'🤖 ':''}{studentProfile.student.name}</div>
-                    <div style={{fontSize:11,color:'var(--muted)',marginTop:2}}>Portfolio Overview</div>
+                <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:16,gap:12}}>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',marginBottom:4}}>
+                      {studentProfile.rewards?.activeFlair && <span style={{fontSize:20}}>{studentProfile.rewards.activeFlair}</span>}
+                      <div style={{fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:20,color:'var(--text)'}}>{studentProfile.student.isBot?'🤖 ':''}{studentProfile.student.name}</div>
+                      {studentProfile.rewards?.activeTitle && (
+                        <span style={{fontSize:10,color:'#a78bfa',background:'rgba(167,139,250,.12)',border:'1px solid rgba(167,139,250,.25)',borderRadius:10,padding:'2px 8px'}}>{studentProfile.rewards.activeTitle}</span>
+                      )}
+                    </div>
+                    <div style={{display:'flex',gap:12,flexWrap:'wrap',fontSize:11,color:'var(--muted)'}}>
+                      {(studentProfile.streak?.loginStreak||0) > 0 && (
+                        <span style={{color:'#60a5fa'}}>📅 {studentProfile.streak.loginStreak}-day login streak</span>
+                      )}
+                      {(studentProfile.rewards?.tokenBalance||0) > 0 && (
+                        <span style={{color:'#fbbf24'}}>🪙 {studentProfile.rewards.tokenBalance} tokens</span>
+                      )}
+                      {studentProfile.progress?.lessonsPassed > 0 && (
+                        <span style={{color:'var(--accent)'}}>🎓 {studentProfile.progress.lessonsPassed} lessons passed</span>
+                      )}
+                      {(studentProfile.rewards?.freezesAvailable||0) > 0 && (
+                        <span>🧊 {studentProfile.rewards.freezesAvailable} freeze{studentProfile.rewards.freezesAvailable!==1?'s':''}</span>
+                      )}
+                    </div>
                   </div>
-                  <div style={{display:'flex',alignItems:'center',gap:8}}>
+                  <div style={{display:'flex',alignItems:'center',gap:8,flexShrink:0}}>
                     <a href={`/profile/${studentProfile.student.id}`} style={{fontSize:11,color:'var(--accent)',textDecoration:'none',padding:'4px 10px',borderRadius:8,border:'1px solid var(--border)'}}>Full Profile →</a>
                     <button onClick={()=>setSelectedStudent(null)} style={{background:'none',border:'none',color:'var(--muted)',cursor:'pointer',fontSize:20,lineHeight:1}}>✕</button>
                   </div>
                 </div>
+
+                {/* Badge strip */}
+                {studentProfile.badges?.length > 0 && (
+                  <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:14,padding:'10px 14px',background:'var(--surface2)',borderRadius:12}}>
+                    {studentProfile.badges.map(b => (
+                      <span key={b} style={{fontSize:10,padding:'3px 8px',borderRadius:8,background:'rgba(99,102,241,.12)',border:'1px solid rgba(99,102,241,.25)',color:'#a78bfa'}}>{b.replace(/_/g,' ')}</span>
+                    ))}
+                  </div>
+                )}
 
                 {/* Summary Stats */}
                 {(() => {
