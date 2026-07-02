@@ -679,7 +679,7 @@ export default function Teacher() {
                             setActionMsg({type:'pending',msg:'Syncing lesson videos from source files…'});
                             const res = await fetch(`/api/admin/sync-learn-videos?classId=${activeClass?.id}`,{method:'POST'});
                             const d = await res.json().catch(()=>({}));
-                            if(res.ok) setActionMsg({type:'success',msg:`✅ Videos synced — ${d.updated} updated, ${d.skipped} already current`});
+                            if(res.ok) setActionMsg({type:'success',msg:`✅ Videos synced — ${d.updated} updated, ${d.alreadyCurrent} already current`});
                             else setActionMsg({type:'error',msg:d.error||'Sync failed'});
                             setTimeout(()=>setActionMsg(null),6000);
                           }}>🎬 Sync Lesson Videos</button>
