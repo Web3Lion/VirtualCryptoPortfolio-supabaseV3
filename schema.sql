@@ -173,10 +173,38 @@ CREATE TABLE IF NOT EXISTS class_reward_config (
   enabled                          boolean DEFAULT false,
   badge_reward_tokens              integer DEFAULT 50,
   lesson_reward_tokens             integer DEFAULT 25,
+  -- Crypto Crush
+  crush_enabled                    boolean DEFAULT true,
   crush_points_per_token           integer DEFAULT 100,
   crush_max_tokens_per_day         integer DEFAULT 50,
+  -- Higher/Lower
+  higher_lower_enabled             boolean DEFAULT true,
   higher_lower_tokens_per_correct  integer DEFAULT 10,
+  -- Miner Runner
+  miner_enabled                    boolean DEFAULT true,
+  miner_points_per_token           integer DEFAULT 50,
+  miner_max_tokens_per_day         integer DEFAULT 40,
+  -- Daily Spin
+  spin_enabled                     boolean DEFAULT true,
+  -- Bull or Bear
+  bull_bear_enabled                boolean DEFAULT true,
+  bull_bear_tokens_per_correct     integer DEFAULT 5,
+  bull_bear_max_tokens_per_day     integer DEFAULT 50,
+  -- AI Trade Coach
+  ai_coach_enabled                 boolean DEFAULT false,
+  ai_coach_daily_quota             integer DEFAULT 5,
+  ai_allow_student_key             boolean DEFAULT false,
+  ai_student_key_limit             integer DEFAULT 0,
+  -- Pinned feed post
+  pinned_message                   text,
+  pinned_updated_at                timestamptz,
   updated_at                       timestamptz DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS student_ai_settings (
+  student_id    uuid PRIMARY KEY REFERENCES students(id) ON DELETE CASCADE,
+  gemini_api_key text,
+  updated_at    timestamptz DEFAULT now()
 );
 
 CREATE TABLE IF NOT EXISTS class_reward_ledger (

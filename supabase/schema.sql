@@ -172,14 +172,43 @@ create table if not exists pending_orders (
 
 -- ── ClassReward Config (per class, teacher-controlled) ────────
 create table if not exists class_reward_config (
-  class_id                        uuid primary key references classes(id) on delete cascade,
-  enabled                         boolean not null default false,
-  badge_reward_tokens             integer not null default 50,
-  lesson_reward_tokens            integer not null default 25,
-  crush_points_per_token          integer not null default 100,
-  crush_max_tokens_per_day        integer not null default 50,
-  higher_lower_tokens_per_correct integer not null default 10,
-  updated_at                      timestamptz default now()
+  class_id                         uuid primary key references classes(id) on delete cascade,
+  enabled                          boolean not null default false,
+  badge_reward_tokens              integer not null default 50,
+  lesson_reward_tokens             integer not null default 25,
+  -- Crypto Crush
+  crush_enabled                    boolean default true,
+  crush_points_per_token           integer not null default 100,
+  crush_max_tokens_per_day         integer not null default 50,
+  -- Higher/Lower
+  higher_lower_enabled             boolean default true,
+  higher_lower_tokens_per_correct  integer not null default 10,
+  -- Miner Runner
+  miner_enabled                    boolean default true,
+  miner_points_per_token           integer default 50,
+  miner_max_tokens_per_day         integer default 40,
+  -- Daily Spin
+  spin_enabled                     boolean default true,
+  -- Bull or Bear
+  bull_bear_enabled                boolean default true,
+  bull_bear_tokens_per_correct     integer default 5,
+  bull_bear_max_tokens_per_day     integer default 50,
+  -- AI Trade Coach
+  ai_coach_enabled                 boolean default false,
+  ai_coach_daily_quota             integer default 5,
+  ai_allow_student_key             boolean default false,
+  ai_student_key_limit             integer default 0,
+  -- Pinned feed post
+  pinned_message                   text,
+  pinned_updated_at                timestamptz,
+  updated_at                       timestamptz default now()
+);
+
+-- ── Student AI Settings ───────────────────────────────────────
+create table if not exists student_ai_settings (
+  student_id     uuid primary key references students(id) on delete cascade,
+  gemini_api_key text,
+  updated_at     timestamptz default now()
 );
 
 -- ── ClassReward Ledger (immutable transaction log) ────────────
