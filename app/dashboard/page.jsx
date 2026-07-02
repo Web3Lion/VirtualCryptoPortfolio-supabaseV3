@@ -774,7 +774,12 @@ export default function Dashboard() {
     "history",
     "watchlist",
     "feed",
+    "items",
   ];
+
+  const [itemsData, setItemsData] = useState(null);
+  const [itemsLoading, setItemsLoading] = useState(false);
+  const [freezeExpanded, setFreezeExpanded] = useState(false);
 
   return (
     <>
@@ -1377,6 +1382,7 @@ export default function Dashboard() {
                     }
                     if (t === 'options') { fetch('/api/options').then(r=>r.ok?r.json():r.json().then(d=>{if(d.tableNotReady)setOptionsTableReady(false);return[];})).then(d=>Array.isArray(d)&&setOptionsPositions(d)).catch(()=>{}); }
                     if (t === 'analytics') { fetch(`/api/analytics${classId ? `?classId=${classId}` : ''}`).then(r=>r.ok?r.json():null).then(d=>d&&setAnalyticsData(d)).catch(()=>{}); }
+                    if (t === 'items') { setItemsLoading(true); fetch('/api/rewards/items').then(r=>r.ok?r.json():null).then(d=>{ if(d) setItemsData(d); setItemsLoading(false); }).catch(()=>setItemsLoading(false)); }
                   }}
                 >
                   {t.charAt(0).toUpperCase() + t.slice(1)}
@@ -3872,6 +3878,122 @@ export default function Dashboard() {
                     })}
                   </div>
                 )}
+              </div>
+            )}
+
+            {activeTab === "items" && (
+              <div className="panel">
+                {itemsLoading ? (
+                  <div style={{display:'flex',flexDirection:'column',gap:12}}>
+                    {[1,2,3].map(i=><div key={i} className="skeleton" style={{height:80}}/>)}
+                  </div>
+                ) : !itemsData ? (
+                  <div className="empty">Could not load items</div>
+                ) : (() => {
+                  const { owned, activeFlair, activeTheme, freezesAvailable, freezesPurchased, freezesUsed, freezeHistory, storeItems } = itemsData;
+                  const ownedSet = new Set(owned || []);
+                  const CAT_LABELS = { freeze:'🧊 Streak Protection', flair:'✨ Leaderboard Flair', title:'🏷️ Profile Titles', theme:'🎨 Portfolio Themes' };
+                  const CAT_ORDER = ['freeze','flair','title','theme'];
+                  const fmtDate = iso => { const d = new Date(iso); return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); };
+
+                  const hasAnyItems = owned?.length > 0 || freezesPurchased > 0;
+
+                  if (!hasAnyItems) return (
+                    <div style={{textAlign:'center',padding:'48px 24px'}}>
+                      <div style={{fontSize:48,marginBottom:16}}>🎒</div>
+                      <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:18,marginBottom:8}}>Your inventory is empty</div>
+                      <div style={{fontSize:12,color:'var(--muted)',marginBottom:20}}>Visit the store to spend your ClassReward Tokens on themes, flair, titles, and streak freezes.</div>
+                      <a href="/rewards" style={{display:'inline-block',padding:'10px 24px',borderRadius:12,background:'rgba(0,229,160,.15)',border:'1px solid rgba(0,229,160,.3)',color:'var(--accent)',fontSize:13,fontWeight:600,textDecoration:'none'}}>🏪 Go to Store</a>
+                    </div>
+                  );
+
+                  return (
+                    <div style={{display:'flex',flexDirection:'column',gap:28}}>
+                      {CAT_ORDER.map(cat => {
+                        const catItems = (storeItems||[]).filter(i => i.category === cat);
+                        const ownedInCat = catItems.filter(i => i.category === 'freeze' ? freezesPurchased > 0 : ownedSet.has(i.id));
+                        if (!ownedInCat.length) return null;
+
+                        return (
+                          <div key={cat}>
+                            <div style={{fontSize:10,color:'var(--muted)',letterSpacing:3,textTransform:'uppercase',marginBottom:12}}>{CAT_LABELS[cat]}</div>
+                            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))',gap:12}}>
+                              {catItems.filter(i => i.category === 'freeze' ? freezesPurchased > 0 : ownedSet.has(i.id)).map(item => {
+                                const isActiveTheme = item.category === 'theme' && activeTheme === item.id;
+                                const isActiveFlair = item.category === 'flair' && activeFlair === item.id;
+                                const isActive = isActiveTheme || isActiveFlair;
+
+                                if (item.category === 'freeze') {
+                                  return (
+                                    <div key={item.id} style={{gridColumn:'1/-1'}}>
+                                      <div
+                                        onClick={()=>setFreezeExpanded(p=>!p)}
+                                        style={{background:'var(--surface2)',border:'1px solid rgba(6,182,212,.3)',borderRadius:16,padding:'16px 20px',cursor:'pointer',display:'flex',alignItems:'center',gap:16,userSelect:'none',transition:'all .2s'}}
+                                      >
+                                        <div style={{fontSize:36,lineHeight:1}}>🧊</div>
+                                        <div style={{flex:1}}>
+                                          <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:4}}>
+                                            <span style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:15}}>Streak Freeze</span>
+                                            <span style={{background:'rgba(6,182,212,.2)',color:'#06b6d4',fontSize:11,fontWeight:700,padding:'2px 10px',borderRadius:20}}>×{freezesAvailable} available</span>
+                                          </div>
+                                          <div style={{fontSize:11,color:'var(--muted)'}}>
+                                            {freezesPurchased} purchased · {freezesUsed} used
+                                            {' · '}<span style={{color:'#06b6d4'}}>{freezeExpanded ? 'Hide history ↑' : 'Show history ↓'}</span>
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                      {freezeExpanded && (
+                                        <div style={{background:'var(--surface)',border:'1px solid rgba(6,182,212,.2)',borderTop:'none',borderRadius:'0 0 16px 16px',padding:'0 20px 16px'}}>
+                                          {freezeHistory.length === 0 ? (
+                                            <div style={{fontSize:12,color:'var(--muted)',paddingTop:16}}>No history yet</div>
+                                          ) : (
+                                            <div style={{display:'flex',flexDirection:'column',gap:1,paddingTop:12}}>
+                                              {freezeHistory.map((ev, idx) => (
+                                                <div key={idx} style={{display:'flex',alignItems:'center',gap:12,padding:'8px 0',borderBottom:idx<freezeHistory.length-1?'1px solid rgba(30,41,59,.4)':'none'}}>
+                                                  <span style={{fontSize:18,flexShrink:0}}>{ev.type === 'purchased' ? '🛒' : '🛡️'}</span>
+                                                  <div style={{flex:1}}>
+                                                    <div style={{fontSize:12,fontWeight:600,color:ev.type==='used'?'#38bdf8':'var(--text)'}}>
+                                                      {ev.type === 'purchased' ? 'Purchased from store' : `Streak saved — covered ${ev.forDate}`}
+                                                    </div>
+                                                    <div style={{fontSize:10,color:'var(--muted)',marginTop:2}}>{fmtDate(ev.date)}</div>
+                                                  </div>
+                                                  <span style={{fontSize:10,padding:'2px 8px',borderRadius:20,background:ev.type==='purchased'?'rgba(0,229,160,.1)':'rgba(56,189,248,.1)',color:ev.type==='purchased'?'var(--accent)':'#38bdf8',fontWeight:600,flexShrink:0}}>
+                                                    {ev.type === 'purchased' ? '+1' : '−1'}
+                                                  </span>
+                                                </div>
+                                              ))}
+                                            </div>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                }
+
+                                return (
+                                  <div key={item.id} style={{background:'var(--surface2)',border:`1px solid ${isActive?'var(--accent)':'var(--border)'}`,borderRadius:16,padding:'16px 20px',display:'flex',flexDirection:'column',gap:6,position:'relative',boxShadow:isActive?'0 0 14px rgba(0,229,160,.08)':'none'}}>
+                                    {isActive && <span style={{position:'absolute',top:10,right:12,fontSize:9,padding:'2px 8px',borderRadius:20,background:'rgba(0,229,160,.2)',color:'#00e5a0',fontWeight:700,letterSpacing:.5}}>ACTIVE</span>}
+                                    <span style={{fontSize:30,lineHeight:1}}>{item.emoji}</span>
+                                    <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:13}}>{item.name}</div>
+                                    <div style={{fontSize:11,color:'var(--muted)',lineHeight:1.55,flex:1}}>{item.desc}</div>
+                                    <a href="/rewards" style={{display:'block',textAlign:'center',padding:'7px 0',borderRadius:10,border:'1px solid var(--border)',background:'var(--surface)',color:'var(--muted)',fontSize:11,textDecoration:'none',marginTop:4}}>
+                                      {item.category === 'theme' ? (isActive ? '✓ Applied' : 'Apply in Store') : item.category === 'flair' ? (isActive ? '✓ Equipped' : 'Manage in Store') : '✓ Unlocked'}
+                                    </a>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      <div style={{paddingTop:8,borderTop:'1px solid var(--border)',display:'flex',justifyContent:'flex-end'}}>
+                        <a href="/rewards" style={{fontSize:12,color:'var(--accent)',textDecoration:'none'}}>🏪 Visit Store →</a>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             )}
           </>
