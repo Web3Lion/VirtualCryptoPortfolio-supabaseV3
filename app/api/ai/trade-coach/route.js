@@ -36,6 +36,7 @@ async function callGemini(prompt, apiKey) {
     }
   );
   if (!res.ok) {
+    if (res.status === 429) throw new Error('Rate limited — the free Gemini tier allows ~15 requests/min. Wait a moment and try again.');
     const errText = await res.text().catch(() => '');
     throw new Error(`Gemini ${res.status}: ${errText.slice(0, 120)}`);
   }
