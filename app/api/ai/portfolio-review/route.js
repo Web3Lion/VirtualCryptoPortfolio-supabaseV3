@@ -50,13 +50,18 @@ function parseJsonFromAI(text) {
 }
 
 function buildPrompt({ totalValue, seedMoney, returnPct, cash, cashPct, holdings, sectors, hasLeverage, hasShorts, hasDca, coinCount }) {
+  const tv  = totalValue  ?? 0;
+  const sm  = seedMoney   ?? 10000;
+  const c   = cash        ?? 0;
+  const cp  = cashPct     ?? 0;
+  const rp  = returnPct   ?? 0;
   return `You are a crypto trading coach evaluating a high school student's portfolio for educational purposes.
 
 Portfolio snapshot:
-- Starting capital: $${seedMoney.toLocaleString()}
-- Current value: $${totalValue.toLocaleString()}
-- Return: ${returnPct >= 0 ? '+' : ''}${returnPct.toFixed(2)}%
-- Cash on hand: $${cash.toLocaleString()} (${cashPct.toFixed(0)}% of portfolio)
+- Starting capital: $${sm.toLocaleString()}
+- Current value: $${tv.toLocaleString()}
+- Return: ${rp >= 0 ? '+' : ''}${rp.toFixed(2)}%
+- Cash on hand: $${c.toLocaleString()} (${cp.toFixed(0)}% of portfolio)
 - Number of unique coins held: ${coinCount}
 - Sectors represented: ${sectors.length > 0 ? sectors.join(', ') : 'none yet'}
 - Holdings: ${holdings.length > 0 ? holdings.map(h => `${h.symbol} ($${h.value.toLocaleString()}, ${h.pct.toFixed(0)}%)`).join(', ') : 'no holdings'}

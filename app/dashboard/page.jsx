@@ -418,13 +418,14 @@ export default function Dashboard() {
     if (!portfolio) return;
     setPortfolioReviewLoading(true);
     setPortfolioReview(null);
-    const totalVal = portfolio.cash + portfolio.holdingsValue;
+    const totalVal = (portfolio.cash ?? 0) + (portfolio.holdingsValue ?? 0);
+    const seed = seedMoney || 10000;
     const portfolioPayload = {
       totalValue: totalVal,
-      seedMoney,
-      returnPct: seedMoney > 0 ? ((totalVal - seedMoney) / seedMoney) * 100 : 0,
-      cash: portfolio.cash,
-      cashPct: totalVal > 0 ? (portfolio.cash / totalVal) * 100 : 0,
+      seedMoney: seed,
+      returnPct: seed > 0 ? ((totalVal - seed) / seed) * 100 : 0,
+      cash: portfolio.cash ?? 0,
+      cashPct: totalVal > 0 ? ((portfolio.cash ?? 0) / totalVal) * 100 : 0,
       holdings: (holdingsSnap || []).filter(h => !h.isShort).map(h => ({
         symbol: h.ticker,
         value: h.curVal || 0,
