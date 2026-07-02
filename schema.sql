@@ -332,6 +332,7 @@ CREATE TABLE IF NOT EXISTS learn_lessons (
   pass_threshold    integer DEFAULT 75,
   questions_to_show integer DEFAULT 4,
   is_published      boolean DEFAULT true,
+  ai_tutor_enabled  boolean DEFAULT true,
   created_at        timestamptz DEFAULT now()
 );
 
@@ -370,8 +371,6 @@ CREATE TABLE IF NOT EXISTS learn_attempts (
   completed_at timestamptz DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS learn_attempts_student_idx ON learn_attempts(student_id, class_id);
-
--- ALTER TABLE learn_lessons ADD COLUMN IF NOT EXISTS ai_tutor_enabled boolean DEFAULT true;
 
 CREATE TABLE IF NOT EXISTS assignments (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
