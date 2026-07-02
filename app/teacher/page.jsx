@@ -683,6 +683,7 @@ export default function Teacher() {
                             else setActionMsg({type:'error',msg:d.error||'Sync failed'});
                             setTimeout(()=>setActionMsg(null),6000);
                           }}>🎬 Sync Lesson Videos</button>
+                          <button className="btn btn-muted" onClick={()=>router.push('/teacher/lesson-editor')}>📝 Edit a Lesson</button>
                           <button className="btn btn-muted" onClick={()=>router.push('/teacher/migrate')}>📦 Migrate from Sheets</button>
                           <button className="btn btn-muted" onClick={()=>router.push('/market')}>📈 Market & Heatmap</button>
                           <button className="btn btn-muted" onClick={()=>router.push('/news')}>📰 Student News Page</button>
