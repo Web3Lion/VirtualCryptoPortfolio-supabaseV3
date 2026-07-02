@@ -260,6 +260,9 @@ export default function Dashboard() {
   const [portfolioReviewLoading, setPortfolioReviewLoading] = useState(false);
   const [seedMoney, setSeedMoney] = useState(10000);
   const [expandedHolding, setExpandedHolding] = useState(null);
+  const [quickSellAmt, setQuickSellAmt] = useState('');
+  const [quickSellExecuting, setQuickSellExecuting] = useState(false);
+  const [quickSellStatus, setQuickSellStatus] = useState(null);
   const [stakingData, setStakingData] = useState(null);
   const [dcaOrders, setDcaOrders] = useState([]);
   const [dcaForm, setDcaForm] = useState({ coin: '', amountUsd: '', frequency: 'daily' });
@@ -1560,7 +1563,7 @@ export default function Dashboard() {
                         <React.Fragment key={i}>
                           <div
                             className="holding-row"
-                            onClick={() => setExpandedHolding(isExpanded ? null : h.ticker)}
+                            onClick={() => { setExpandedHolding(isExpanded ? null : h.ticker); setQuickSellAmt(''); setQuickSellStatus(null); }}
                             style={{
                               cursor: 'pointer',
                               ...(h.isShort ? {borderLeft:'2px solid rgba(251,146,60,.4)',background:'rgba(251,146,60,.04)'} : h.marginBorrowed>0 ? {borderLeft:'2px solid rgba(96,165,250,.4)',background:'rgba(96,165,250,.04)'} : {}),
@@ -1602,6 +1605,69 @@ export default function Dashboard() {
                           {/* Expanded trade history for this coin */}
                           {isExpanded && (
                             <div style={{background:'var(--surface2)',border:'1px solid var(--border)',borderTop:'none',borderBottomLeftRadius:12,borderBottomRightRadius:12,padding:'12px 14px',marginBottom:10}}>
+
+                              {/* ── Quick Sell ── */}
+                              {!h.isShort && (
+                                <div style={{marginBottom:14,padding:'12px 14px',background:'rgba(244,63,94,.04)',border:'1px solid rgba(244,63,94,.15)',borderRadius:10}}>
+                                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
+                                    <div style={{fontSize:11,fontWeight:700,color:'var(--down)',letterSpacing:.5}}>QUICK SELL</div>
+                                    <div style={{fontSize:11,color:'var(--muted)'}}>
+                                      {fmtNum(h.qty)} {h.ticker} · {fmtUSD(h.curVal)}
+                                    </div>
+                                  </div>
+                                  {/* % preset buttons */}
+                                  <div style={{display:'flex',gap:6,marginBottom:8}}>
+                                    {[25,50,75,100].map(pct => (
+                                      <button key={pct}
+                                        onClick={()=>setQuickSellAmt((h.curVal * pct / 100).toFixed(2))}
+                                        style={{flex:1,padding:'5px 0',borderRadius:7,border:'1px solid rgba(244,63,94,.25)',background: quickSellAmt === (h.curVal * pct / 100).toFixed(2) ? 'rgba(244,63,94,.2)' : 'rgba(244,63,94,.06)',color:'var(--down)',fontSize:11,fontWeight:600,cursor:'pointer',transition:'all .15s'}}>
+                                        {pct === 100 ? 'All' : `${pct}%`}
+                                      </button>
+                                    ))}
+                                  </div>
+                                  {/* Custom $ amount */}
+                                  <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                                    <div style={{position:'relative',flex:1}}>
+                                      <span style={{position:'absolute',left:10,top:'50%',transform:'translateY(-50%)',color:'var(--muted)',fontSize:12}}>$</span>
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        step="1"
+                                        placeholder="Amount"
+                                        value={quickSellAmt}
+                                        onChange={e=>setQuickSellAmt(e.target.value)}
+                                        className="text-input"
+                                        style={{marginBottom:0,paddingLeft:22,width:'100%'}}
+                                      />
+                                    </div>
+                                    <button
+                                      disabled={!quickSellAmt || parseFloat(quickSellAmt) <= 0 || quickSellExecuting}
+                                      onClick={async()=>{
+                                        setQuickSellExecuting(true);
+                                        setQuickSellStatus({type:'pending',msg:'Executing...'});
+                                        try {
+                                          const res = await fetch('/api/trade',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+                                            action:'SELL', coin:h.ticker, amount:quickSellAmt, amountType:'Dollar Amount',
+                                            classId, leverageMultiplier:1, reasoning:'Quick sell from holdings'
+                                          })});
+                                          const d = await res.json();
+                                          if(res.ok){ setQuickSellStatus({type:'success',msg:`✓ Sold ${fmtUSD(parseFloat(quickSellAmt))} of ${h.ticker}`}); setQuickSellAmt(''); setTimeout(()=>{ fetchData(); setQuickSellStatus(null); },1800); }
+                                          else setQuickSellStatus({type:'error',msg:d.error||'Trade failed'});
+                                        } catch { setQuickSellStatus({type:'error',msg:'Network error'}); }
+                                        setQuickSellExecuting(false);
+                                      }}
+                                      style={{padding:'8px 18px',borderRadius:8,border:'none',background:(!quickSellAmt||parseFloat(quickSellAmt)<=0||quickSellExecuting)?'rgba(100,116,139,.2)':'var(--down)',color:(!quickSellAmt||parseFloat(quickSellAmt)<=0||quickSellExecuting)?'var(--muted)':'#fff',fontWeight:700,fontSize:12,cursor:(!quickSellAmt||parseFloat(quickSellAmt)<=0||quickSellExecuting)?'not-allowed':'pointer',transition:'all .15s',whiteSpace:'nowrap'}}>
+                                      {quickSellExecuting ? '...' : 'Sell Now'}
+                                    </button>
+                                  </div>
+                                  {quickSellStatus && (
+                                    <div style={{marginTop:8,fontSize:11,fontWeight:600,color:quickSellStatus.type==='success'?'var(--up)':quickSellStatus.type==='error'?'var(--down)':'var(--muted)'}}>
+                                      {quickSellStatus.msg}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+
                               <div style={{fontSize:10,fontWeight:700,color:'var(--muted)',letterSpacing:1,textTransform:'uppercase',marginBottom:10}}>
                                 {h.ticker} Trade History ({coinTrades.length})
                               </div>
