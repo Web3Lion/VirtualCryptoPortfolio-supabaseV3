@@ -47,7 +47,7 @@ export async function POST(request) {
   const int = (key, min, def) => Math.max(min, parseInt(body[key] ?? body[key.replace(/_([a-z])/g, (_, c) => c.toUpperCase())]) || def);
   const bool = (key, def) => body[key] !== undefined ? !!body[key] : def;
 
-  await db.from('class_reward_config').upsert({
+  const { error } = await db.from('class_reward_config').upsert({
     class_id: classId,
     enabled:                        bool('enabled', false),
     badge_reward_tokens:            int('badge_reward_tokens', 1, 50),
@@ -71,5 +71,6 @@ export async function POST(request) {
     updated_at: new Date().toISOString(),
   }, { onConflict: 'class_id' });
 
+  if (error) return Response.json({ error: error.message }, { status: 500 });
   return Response.json({ success: true });
 }

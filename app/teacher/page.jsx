@@ -326,10 +326,11 @@ export default function Teacher() {
   const saveRewardConfig = async () => {
     setRewardSaving(true);
     const res = await fetch('/api/teacher/rewards',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ classId:activeClass.id, ...rewardConfig })});
-    if(res.ok) setActionMsg({type:'success',msg:'✅ ClassReward settings saved'});
-    else setActionMsg({type:'error',msg:'Failed to save'});
+    const d = await res.json().catch(()=>({}));
+    if(res.ok) setActionMsg({type:'success',msg:'✅ Settings saved'});
+    else setActionMsg({type:'error',msg:`Failed to save: ${d.error || res.status}. Run the SQL migration in Supabase if columns are missing.`});
     setRewardSaving(false);
-    setTimeout(()=>setActionMsg(null),3000);
+    setTimeout(()=>setActionMsg(null),6000);
   };
 
   const takeSnapshot = async () => {
