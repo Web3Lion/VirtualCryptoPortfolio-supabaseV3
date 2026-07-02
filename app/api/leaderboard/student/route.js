@@ -47,12 +47,14 @@ export async function GET(request) {
   const { data: cls } = await db.from('classes').select('seed_money').eq('id', classId).single();
   const seedMoney = parseFloat(cls?.seed_money || 10000);
 
-  const [portRes, holdRes, tradesRes, snapsRes, badgesRes] = await Promise.all([
+  const [portRes, holdRes, tradesRes, snapsRes, badgesRes, ledgerRes, attemptsRes] = await Promise.all([
     db.from('portfolios').select('cash, fees_paid').eq('student_id', studentId).eq('class_id', classId).single(),
     db.from('holdings').select('coin, quantity, avg_buy_price, margin_borrowed').eq('student_id', studentId).eq('class_id', classId),
     db.from('trades').select('action, coin, quantity, price, gross_value, fee, cash_after, reasoning, created_at').eq('student_id', studentId).eq('class_id', classId).order('created_at', { ascending: false }).limit(20),
     db.from('snapshots').select('total_value, created_at').eq('student_id', studentId).eq('class_id', classId).order('created_at', { ascending: true }),
     db.from('badges').select('badge_id, earned_at').eq('student_id', studentId).eq('class_id', classId),
+    db.from('class_reward_ledger').select('tokens, reason').eq('student_id', studentId).eq('class_id', classId),
+    db.from('learn_attempts').select('lesson_id, passed, score, created_at').eq('student_id', studentId).eq('class_id', classId).order('created_at', { ascending: false }),
   ]);
 
   const cash = parseFloat(portRes.data?.cash || 0);
@@ -104,6 +106,46 @@ export async function GET(request) {
   snapshots.forEach(s => { dayMap[s.created_at.slice(0, 10)] = parseFloat(s.total_value); });
   const chartData = Object.entries(dayMap).sort(([a],[b])=>a.localeCompare(b)).slice(-30).map(([t,v])=>({t,v}));
 
+  // Tokens & items from ledger
+  const ledger = ledgerRes.data || [];
+  const tokenBalance = ledger.reduce((s, r) => s + (r.tokens || 0), 0);
+  const FLAIR_EMOJI = { flair_star:'⭐', flair_fire:'🔥', flair_diamond:'💎', flair_crown:'👑' };
+  const storePurchases = ledger.filter(r => r.reason?.startsWith('store:') && r.tokens < 0);
+  const activeFlair = (() => {
+    const f = storePurchases.find(r => r.reason?.startsWith('store:flair_'));
+    return f ? (FLAIR_EMOJI[f.reason.replace('store:', '')] || null) : null;
+  })();
+  const activeTitle = (() => {
+    const TITLES = { title_hodler:'🧘 HODLer', title_whale:'🐳 Whale', title_oracle:'🔮 Oracle' };
+    const t = storePurchases.find(r => r.reason?.startsWith('store:title_'));
+    return t ? (TITLES[t.reason.replace('store:', '')] || null) : null;
+  })();
+  const freezesPurchased = ledger.filter(r => r.reason === 'store:streak_freeze').length;
+  const freezesUsed     = ledger.filter(r => r.reason?.startsWith('freeze_used:')).length;
+  const freezesAvailable = Math.max(0, freezesPurchased - freezesUsed);
+
+  // Login streak from ledger
+  const loginReasons = ledger.filter(r => r.reason?.startsWith('login_streak:') || r.reason?.startsWith('freeze_used:'));
+  const loginDates = [...new Set(loginReasons.filter(r => r.reason.startsWith('login_streak:')).map(r => r.reason.replace('login_streak:', '')))];
+  const freezeDates = [...new Set(loginReasons.filter(r => r.reason.startsWith('freeze_used:')).map(r => r.reason.replace('freeze_used:', '')))];
+  const allStreakDates = [...new Set([...loginDates, ...freezeDates])].sort().reverse();
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const prevDay = d => { const dt = new Date(d + 'T12:00:00Z'); dt.setDate(dt.getDate() - 1); return dt.toISOString().slice(0, 10); };
+  let loginStreak = 0, check = allStreakDates[0] === todayStr ? todayStr : prevDay(todayStr);
+  for (const d of allStreakDates) {
+    if (d === check) { loginStreak++; check = prevDay(check); } else if (d < check) break;
+  }
+
+  // Lesson completions
+  const attempts = attemptsRes.data || [];
+  const bestByLesson = {};
+  attempts.forEach(a => {
+    const prev = bestByLesson[a.lesson_id];
+    if (!prev || a.score > prev.score) bestByLesson[a.lesson_id] = a;
+  });
+  const lessonsAttempted = Object.keys(bestByLesson).length;
+  const lessonsPassed    = Object.values(bestByLesson).filter(a => a.passed).length;
+
   return Response.json({
     student: { id: student.id, name: student.name, isBot: student.is_bot },
     summary: {
@@ -130,5 +172,8 @@ export async function GET(request) {
     })),
     chartData,
     badges: (badgesRes.data || []).map(b => b.badge_id),
+    rewards: { tokenBalance, activeFlair, activeTitle, freezesAvailable, freezesPurchased, freezesUsed },
+    streak: { loginStreak },
+    progress: { lessonsAttempted, lessonsPassed },
   });
 }

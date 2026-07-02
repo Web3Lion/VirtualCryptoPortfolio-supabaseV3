@@ -111,7 +111,7 @@ export default function ProfilePage() {
     );
   }
 
-  const { student, summary, metrics, holdings, recentTrades, chartData, badges = [] } = profile;
+  const { student, summary, metrics, holdings, recentTrades, chartData, badges = [], rewards = {}, streak = {}, progress = {} } = profile;
   const ret = parseFloat(summary.returnPct);
   const isPos = ret >= 0;
   const totalVal = parseFloat(summary.totalVal);
@@ -185,20 +185,25 @@ export default function ProfilePage() {
               </div>
             );
           })()}
-          <div>
-            <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 22 }}>{student.name}</div>
-            <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>Portfolio Overview</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 22 }}>{student.name}</div>
+              {rewards.activeFlair && <span style={{ fontSize: 18 }}>{rewards.activeFlair}</span>}
+              {rewards.activeTitle && <span style={{ fontSize: 11, padding: '2px 9px', borderRadius: 20, background: 'rgba(167,139,250,.15)', border: '1px solid rgba(167,139,250,.3)', color: '#a78bfa' }}>{rewards.activeTitle}</span>}
+            </div>
+            <div style={{ display: 'flex', gap: 14, marginTop: 6, flexWrap: 'wrap' }}>
+              {streak.loginStreak > 0 && <span style={{ fontSize: 11, color: '#fb923c' }}>🔥 {streak.loginStreak}-day streak</span>}
+              {rewards.tokenBalance > 0 && <span style={{ fontSize: 11, color: 'var(--accent)' }}>🪙 {rewards.tokenBalance.toLocaleString()} tokens</span>}
+              {rewards.freezesAvailable > 0 && <span style={{ fontSize: 11, color: '#38bdf8' }}>🧊 ×{rewards.freezesAvailable}</span>}
+              {progress.lessonsPassed > 0 && <span style={{ fontSize: 11, color: '#a78bfa' }}>🎓 {progress.lessonsPassed} lesson{progress.lessonsPassed !== 1 ? 's' : ''} passed</span>}
+            </div>
             {badges.length > 0 && (
-              <div style={{ display: 'flex', gap: 4, marginTop: 6, flexWrap: 'wrap' }}>
-                {badges.slice(0, 5).map(b => {
-                  const def = BADGE_DEFS[b.badge_id] || { emoji: '🏅' };
-                  return (
-                    <span key={b.badge_id} title={b.badge_id.replace(/_/g,' ')} style={{ fontSize: 16 }}>
-                      {def.emoji}
-                    </span>
-                  );
+              <div style={{ display: 'flex', gap: 4, marginTop: 8, flexWrap: 'wrap' }}>
+                {badges.slice(0, 6).map(b => {
+                  const def = BADGE_DEFS[b] || { emoji: '🏅' };
+                  return <span key={b} title={def.label} style={{ fontSize: 17 }}>{def.emoji}</span>;
                 })}
-                {badges.length > 5 && <span style={{ fontSize: 10, color: 'var(--muted)', alignSelf: 'center' }}>+{badges.length - 5}</span>}
+                {badges.length > 6 && <span style={{ fontSize: 10, color: 'var(--muted)', alignSelf: 'center' }}>+{badges.length - 6}</span>}
               </div>
             )}
           </div>

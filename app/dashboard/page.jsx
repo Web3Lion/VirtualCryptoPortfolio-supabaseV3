@@ -775,11 +775,15 @@ export default function Dashboard() {
     "watchlist",
     "feed",
     "items",
+    "learn",
   ];
 
   const [itemsData, setItemsData] = useState(null);
   const [itemsLoading, setItemsLoading] = useState(false);
   const [freezeExpanded, setFreezeExpanded] = useState(false);
+  const [timeTravelIdx, setTimeTravelIdx] = useState(null);
+  const [learnData, setLearnData] = useState(null);
+  const [learnLoading, setLearnLoading] = useState(false);
 
   return (
     <>
@@ -1383,6 +1387,7 @@ export default function Dashboard() {
                     if (t === 'options') { fetch('/api/options').then(r=>r.ok?r.json():r.json().then(d=>{if(d.tableNotReady)setOptionsTableReady(false);return[];})).then(d=>Array.isArray(d)&&setOptionsPositions(d)).catch(()=>{}); }
                     if (t === 'analytics') { fetch(`/api/analytics${classId ? `?classId=${classId}` : ''}`).then(r=>r.ok?r.json():null).then(d=>d&&setAnalyticsData(d)).catch(()=>{}); }
                     if (t === 'items') { setItemsLoading(true); fetch('/api/rewards/items').then(r=>r.ok?r.json():null).then(d=>{ if(d) setItemsData(d); setItemsLoading(false); }).catch(()=>setItemsLoading(false)); }
+                    if (t === 'learn') { setLearnLoading(true); fetch(`/api/learn/progress${classId?`?classId=${classId}`:''}`).then(r=>r.ok?r.json():null).then(d=>{ if(d) setLearnData(d); setLearnLoading(false); }).catch(()=>setLearnLoading(false)); }
                   }}
                 >
                   {t.charAt(0).toUpperCase() + t.slice(1)}
@@ -2113,6 +2118,51 @@ export default function Dashboard() {
                           </div>
                         </div>
                       ))}
+                    </div>
+                  );
+                })()}
+
+                {/* ── Time Travel ── */}
+                {history.daily?.length > 1 && (() => {
+                  const days = history.daily;
+                  const idx = timeTravelIdx ?? days.length - 1;
+                  const snap = days[Math.min(idx, days.length - 1)];
+                  const seed = seedMoney || 10000;
+                  const snapVal = parseFloat(snap?.v || seed);
+                  const snapRet = ((snapVal - seed) / seed) * 100;
+                  const curVal = parseFloat((portfolio.cash||0) + (portfolio.holdingsValue||0));
+                  const change = snapVal - curVal;
+                  const isPos = snapRet >= 0;
+                  return (
+                    <div className="card" style={{marginTop:16}}>
+                      <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:14,marginBottom:4}}>⏪ Portfolio Time Travel</div>
+                      <div style={{fontSize:11,color:'var(--muted)',marginBottom:16}}>Drag to see your portfolio value on any past date</div>
+                      <div style={{background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:14,padding:'18px 20px',marginBottom:16,textAlign:'center'}}>
+                        <div style={{fontSize:11,color:'var(--muted)',letterSpacing:2,textTransform:'uppercase',marginBottom:6}}>
+                          {snap?.t ? new Date(snap.t + 'T12:00:00Z').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'}) : '—'}
+                        </div>
+                        <div style={{fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:36,letterSpacing:-1,color:isPos?'var(--up)':'var(--down)',lineHeight:1,marginBottom:6}}>
+                          {fmtUSD(snapVal)}
+                        </div>
+                        <div style={{fontSize:13,color:isPos?'var(--up)':'var(--down)',fontWeight:600}}>
+                          {isPos?'+':''}{snapRet.toFixed(2)}% vs seed
+                        </div>
+                        {idx < days.length - 1 && (
+                          <div style={{fontSize:11,color:'var(--muted)',marginTop:6}}>
+                            {change >= 0 ? '▲' : '▼'} {fmtUSD(Math.abs(change))} {change >= 0 ? 'below' : 'above'} today's value
+                          </div>
+                        )}
+                      </div>
+                      <input
+                        type="range" min={0} max={days.length - 1} value={idx}
+                        onChange={e => setTimeTravelIdx(Number(e.target.value))}
+                        style={{width:'100%',accentColor:'var(--accent)',cursor:'pointer'}}
+                      />
+                      <div style={{display:'flex',justifyContent:'space-between',fontSize:10,color:'var(--muted)',marginTop:4}}>
+                        <span>{days[0]?.t}</span>
+                        <span onClick={()=>setTimeTravelIdx(days.length-1)} style={{color:'var(--accent)',cursor:'pointer'}}>Today ↩</span>
+                        <span>{days[days.length-1]?.t}</span>
+                      </div>
                     </div>
                   );
                 })()}
@@ -3994,6 +4044,76 @@ export default function Dashboard() {
                     </div>
                   );
                 })()}
+              </div>
+            )}
+
+            {activeTab === "learn" && (
+              <div className="panel">
+                {learnLoading ? (
+                  <div style={{display:'flex',flexDirection:'column',gap:12}}>
+                    {[1,2,3,4].map(i=><div key={i} className="skeleton" style={{height:90}}/>)}
+                  </div>
+                ) : !learnData ? (
+                  <div className="empty">Could not load progress</div>
+                ) : learnData.modules?.length === 0 ? (
+                  <div className="empty">No lessons available yet</div>
+                ) : (
+                  <div style={{display:'flex',flexDirection:'column',gap:14}}>
+                    {/* Overall progress bar */}
+                    {(() => {
+                      const totalLessons = learnData.modules.reduce((s,m)=>s+m.lessons.length,0);
+                      const totalPassed  = learnData.modules.reduce((s,m)=>s+m.lessons.filter(l=>l.passed).length,0);
+                      const pct = totalLessons > 0 ? Math.round((totalPassed/totalLessons)*100) : 0;
+                      return (
+                        <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:18,padding:'18px 20px'}}>
+                          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
+                            <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:15}}>🎓 Overall Progress</div>
+                            <div style={{fontSize:13,fontWeight:700,color:'var(--accent)'}}>{totalPassed} / {totalLessons} lessons</div>
+                          </div>
+                          <div style={{height:10,background:'var(--surface2)',borderRadius:8,overflow:'hidden',marginBottom:6}}>
+                            <div style={{height:'100%',width:`${pct}%`,background:'linear-gradient(90deg,var(--accent),#6ee7b7)',borderRadius:8,transition:'width .6s'}} />
+                          </div>
+                          <div style={{fontSize:11,color:'var(--muted)'}}>{pct}% complete</div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Per-module cards */}
+                    {learnData.modules.map(mod => {
+                      const total  = mod.lessons.length;
+                      const passed = mod.lessons.filter(l=>l.passed).length;
+                      const pct    = total > 0 ? Math.round((passed/total)*100) : 0;
+                      const barColor = pct===100?'#00e5a0':pct>50?'#fbbf24':'#6366f1';
+                      return (
+                        <div key={mod.id} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:18,padding:'18px 20px'}}>
+                          <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}>
+                            <span style={{fontSize:24}}>{mod.emoji||'📚'}</span>
+                            <div style={{flex:1}}>
+                              <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:13}}>{mod.title}</div>
+                              <div style={{fontSize:11,color:'var(--muted)',marginTop:2}}>{passed}/{total} lessons passed</div>
+                            </div>
+                            <div style={{fontSize:13,fontWeight:700,color:barColor}}>{pct}%</div>
+                          </div>
+                          <div style={{height:6,background:'var(--surface2)',borderRadius:4,overflow:'hidden',marginBottom:14}}>
+                            <div style={{height:'100%',width:`${pct}%`,background:barColor,borderRadius:4,transition:'width .6s'}} />
+                          </div>
+                          <div style={{display:'flex',flexDirection:'column',gap:4}}>
+                            {mod.lessons.map(l => (
+                              <div key={l.id} style={{display:'flex',alignItems:'center',gap:10,padding:'7px 10px',borderRadius:10,background:'var(--surface2)'}}>
+                                <span style={{fontSize:14,flexShrink:0}}>{l.passed?'✅':l.attempted?'❌':'⭕'}</span>
+                                <div style={{flex:1,fontSize:12,fontWeight:l.passed?600:400,color:l.passed?'var(--text)':'var(--muted)'}}>{l.title}</div>
+                                {l.bestScore != null && (
+                                  <div style={{fontSize:11,color:l.passed?'var(--up)':'var(--down)',fontWeight:600,flexShrink:0}}>{l.bestScore}%</div>
+                                )}
+                                {!l.attempted && <div style={{fontSize:10,color:'#334155',flexShrink:0}}>Not started</div>}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
           </>
