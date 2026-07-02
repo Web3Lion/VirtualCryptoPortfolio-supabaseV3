@@ -122,6 +122,7 @@ export default function Teacher() {
   const [tournamentPrize, setTournamentPrize] = useState('100');
   const [tournaments, setTournaments] = useState([]);
   const [tournamentLoading, setTournamentLoading] = useState(false);
+  const [migrationSql, setMigrationSql]         = useState(null);
 
   useEffect(() => { applyTheme(getTheme()); }, []);
   useEffect(()=>{ if(status==='unauthenticated') router.replace('/'); },[status,router]);
@@ -416,20 +417,20 @@ export default function Teacher() {
     setMigratingGameRewards(true);
     const res = await fetch('/api/admin/migrate-game-rewards',{method:'POST'});
     const data = await res.json();
-    if(res.ok) { setGameRewardsMigrated(true); setActionMsg({type:'success',msg:'✅ Per-game reward settings enabled'}); }
-    else setActionMsg({type:'error',msg:data.sql ? `Run this SQL in Supabase SQL Editor:\n${data.sql}` : data.error||'Migration failed'});
+    if(res.ok) { setGameRewardsMigrated(true); setActionMsg({type:'success',msg:'✅ Per-game reward settings enabled'}); setTimeout(()=>setActionMsg(null),4000); }
+    else if(data.sql) setMigrationSql(data.sql);
+    else { setActionMsg({type:'error',msg:data.error||'Migration failed'}); setTimeout(()=>setActionMsg(null),6000); }
     setMigratingGameRewards(false);
-    setTimeout(()=>setActionMsg(null),10000);
   };
 
   const runAiConfigMigration = async () => {
     setMigratingAiConfig(true);
     const res = await fetch('/api/admin/migrate-ai-config',{method:'POST'});
     const data = await res.json();
-    if(res.ok) { setAiConfigMigrated(true); setActionMsg({type:'success',msg:'✅ AI Coach settings enabled'}); }
-    else setActionMsg({type:'error',msg:data.sql ? `Run this SQL in Supabase SQL Editor:\n${data.sql}` : data.error||'Migration failed'});
+    if(res.ok) { setAiConfigMigrated(true); setActionMsg({type:'success',msg:'✅ AI Coach settings enabled'}); setTimeout(()=>setActionMsg(null),4000); }
+    else if(data.sql) setMigrationSql(data.sql);
+    else { setActionMsg({type:'error',msg:data.error||'Migration failed'}); setTimeout(()=>setActionMsg(null),6000); }
     setMigratingAiConfig(false);
-    setTimeout(()=>setActionMsg(null),10000);
   };
 
   const saveTradeSettings = async () => {
@@ -694,6 +695,23 @@ export default function Teacher() {
 
                 {activeSection==='controls' && (
                   <>
+                  {/* ── DB migration warning ── */}
+                  {(!aiConfigMigrated || !gameRewardsMigrated) && (
+                    <div style={{display:'flex',alignItems:'center',gap:10,background:'rgba(245,158,11,.08)',border:'1px solid rgba(245,158,11,.3)',borderRadius:10,padding:'10px 14px',marginBottom:10,flexWrap:'wrap'}}>
+                      <span style={{fontSize:13}}>⚠️</span>
+                      <span style={{fontSize:12,color:'#fbbf24',flex:1}}>Your database needs a one-time schema update before settings will save.</span>
+                      <button className="btn" style={{background:'rgba(245,158,11,.2)',color:'#fbbf24',border:'1px solid rgba(245,158,11,.4)',fontSize:11,padding:'5px 14px',whiteSpace:'nowrap'}}
+                        onClick={async()=>{
+                          const res = await fetch('/api/admin/migrate-all',{method:'POST'});
+                          const d = await res.json();
+                          if(res.ok){ setGameRewardsMigrated(true); setAiConfigMigrated(true); setActionMsg({type:'success',msg:'✅ Database updated!'}); setTimeout(()=>setActionMsg(null),4000); }
+                          else setMigrationSql(d.sql);
+                        }}>
+                        🔧 Get Migration SQL
+                      </button>
+                    </div>
+                  )}
+
                   {/* ── Controls sub-nav ── */}
                   <div style={{display:'flex',gap:3,marginBottom:8,background:'var(--surface)',border:'1px solid var(--border)',borderRadius:12,padding:4}}>
                     {[
@@ -718,7 +736,7 @@ export default function Teacher() {
                     ))}
                   </div>
                   <div style={{fontSize:10,color:'var(--muted)',marginBottom:16,paddingLeft:4}}>
-                    {{'market':'Control the live simulation — freeze trading, trigger market events, manage simulation state.','events':'Special classroom events — historical scenarios, class announcements, and tournaments.','trading':'Advanced trading features — leverage, short selling, staking, and risk controls.','rewards':'ClassReward token system — configure earnings and manually award tokens.','challenges':'Weekly challenges — set a themed goal for your class and award tokens on completion.','bot':'Satoshi Botomoto — an AI trading bot that competes alongside your students.'}[controlsTab]}
+                    {{'market':'Control the live simulation — freeze trading, trigger market events, manage simulation state.','events':'Special classroom events — historical scenarios, class announcements, and tournaments.','trading':'Advanced trading features — leverage, short selling, staking, and risk controls.','rewards':'ClassReward token system — configure earnings and manually award tokens.','challenges':'Weekly challenges — set a themed goal for your class and award tokens on completion.','ai':'AI Trade Coach & Portfolio Review — powered by Google Gemini 1.5 Flash. Enable here, then add GEMINI_API_KEY to Vercel env vars.','bot':'Satoshi Botomoto — an AI trading bot that competes alongside your students.'}[controlsTab]}
                   </div>
                   <div className="controls-grid">
 
@@ -2196,6 +2214,33 @@ export default function Teacher() {
         )}
       </div>
       {actionMsg&&<div className={`action-msg ${actionMsg.type}`}>{actionMsg.msg}</div>}
+
+      {/* General migration SQL modal */}
+      {migrationSql && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.85)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000,padding:16}} onClick={()=>setMigrationSql(null)}>
+          <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:20,padding:28,maxWidth:660,width:'100%',maxHeight:'85vh',overflow:'auto'}} onClick={e=>e.stopPropagation()}>
+            <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:16,marginBottom:6,color:'var(--text)'}}>🔧 Database Migration Required</div>
+            <div style={{fontSize:12,color:'#94a3b8',marginBottom:4,lineHeight:1.6}}>
+              The automatic migration couldn't run (Supabase doesn't expose a <code>run_sql</code> RPC by default). <strong>Copy the SQL below</strong>, paste it into <strong>Supabase → SQL Editor</strong>, click <strong>Run</strong>, then come back here and save your settings.
+            </div>
+            <div style={{fontSize:11,color:'#fbbf24',marginBottom:14,padding:'6px 10px',background:'rgba(245,158,11,.08)',border:'1px solid rgba(245,158,11,.25)',borderRadius:8}}>
+              ⚠ Do NOT paste this into the schema.sql file — run it directly in Supabase SQL Editor. The <code>CREATE TABLE IF NOT EXISTS</code> in schema.sql won't add columns to existing tables.
+            </div>
+            <pre style={{background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:12,padding:16,fontSize:11,color:'var(--accent)',overflowX:'auto',whiteSpace:'pre-wrap',wordBreak:'break-all',marginBottom:16,userSelect:'all'}}>
+              {migrationSql}
+            </pre>
+            <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
+              <button className="btn btn-accent" style={{flex:1}} onClick={()=>{navigator.clipboard?.writeText(migrationSql);setActionMsg({type:'success',msg:'✅ SQL copied!'});setTimeout(()=>setActionMsg(null),2500);}}>
+                📋 Copy SQL
+              </button>
+              <button className="btn btn-muted" onClick={()=>{setMigrationSql(null);setGameRewardsMigrated(true);setAiConfigMigrated(true);}}>
+                ✓ I ran it in Supabase
+              </button>
+              <button className="btn btn-muted" onClick={()=>setMigrationSql(null)}>✕ Close</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* SQL modal — shown when run_sql RPC isn't available */}
       {stakingSql && (
