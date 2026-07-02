@@ -140,11 +140,17 @@ export default function LessonEditor() {
   const [loading, setLoading]       = useState(false);
   const [saving, setSaving]         = useState(false);
   const [status2, setStatus2]       = useState(null); // {type,msg}
+  const [genCount, setGenCount]     = useState(5);
+  const [generating, setGenerating] = useState(false);
+  const [assigning, setAssigning]   = useState(false);
+  const [assignForm, setAssignForm] = useState({ classId:'', dueAt:'' });
+  const [classList, setClassList]   = useState([]);
 
   useEffect(() => { if (status === 'unauthenticated') router.replace('/'); }, [status, router]);
 
   useEffect(() => {
     fetch('/api/teacher/lesson-editor').then(r => r.json()).then(d => Array.isArray(d) && setModules(d));
+    fetch('/api/classes').then(r => r.ok ? r.json() : []).then(d => { if (Array.isArray(d)) setClassList(d); }).catch(() => {});
   }, []);
 
   const activeMod = modules.find(m => m.id === selectedMod);
@@ -211,6 +217,59 @@ export default function LessonEditor() {
       setStatus2({ type: 'error', msg: `Failed: ${d.error || res.status}` });
     }
     setTimeout(() => setStatus2(null), 4000);
+  };
+
+  const generateQuiz = async () => {
+    if (!selectedLesson || generating) return;
+    setGenerating(true);
+    try {
+      const res = await fetch('/api/teacher/generate-quiz', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lessonId: selectedLesson, count: genCount }),
+      });
+      const d = await res.json();
+      if (d.questions?.length) {
+        setQuestions(qs => [...qs, ...d.questions.map((q, i) => ({ ...q, order_index: qs.length + i + 1 }))]);
+        setStatus2({ type: 'success', msg: `✅ Generated ${d.questions.length} questions — review and save!` });
+      } else {
+        setStatus2({ type: 'error', msg: d.error || 'No questions generated' });
+      }
+    } catch {
+      setStatus2({ type: 'error', msg: 'Network error generating quiz' });
+    } finally {
+      setGenerating(false);
+      setTimeout(() => setStatus2(null), 5000);
+    }
+  };
+
+  const submitAssignment = async () => {
+    if (!selectedLesson || !assignForm.classId || assigning) return;
+    setAssigning(true);
+    try {
+      const res = await fetch('/api/teacher/assignments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          classId: assignForm.classId,
+          lessonId: selectedLesson,
+          title: lessonData?.title || 'Lesson Assignment',
+          dueAt: assignForm.dueAt || null,
+        }),
+      });
+      const d = await res.json();
+      if (res.ok) {
+        setAssignForm({ classId: '', dueAt: '' });
+        setStatus2({ type: 'success', msg: '✅ Lesson assigned to class!' });
+      } else {
+        setStatus2({ type: 'error', msg: d.error || 'Failed to assign' });
+      }
+    } catch {
+      setStatus2({ type: 'error', msg: 'Network error' });
+    } finally {
+      setAssigning(false);
+      setTimeout(() => setStatus2(null), 4000);
+    }
   };
 
   const inputStyle = { width:'100%', padding:'9px 12px', borderRadius:8, border:'1px solid var(--border)', background:'var(--bg)', color:'var(--text)', fontFamily:"'DM Mono',monospace", fontSize:13 };
@@ -335,16 +394,18 @@ export default function LessonEditor() {
             </div>
 
             {/* Quiz Questions */}
-            <div style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:18, padding:20, marginBottom:24 }}>
+            <div style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:18, padding:20, marginBottom:16 }}>
               <div style={{ ...sectionHead, flexWrap:'wrap', gap:10 }}>
                 <span>Quiz Questions ({questions.length})</span>
-                <button onClick={addQ} style={{ padding:'5px 18px', borderRadius:8, border:'1px solid rgba(167,139,250,.35)', background:'rgba(167,139,250,.1)', color:'#a78bfa', cursor:'pointer', fontSize:11, fontFamily:"'DM Mono',monospace", fontWeight:600 }}>+ Add Question</button>
+                <div style={{ display:'flex', gap:8, alignItems:'center', flexWrap:'wrap' }}>
+                  <button onClick={addQ} style={{ padding:'5px 18px', borderRadius:8, border:'1px solid rgba(167,139,250,.35)', background:'rgba(167,139,250,.1)', color:'#a78bfa', cursor:'pointer', fontSize:11, fontFamily:"'DM Mono',monospace", fontWeight:600 }}>+ Add Question</button>
+                </div>
               </div>
               <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
                 {questions.length === 0 && (
                   <div style={{ textAlign:'center', padding:'28px 16px', border:'1px dashed var(--border)', borderRadius:12 }}>
                     <div style={{ fontSize:11, color:'var(--muted)', marginBottom:4 }}>No quiz questions yet</div>
-                    <div style={{ fontSize:11, color:'var(--muted)' }}>Click <strong style={{color:'#a78bfa'}}>+ Add Question</strong> to create a multiple-choice question for this lesson.</div>
+                    <div style={{ fontSize:11, color:'var(--muted)' }}>Click <strong style={{color:'#a78bfa'}}>+ Add Question</strong> to create manually, or use AI to generate.</div>
                   </div>
                 )}
                 {questions.map((q, i) => (
@@ -355,6 +416,55 @@ export default function LessonEditor() {
                     + Add Another Question
                   </button>
                 )}
+              </div>
+            </div>
+
+            {/* AI Quiz Generator */}
+            <div style={{ background:'rgba(99,102,241,.07)', border:'1px solid rgba(99,102,241,.25)', borderRadius:18, padding:20, marginBottom:16 }}>
+              <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:14, marginBottom:6, color:'#a78bfa' }}>🤖 Generate Quiz with AI</div>
+              <div style={{ fontSize:11, color:'var(--muted)', marginBottom:14 }}>AI will read the lesson content and write multiple-choice questions. Review before saving.</div>
+              <div style={{ display:'flex', gap:10, alignItems:'center', flexWrap:'wrap' }}>
+                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                  <label style={{ fontSize:11, color:'var(--muted)' }}>Questions to generate:</label>
+                  <select value={genCount} onChange={e => setGenCount(Number(e.target.value))}
+                    style={{ padding:'6px 10px', borderRadius:8, border:'1px solid var(--border)', background:'var(--bg)', color:'var(--text)', fontFamily:"'DM Mono',monospace", fontSize:12 }}>
+                    {[3,5,7,10].map(n => <option key={n} value={n}>{n}</option>)}
+                  </select>
+                </div>
+                <button onClick={generateQuiz} disabled={!selectedLesson || generating}
+                  style={{ padding:'8px 22px', borderRadius:10, border:'none', background: generating ? 'var(--surface2)' : 'rgba(99,102,241,.7)', color: generating ? 'var(--muted)' : '#fff', cursor: (!selectedLesson||generating) ? 'not-allowed' : 'pointer', fontFamily:"'DM Mono',monospace", fontWeight:600, fontSize:12, transition:'all .2s' }}>
+                  {generating ? 'Generating…' : '✨ Generate Questions'}
+                </button>
+              </div>
+            </div>
+
+            {/* Assign Lesson */}
+            <div style={{ background:'rgba(0,229,160,.05)', border:'1px solid rgba(0,229,160,.2)', borderRadius:18, padding:20, marginBottom:24 }}>
+              <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:14, marginBottom:6, color:'var(--accent)' }}>📋 Assign This Lesson</div>
+              <div style={{ fontSize:11, color:'var(--muted)', marginBottom:14 }}>Create an assignment for a class with an optional due date. Students will see it on their dashboard.</div>
+              <div style={{ display:'flex', gap:10, alignItems:'flex-end', flexWrap:'wrap' }}>
+                <div style={{ flex:1, minWidth:160 }}>
+                  <div style={{ fontSize:10, color:'var(--muted)', letterSpacing:2, textTransform:'uppercase', marginBottom:4 }}>Class</div>
+                  {classList.length > 0 ? (
+                    <select value={assignForm.classId} onChange={e => setAssignForm(f => ({ ...f, classId: e.target.value }))}
+                      style={{ width:'100%', padding:'8px 12px', borderRadius:8, border:'1px solid var(--border)', background:'var(--bg)', color:'var(--text)', fontFamily:"'DM Mono',monospace", fontSize:12 }}>
+                      <option value=''>Select class…</option>
+                      {classList.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                  ) : (
+                    <input placeholder="Class ID" value={assignForm.classId} onChange={e => setAssignForm(f => ({ ...f, classId: e.target.value }))}
+                      style={{ width:'100%', padding:'8px 12px', borderRadius:8, border:'1px solid var(--border)', background:'var(--bg)', color:'var(--text)', fontFamily:"'DM Mono',monospace", fontSize:12 }} />
+                  )}
+                </div>
+                <div>
+                  <div style={{ fontSize:10, color:'var(--muted)', letterSpacing:2, textTransform:'uppercase', marginBottom:4 }}>Due date (optional)</div>
+                  <input type="datetime-local" value={assignForm.dueAt} onChange={e => setAssignForm(f => ({ ...f, dueAt: e.target.value }))}
+                    style={{ padding:'8px 12px', borderRadius:8, border:'1px solid var(--border)', background:'var(--bg)', color:'var(--text)', fontFamily:"'DM Mono',monospace", fontSize:12 }} />
+                </div>
+                <button onClick={submitAssignment} disabled={!selectedLesson || !assignForm.classId || assigning}
+                  style={{ padding:'8px 22px', borderRadius:10, border:'none', background: (!selectedLesson||!assignForm.classId||assigning) ? 'var(--surface2)' : 'var(--accent)', color: (!selectedLesson||!assignForm.classId||assigning) ? 'var(--muted)' : '#000', cursor: (!selectedLesson||!assignForm.classId||assigning) ? 'not-allowed' : 'pointer', fontFamily:"'DM Mono',monospace", fontWeight:700, fontSize:12 }}>
+                  {assigning ? 'Assigning…' : 'Assign →'}
+                </button>
               </div>
             </div>
 

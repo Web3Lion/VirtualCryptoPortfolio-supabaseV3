@@ -685,6 +685,7 @@ export default function Teacher() {
                           }}>🎬 Sync Lesson Videos</button>
                           <button className="btn btn-muted" onClick={()=>router.push('/teacher/gradebook')}>📊 Gradebook</button>
                           <button className="btn btn-muted" onClick={()=>router.push('/teacher/lesson-editor')}>📝 Edit a Lesson</button>
+                          <button className="btn btn-muted" onClick={()=>router.push('/teacher/assignments')}>📋 Assignments</button>
                           <button className="btn btn-muted" onClick={()=>router.push('/teacher/migrate')}>📦 Migrate from Sheets</button>
                           <button className="btn btn-muted" onClick={()=>router.push('/market')}>📈 Market & Heatmap</button>
                           <button className="btn btn-muted" onClick={()=>router.push('/news')}>📰 Student News Page</button>

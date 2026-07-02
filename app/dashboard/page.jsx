@@ -776,6 +776,7 @@ export default function Dashboard() {
     "feed",
     "items",
     "learn",
+    "assignments",
   ];
 
   const [itemsData, setItemsData] = useState(null);
@@ -784,6 +785,8 @@ export default function Dashboard() {
   const [timeTravelIdx, setTimeTravelIdx] = useState(null);
   const [learnData, setLearnData] = useState(null);
   const [learnLoading, setLearnLoading] = useState(false);
+  const [assignmentsData, setAssignmentsData] = useState(null);
+  const [assignmentsLoading, setAssignmentsLoading] = useState(false);
 
   return (
     <>
@@ -1388,6 +1391,7 @@ export default function Dashboard() {
                     if (t === 'analytics') { fetch(`/api/analytics${classId ? `?classId=${classId}` : ''}`).then(r=>r.ok?r.json():null).then(d=>d&&setAnalyticsData(d)).catch(()=>{}); }
                     if (t === 'items') { setItemsLoading(true); fetch('/api/rewards/items').then(r=>r.ok?r.json():null).then(d=>{ if(d) setItemsData(d); setItemsLoading(false); }).catch(()=>setItemsLoading(false)); }
                     if (t === 'learn') { setLearnLoading(true); fetch(`/api/learn/progress${classId?`?classId=${classId}`:''}`).then(r=>r.ok?r.json():null).then(d=>{ if(d) setLearnData(d); setLearnLoading(false); }).catch(()=>setLearnLoading(false)); }
+                    if (t === 'assignments') { setAssignmentsLoading(true); fetch(`/api/student/assignments${classId?`?classId=${classId}`:''}`).then(r=>r.ok?r.json():null).then(d=>{ if(d) setAssignmentsData(d); setAssignmentsLoading(false); }).catch(()=>setAssignmentsLoading(false)); }
                   }}
                 >
                   {t.charAt(0).toUpperCase() + t.slice(1)}
@@ -1396,6 +1400,9 @@ export default function Dashboard() {
                   )}
                   {t === "orders" && pendingOrders.length > 0 && (
                     <span className="tab-badge" style={{background:'var(--accent)',color:'#000'}}>{pendingOrders.length}</span>
+                  )}
+                  {t === "assignments" && assignmentsData?.assignments?.filter(a=>!a.completed).length > 0 && (
+                    <span className="tab-badge" style={{background:'#f59e0b',color:'#000'}}>{assignmentsData.assignments.filter(a=>!a.completed).length}</span>
                   )}
                 </button>
               ))}
@@ -4059,7 +4066,7 @@ export default function Dashboard() {
                   <div className="empty">No lessons available yet</div>
                 ) : (
                   <div style={{display:'flex',flexDirection:'column',gap:14}}>
-                    {/* Overall progress bar */}
+                    {/* Overall progress bar + link to full learn center */}
                     {(() => {
                       const totalLessons = learnData.modules.reduce((s,m)=>s+m.lessons.length,0);
                       const totalPassed  = learnData.modules.reduce((s,m)=>s+m.lessons.filter(l=>l.passed).length,0);
@@ -4068,7 +4075,10 @@ export default function Dashboard() {
                         <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:18,padding:'18px 20px'}}>
                           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
                             <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:15}}>🎓 Overall Progress</div>
-                            <div style={{fontSize:13,fontWeight:700,color:'var(--accent)'}}>{totalPassed} / {totalLessons} lessons</div>
+                            <div style={{display:'flex',alignItems:'center',gap:12}}>
+                              <div style={{fontSize:13,fontWeight:700,color:'var(--accent)'}}>{totalPassed} / {totalLessons} lessons</div>
+                              <a href="/learn" style={{fontSize:11,color:'var(--accent)',textDecoration:'none',padding:'4px 10px',border:'1px solid rgba(0,229,160,.3)',borderRadius:8,whiteSpace:'nowrap'}}>Open Learn Center →</a>
+                            </div>
                           </div>
                           <div style={{height:10,background:'var(--surface2)',borderRadius:8,overflow:'hidden',marginBottom:6}}>
                             <div style={{height:'100%',width:`${pct}%`,background:'linear-gradient(90deg,var(--accent),#6ee7b7)',borderRadius:8,transition:'width .6s'}} />
@@ -4084,6 +4094,7 @@ export default function Dashboard() {
                       const passed = mod.lessons.filter(l=>l.passed).length;
                       const pct    = total > 0 ? Math.round((passed/total)*100) : 0;
                       const barColor = pct===100?'#00e5a0':pct>50?'#fbbf24':'#6366f1';
+                      const nextLesson = mod.lessons.find(l=>!l.passed);
                       return (
                         <div key={mod.id} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:18,padding:'18px 20px'}}>
                           <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}>
@@ -4092,23 +4103,81 @@ export default function Dashboard() {
                               <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:13}}>{mod.title}</div>
                               <div style={{fontSize:11,color:'var(--muted)',marginTop:2}}>{passed}/{total} lessons passed</div>
                             </div>
-                            <div style={{fontSize:13,fontWeight:700,color:barColor}}>{pct}%</div>
+                            <div style={{display:'flex',alignItems:'center',gap:8}}>
+                              <div style={{fontSize:13,fontWeight:700,color:barColor}}>{pct}%</div>
+                              {nextLesson && (
+                                <a href={`/learn/lesson?lessonId=${nextLesson.id}`} style={{fontSize:11,color:'#000',background:'var(--accent)',textDecoration:'none',padding:'4px 10px',borderRadius:8,fontWeight:700,whiteSpace:'nowrap'}}>
+                                  {nextLesson.attempted ? 'Retry →' : 'Continue →'}
+                                </a>
+                              )}
+                              {pct === 100 && (
+                                <span style={{fontSize:11,color:'var(--accent)',padding:'4px 10px',border:'1px solid rgba(0,229,160,.3)',borderRadius:8}}>Complete ✓</span>
+                              )}
+                            </div>
                           </div>
                           <div style={{height:6,background:'var(--surface2)',borderRadius:4,overflow:'hidden',marginBottom:14}}>
                             <div style={{height:'100%',width:`${pct}%`,background:barColor,borderRadius:4,transition:'width .6s'}} />
                           </div>
                           <div style={{display:'flex',flexDirection:'column',gap:4}}>
                             {mod.lessons.map(l => (
-                              <div key={l.id} style={{display:'flex',alignItems:'center',gap:10,padding:'7px 10px',borderRadius:10,background:'var(--surface2)'}}>
+                              <a key={l.id} href={`/learn/lesson?lessonId=${l.id}`} style={{display:'flex',alignItems:'center',gap:10,padding:'7px 10px',borderRadius:10,background:'var(--surface2)',textDecoration:'none',transition:'background .15s'}}
+                                onMouseEnter={e=>e.currentTarget.style.background='rgba(0,229,160,.07)'}
+                                onMouseLeave={e=>e.currentTarget.style.background='var(--surface2)'}
+                              >
                                 <span style={{fontSize:14,flexShrink:0}}>{l.passed?'✅':l.attempted?'❌':'⭕'}</span>
                                 <div style={{flex:1,fontSize:12,fontWeight:l.passed?600:400,color:l.passed?'var(--text)':'var(--muted)'}}>{l.title}</div>
                                 {l.bestScore != null && (
                                   <div style={{fontSize:11,color:l.passed?'var(--up)':'var(--down)',fontWeight:600,flexShrink:0}}>{l.bestScore}%</div>
                                 )}
-                                {!l.attempted && <div style={{fontSize:10,color:'#334155',flexShrink:0}}>Not started</div>}
-                              </div>
+                                {!l.attempted && <div style={{fontSize:10,color:'#475569',flexShrink:0}}>Start →</div>}
+                                {l.attempted && !l.passed && <div style={{fontSize:10,color:'#f59e0b',flexShrink:0}}>Retry →</div>}
+                              </a>
                             ))}
                           </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Assignments tab */}
+            {activeTab === 'assignments' && (
+              <div className="panel">
+                {assignmentsLoading ? (
+                  <div className="empty">Loading assignments…</div>
+                ) : !assignmentsData ? (
+                  <div className="empty">Could not load assignments</div>
+                ) : assignmentsData.assignments?.length === 0 ? (
+                  <div className="empty">No assignments yet</div>
+                ) : (
+                  <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                    <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:16,marginBottom:4}}>📋 Assignments</div>
+                    {assignmentsData.assignments.map(a => {
+                      const dueDate = a.dueAt ? new Date(a.dueAt) : null;
+                      const isOverdue = a.overdue && !a.completed;
+                      const daysLeft = dueDate ? Math.ceil((dueDate - new Date()) / 86400000) : null;
+                      return (
+                        <div key={a.id} style={{background:'var(--surface)',border:`1px solid ${a.completed?'rgba(0,229,160,.3)':isOverdue?'rgba(244,63,94,.3)':'var(--border)'}`,borderRadius:16,padding:'16px 18px',display:'flex',alignItems:'center',gap:14,flexWrap:'wrap'}}>
+                          <div style={{fontSize:22,flexShrink:0}}>{a.completed?'✅':isOverdue?'⚠️':'📝'}</div>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:14,color:a.completed?'var(--muted)':'var(--text)',textDecoration:a.completed?'line-through':'none'}}>{a.title}</div>
+                            {a.description && <div style={{fontSize:11,color:'var(--muted)',marginTop:2}}>{a.description}</div>}
+                            {a.lessonTitle && <div style={{fontSize:11,color:'var(--accent)',marginTop:4}}>Lesson: {a.lessonTitle}</div>}
+                            {dueDate && (
+                              <div style={{fontSize:11,color:isOverdue?'#f87171':daysLeft<=3?'#fbbf24':'var(--muted)',marginTop:3}}>
+                                {isOverdue ? `Overdue — was due ${dueDate.toLocaleDateString()}` : `Due ${dueDate.toLocaleDateString()}${daysLeft<=7?` (${daysLeft} day${daysLeft!==1?'s':''})`:''}` }
+                              </div>
+                            )}
+                          </div>
+                          {a.lessonId && !a.completed && (
+                            <a href={`/learn/lesson?lessonId=${a.lessonId}`}
+                              style={{padding:'8px 16px',borderRadius:10,background:'var(--accent)',color:'#000',textDecoration:'none',fontSize:12,fontWeight:700,flexShrink:0,whiteSpace:'nowrap'}}>
+                              {a.overdue ? 'Complete Now' : 'Start →'}
+                            </a>
+                          )}
+                          {a.completed && <span style={{fontSize:12,color:'var(--accent)',fontWeight:700,flexShrink:0}}>Done ✓</span>}
                         </div>
                       );
                     })}

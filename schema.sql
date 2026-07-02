@@ -374,6 +374,7 @@ CREATE INDEX IF NOT EXISTS learn_attempts_student_idx ON learn_attempts(student_
 CREATE TABLE IF NOT EXISTS assignments (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   class_id    uuid NOT NULL,
+  lesson_id   uuid REFERENCES learn_lessons(id) ON DELETE SET NULL,
   title       text NOT NULL,
   description text,
   due_at      timestamptz,

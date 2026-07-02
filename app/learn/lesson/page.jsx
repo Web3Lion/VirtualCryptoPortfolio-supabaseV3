@@ -144,6 +144,11 @@ function LessonPage() {
   const [earnedBadges, setEarnedBadges] = useState([]);
   const [moduleComplete, setModuleComplete] = useState(null); // {title, emoji, tokensTotal}
 
+  const [tutorQ, setTutorQ] = useState("");
+  const [tutorLoading, setTutorLoading] = useState(false);
+  const [tutorHistory, setTutorHistory] = useState([]); // [{q, a}]
+  const [tutorDisabled, setTutorDisabled] = useState(false);
+
   useEffect(() => { applyTheme(getTheme()); }, []);
   useEffect(() => { if (status === "unauthenticated") router.replace("/"); }, [status, router]);
 
@@ -196,6 +201,31 @@ function LessonPage() {
     }
   }, [lessonId, classId, answers]);
 
+  const askTutor = useCallback(async () => {
+    const q = tutorQ.trim();
+    if (!q || tutorLoading) return;
+    setTutorLoading(true);
+    setTutorQ("");
+    try {
+      const res = await fetch("/api/learn/tutor", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lessonId, classId, question: q }),
+      });
+      const data = await res.json();
+      if (data.error) {
+        if (data.error.includes("not enabled")) setTutorDisabled(true);
+        setTutorHistory(h => [...h, { q, a: data.error, isError: true }]);
+      } else {
+        setTutorHistory(h => [...h, { q, a: data.answer }]);
+      }
+    } catch {
+      setTutorHistory(h => [...h, { q, a: "Connection error. Try again.", isError: true }]);
+    } finally {
+      setTutorLoading(false);
+    }
+  }, [tutorQ, tutorLoading, lessonId, classId]);
+
   if (status === "loading" || status === "unauthenticated") {
     return <div style={{ background: "var(--bg,#080c14)", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)" }}>Loading...</div>;
   }
@@ -221,6 +251,12 @@ function LessonPage() {
         .btn-primary{background:var(--accent);color:#000}.btn-primary:hover{background:#00c98e}.btn-primary:disabled{opacity:.5;cursor:not-allowed}
         .skeleton{background:linear-gradient(90deg,var(--surface) 25%,var(--surface2) 50%,var(--surface) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:12px}
         @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+        .tutor-bubble{border-radius:14px;padding:12px 16px;margin-bottom:8px;font-size:12.5px;line-height:1.6}
+        .tutor-bubble.q{background:rgba(0,229,160,.09);border:1px solid rgba(0,229,160,.2);color:var(--text);align-self:flex-end}
+        .tutor-bubble.a{background:var(--surface2);border:1px solid var(--border);color:var(--text)}
+        .tutor-bubble.err{border-color:rgba(244,63,94,.3);background:rgba(244,63,94,.07);color:#f87171}
+        .tutor-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:10px 14px;color:var(--text);font-family:'DM Mono',monospace;font-size:12px;resize:none;outline:none;transition:border .2s}
+        .tutor-input:focus{border-color:var(--accent)}
       `}</style>
       <div className="page">
         <Nav active="learn" />
@@ -291,6 +327,69 @@ function LessonPage() {
                         </Link>
                       </div>
                     )}
+                  </div>
+                )}
+
+                {/* AI Lesson Tutor */}
+                {!tutorDisabled && (
+                  <div className="card" style={{ marginBottom: 16 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: tutorHistory.length ? 16 : 0 }}>
+                      <span style={{ fontSize: 20 }}>🤖</span>
+                      <div>
+                        <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 14, color: "var(--text)" }}>Ask the AI Tutor</div>
+                        <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 1 }}>Questions about this lesson answered instantly</div>
+                      </div>
+                    </div>
+
+                    {tutorHistory.length > 0 && (
+                      <div style={{ marginBottom: 14, display: "flex", flexDirection: "column", gap: 8 }}>
+                        {tutorHistory.map((item, i) => (
+                          <div key={i}>
+                            <div className="tutor-bubble q">
+                              <span style={{ fontSize: 10, color: "var(--muted)", display: "block", marginBottom: 4 }}>You</span>
+                              {item.q}
+                            </div>
+                            <div className={`tutor-bubble a${item.isError ? " err" : ""}`}>
+                              <span style={{ fontSize: 10, color: "var(--muted)", display: "block", marginBottom: 4 }}>Tutor</span>
+                              {item.a}
+                            </div>
+                          </div>
+                        ))}
+                        {tutorLoading && (
+                          <div className="tutor-bubble a" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <span style={{ fontSize: 10, color: "var(--muted)", display: "block", marginBottom: 4 }}>Tutor</span>
+                            <span style={{ color: "var(--muted)", fontSize: 12 }}>Thinking…</span>
+                            <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: "var(--accent)", animation: "pulse 1s infinite" }} />
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {tutorLoading && tutorHistory.length === 0 && (
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14, color: "var(--muted)", fontSize: 12 }}>
+                        <span>Thinking…</span>
+                      </div>
+                    )}
+
+                    <div style={{ display: "flex", gap: 10, alignItems: "flex-end" }}>
+                      <textarea
+                        className="tutor-input"
+                        rows={2}
+                        placeholder="Ask anything about this lesson…"
+                        value={tutorQ}
+                        onChange={e => setTutorQ(e.target.value)}
+                        onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); askTutor(); } }}
+                        disabled={tutorLoading}
+                      />
+                      <button
+                        className="btn btn-primary"
+                        style={{ padding: "10px 18px", fontSize: 12, flexShrink: 0, opacity: (!tutorQ.trim() || tutorLoading) ? 0.5 : 1 }}
+                        onClick={askTutor}
+                        disabled={!tutorQ.trim() || tutorLoading}
+                      >
+                        Ask
+                      </button>
+                    </div>
                   </div>
                 )}
 
