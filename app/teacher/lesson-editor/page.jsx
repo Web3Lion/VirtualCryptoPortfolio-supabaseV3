@@ -288,12 +288,24 @@ export default function LessonEditor() {
       <div style={{ maxWidth:820, margin:'0 auto', padding:'28px 16px 60px' }}>
 
         {/* Header */}
-        <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:28 }}>
-          <button onClick={() => router.back()} style={{ padding:'7px 14px', borderRadius:9, border:'1px solid var(--border)', background:'var(--surface)', color:'var(--muted)', cursor:'pointer', fontSize:12, fontFamily:"'DM Mono',monospace" }}>← Back</button>
+        <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:20 }}>
+          <a href="/teacher/learn" style={{ padding:'7px 14px', borderRadius:9, border:'1px solid var(--border)', background:'var(--surface)', color:'var(--muted)', cursor:'pointer', fontSize:12, fontFamily:"'DM Mono',monospace", textDecoration:'none' }}>← Learn</a>
           <div>
             <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:24, letterSpacing:-1 }}>📝 Lesson Editor</div>
             <div style={{ fontSize:11, color:'var(--muted)' }}>Select a module and lesson to begin editing</div>
           </div>
+        </div>
+
+        {/* Nav */}
+        <div style={{ display:'flex', gap:8, flexWrap:'wrap', marginBottom:24 }}>
+          {[
+            { href:'/teacher', label:'Dashboard' },
+            { href:'/teacher/cockpit', label:'Cockpit' },
+            { href:'/teacher/learn', label:'Learn' },
+            { href:'/teacher/lesson-editor', label:'Lesson Editor', active:true },
+          ].map(({ href, label, active }) => (
+            <a key={href} href={href} style={{ padding:'5px 14px', borderRadius:8, fontSize:11, textDecoration:'none', letterSpacing:'1px', textTransform:'uppercase', color: active ? 'var(--accent)' : 'var(--muted)', background: active ? 'rgba(0,229,160,.12)' : 'transparent', border: active ? '1px solid rgba(0,229,160,.2)' : '1px solid transparent' }}>{label}</a>
+          ))}
         </div>
 
         {/* Picker */}

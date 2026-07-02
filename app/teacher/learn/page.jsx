@@ -381,6 +381,7 @@ export default function TeacherLearn() {
             <Link href="/teacher" className="nav-link">Dashboard</Link>
             <Link href="/teacher/cockpit" className="nav-link">Cockpit</Link>
             <a href="/teacher/learn" className="nav-link active">Learn</a>
+            <Link href="/teacher/lesson-editor" className="nav-link">Lesson Editor</Link>
             <Link href="/teacher/schema" className="nav-link">Schema</Link>
             <Link href="/teacher/migrate" className="nav-link">Migrate</Link>
           </div>
