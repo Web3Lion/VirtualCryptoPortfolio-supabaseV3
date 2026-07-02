@@ -64,6 +64,7 @@ function buildPrompt({ action, symbol, price, qty, total, pl, plPct, holdDays, c
 }
 
 export async function POST(request) {
+  try {
   const session = await getServerSession(authOptions);
   if (!session) return Response.json({ error: 'Not authenticated' }, { status: 401 });
 
@@ -127,4 +128,7 @@ export async function POST(request) {
     usageToday: todayUsage + 1,
     quota: useStudentKey ? (cfg.ai_student_key_limit || null) : (cfg.ai_coach_daily_quota ?? 5),
   });
+  } catch (err) {
+    return Response.json({ error: `Unexpected error: ${err.message}` }, { status: 500 });
+  }
 }

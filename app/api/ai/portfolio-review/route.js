@@ -92,70 +92,74 @@ Return ONLY valid JSON — no markdown, no explanation — in exactly this forma
 }
 
 export async function POST(request) {
-  const session = await getServerSession(authOptions);
-  if (!session) return Response.json({ error: 'Not authenticated' }, { status: 401 });
-
-  const body = await request.json();
-  const { classId: bodyClassId, portfolio } = body;
-
-  const { studentId, classId } = await getStudentAndClass(session.user.email);
-  const effectiveClassId = bodyClassId || classId;
-  if (!studentId || !effectiveClassId) return Response.json({ error: 'Not in a class' }, { status: 400 });
-
-  const { data: cfg } = await db.from('class_reward_config')
-    .select('ai_coach_enabled, ai_coach_daily_quota, ai_allow_student_key, ai_student_key_limit')
-    .eq('class_id', effectiveClassId).single();
-
-  if (!cfg?.ai_coach_enabled) return Response.json({ error: 'AI Coach is not enabled for this class' }, { status: 403 });
-
-  // Key resolution: student key > class key
-  let geminiKey = null;
-  let useStudentKey = false;
-  if (cfg.ai_allow_student_key) {
-    const { data: aiSettings } = await db.from('student_ai_settings')
-      .select('gemini_api_key').eq('student_id', studentId).single();
-    if (aiSettings?.gemini_api_key) { geminiKey = aiSettings.gemini_api_key; useStudentKey = true; }
-  }
-  if (!geminiKey) geminiKey = process.env.GEMINI_API_KEY;
-  if (!geminiKey) return Response.json({ error: 'No Gemini API key configured.' }, { status: 503 });
-
-  // Quota check (shares pool with trade coach queries)
-  const todayUsage = await getTodayUsage(studentId, effectiveClassId);
-  if (useStudentKey) {
-    const limit = cfg.ai_student_key_limit || 0;
-    if (limit > 0 && todayUsage >= limit) return Response.json({ busy: true, message: BUSY_MESSAGE });
-  } else {
-    const quota = cfg.ai_coach_daily_quota ?? 5;
-    if (todayUsage >= quota) return Response.json({ busy: true, message: BUSY_MESSAGE });
-  }
-
-  const prompt = buildPrompt(portfolio);
-  let rawText;
   try {
-    rawText = await callGemini(prompt, geminiKey);
+    const session = await getServerSession(authOptions);
+    if (!session) return Response.json({ error: 'Not authenticated' }, { status: 401 });
+
+    const body = await request.json();
+    const { classId: bodyClassId, portfolio } = body;
+
+    const { studentId, classId } = await getStudentAndClass(session.user.email);
+    const effectiveClassId = bodyClassId || classId;
+    if (!studentId || !effectiveClassId) return Response.json({ error: 'Not in a class' }, { status: 400 });
+
+    const { data: cfg, error: cfgErr } = await db.from('class_reward_config')
+      .select('ai_coach_enabled, ai_coach_daily_quota, ai_allow_student_key, ai_student_key_limit')
+      .eq('class_id', effectiveClassId).single();
+
+    if (cfgErr) return Response.json({ error: `DB error: ${cfgErr.message}` }, { status: 500 });
+    if (!cfg?.ai_coach_enabled) return Response.json({ error: 'AI Coach is not enabled for this class. Enable it in teacher Controls → AI Coach.' }, { status: 403 });
+
+    // Key resolution: student key > class key
+    let geminiKey = null;
+    let useStudentKey = false;
+    if (cfg.ai_allow_student_key) {
+      const { data: aiSettings } = await db.from('student_ai_settings')
+        .select('gemini_api_key').eq('student_id', studentId).single();
+      if (aiSettings?.gemini_api_key) { geminiKey = aiSettings.gemini_api_key; useStudentKey = true; }
+    }
+    if (!geminiKey) geminiKey = process.env.GEMINI_API_KEY;
+    if (!geminiKey) return Response.json({ error: 'No Gemini API key — add GEMINI_API_KEY to Vercel environment variables.' }, { status: 503 });
+
+    // Quota check
+    const todayUsage = await getTodayUsage(studentId, effectiveClassId);
+    if (useStudentKey) {
+      const limit = cfg.ai_student_key_limit || 0;
+      if (limit > 0 && todayUsage >= limit) return Response.json({ busy: true, message: BUSY_MESSAGE });
+    } else {
+      const quota = cfg.ai_coach_daily_quota ?? 5;
+      if (todayUsage >= quota) return Response.json({ busy: true, message: BUSY_MESSAGE });
+    }
+
+    const prompt = buildPrompt(portfolio);
+    let rawText;
+    try {
+      rawText = await callGemini(prompt, geminiKey);
+    } catch (err) {
+      return Response.json({ error: `Gemini API error: ${err.message}` }, { status: 503 });
+    }
+
+    let review;
+    try {
+      review = parseJsonFromAI(rawText);
+    } catch {
+      return Response.json({ error: 'AI returned an unexpected format — try again.', raw: rawText }, { status: 502 });
+    }
+
+    if (!review.overallScore || !review.scores || !review.suggestions) {
+      return Response.json({ error: 'AI response incomplete — try again.' }, { status: 502 });
+    }
+
+    const today = new Date().toISOString().slice(0, 10);
+    await db.from('class_reward_ledger').insert({
+      student_id: studentId,
+      class_id: effectiveClassId,
+      tokens: 0,
+      reason: `aicoach:${today}:portfolio-review`,
+    });
+
+    return Response.json({ review, usedStudentKey: useStudentKey, usageToday: todayUsage + 1 });
   } catch (err) {
-    return Response.json({ error: 'AI service unavailable — try again shortly', detail: err.message }, { status: 503 });
+    return Response.json({ error: `Unexpected error: ${err.message}` }, { status: 500 });
   }
-
-  let review;
-  try {
-    review = parseJsonFromAI(rawText);
-  } catch {
-    return Response.json({ error: 'AI returned an unexpected format — try again.', raw: rawText }, { status: 502 });
-  }
-
-  // Validate shape
-  if (!review.overallScore || !review.scores || !review.suggestions) {
-    return Response.json({ error: 'AI response incomplete — try again.' }, { status: 502 });
-  }
-
-  const today = new Date().toISOString().slice(0, 10);
-  await db.from('class_reward_ledger').insert({
-    student_id: studentId,
-    class_id: effectiveClassId,
-    tokens: 0,
-    reason: `aicoach:${today}:portfolio-review`,
-  });
-
-  return Response.json({ review, usedStudentKey: useStudentKey, usageToday: todayUsage + 1 });
 }
