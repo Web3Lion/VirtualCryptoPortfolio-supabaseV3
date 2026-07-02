@@ -3,6 +3,12 @@ import './globals.css';
 
 export const metadata = { title: 'CryptoClassroom', description: 'Virtual Crypto Trading Simulator' };
 
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+};
+
 const THEME_SCRIPT = `(function(){
   var t=localStorage.getItem('cc-theme')||'dark';
   document.documentElement.setAttribute('data-theme',t);
