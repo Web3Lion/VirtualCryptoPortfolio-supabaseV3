@@ -1,7 +1,7 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 const BLOCK_TYPES = [
   { value: 'heading',    label: 'Heading' },
@@ -127,9 +127,10 @@ function QuestionEditor({ q, idx, onChange, onDelete }) {
   );
 }
 
-export default function LessonEditor() {
+function LessonEditorInner() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [modules, setModules]       = useState([]);
   const [selectedMod, setSelectedMod] = useState('');
@@ -149,7 +150,16 @@ export default function LessonEditor() {
   useEffect(() => { if (status === 'unauthenticated') router.replace('/'); }, [status, router]);
 
   useEffect(() => {
-    fetch('/api/teacher/lesson-editor').then(r => r.json()).then(d => Array.isArray(d) && setModules(d));
+    fetch('/api/teacher/lesson-editor').then(r => r.json()).then(d => {
+      if (!Array.isArray(d)) return;
+      setModules(d);
+      const paramLesson = searchParams.get('lessonId');
+      if (paramLesson) {
+        const parentMod = d.find(m => m.lessons?.some(l => l.id === paramLesson));
+        if (parentMod) setSelectedMod(parentMod.id);
+        setSelectedLesson(paramLesson);
+      }
+    });
     fetch('/api/classes').then(r => r.ok ? r.json() : []).then(d => { if (Array.isArray(d)) setClassList(d); }).catch(() => {});
   }, []);
 
@@ -505,5 +515,13 @@ export default function LessonEditor() {
         )}
       </div>
     </>
+  );
+}
+
+export default function LessonEditor() {
+  return (
+    <Suspense fallback={null}>
+      <LessonEditorInner />
+    </Suspense>
   );
 }

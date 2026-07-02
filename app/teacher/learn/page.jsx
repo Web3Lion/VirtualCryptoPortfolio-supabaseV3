@@ -600,6 +600,7 @@ export default function TeacherLearn() {
                     <button className="btn btn-ghost" style={{ fontSize: 9, padding: "4px 8px" }} onClick={() => togglePublish("lesson", lesson.id, lesson.is_published)}>
                       {lesson.is_published ? "Unpublish" : "Publish"}
                     </button>
+                    <a href={`/teacher/lesson-editor?lessonId=${lesson.id}`} style={{ fontSize: 9, padding: "4px 8px", borderRadius: 7, border: "1px solid rgba(0,229,160,.3)", background: "rgba(0,229,160,.08)", color: "var(--accent)", textDecoration: "none", fontFamily: "'DM Mono',monospace", fontWeight: 600 }}>Edit</a>
                     <button className="btn btn-danger" style={{ fontSize: 9, padding: "4px 8px" }} onClick={() => deleteItem("lesson", lesson.id)}>✕</button>
                   </div>
                 </div>
