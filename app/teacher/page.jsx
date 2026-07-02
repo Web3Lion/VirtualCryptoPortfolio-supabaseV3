@@ -701,12 +701,31 @@ export default function Teacher() {
                       <span style={{fontSize:13}}>⚠️</span>
                       <span style={{fontSize:12,color:'#fbbf24',flex:1}}>Your database needs a one-time schema update before settings will save.</span>
                       <button className="btn" style={{background:'rgba(245,158,11,.2)',color:'#fbbf24',border:'1px solid rgba(245,158,11,.4)',fontSize:11,padding:'5px 14px',whiteSpace:'nowrap'}}
-                        onClick={async()=>{
-                          const res = await fetch('/api/admin/migrate-all',{method:'POST'});
-                          const d = await res.json();
-                          if(res.ok){ setGameRewardsMigrated(true); setAiConfigMigrated(true); setActionMsg({type:'success',msg:'✅ Database updated!'}); setTimeout(()=>setActionMsg(null),4000); }
-                          else setMigrationSql(d.sql);
-                        }}>
+                        onClick={()=>setMigrationSql(`ALTER TABLE class_reward_config
+  ADD COLUMN IF NOT EXISTS crush_enabled boolean DEFAULT true,
+  ADD COLUMN IF NOT EXISTS crush_points_per_token integer DEFAULT 100,
+  ADD COLUMN IF NOT EXISTS crush_max_tokens_per_day integer DEFAULT 50,
+  ADD COLUMN IF NOT EXISTS higher_lower_enabled boolean DEFAULT true,
+  ADD COLUMN IF NOT EXISTS higher_lower_tokens_per_correct integer DEFAULT 10,
+  ADD COLUMN IF NOT EXISTS miner_enabled boolean DEFAULT true,
+  ADD COLUMN IF NOT EXISTS miner_points_per_token integer DEFAULT 50,
+  ADD COLUMN IF NOT EXISTS miner_max_tokens_per_day integer DEFAULT 40,
+  ADD COLUMN IF NOT EXISTS spin_enabled boolean DEFAULT true,
+  ADD COLUMN IF NOT EXISTS bull_bear_enabled boolean DEFAULT true,
+  ADD COLUMN IF NOT EXISTS bull_bear_tokens_per_correct integer DEFAULT 5,
+  ADD COLUMN IF NOT EXISTS bull_bear_max_tokens_per_day integer DEFAULT 50,
+  ADD COLUMN IF NOT EXISTS ai_coach_enabled boolean DEFAULT false,
+  ADD COLUMN IF NOT EXISTS ai_coach_daily_quota integer DEFAULT 5,
+  ADD COLUMN IF NOT EXISTS ai_allow_student_key boolean DEFAULT false,
+  ADD COLUMN IF NOT EXISTS ai_student_key_limit integer DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS pinned_message text,
+  ADD COLUMN IF NOT EXISTS pinned_updated_at timestamptz;
+
+CREATE TABLE IF NOT EXISTS student_ai_settings (
+  student_id uuid PRIMARY KEY REFERENCES students(id) ON DELETE CASCADE,
+  gemini_api_key text,
+  updated_at timestamptz DEFAULT now()
+);`)}>
                         🔧 Get Migration SQL
                       </button>
                     </div>
