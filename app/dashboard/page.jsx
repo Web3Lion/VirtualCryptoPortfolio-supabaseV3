@@ -442,12 +442,14 @@ export default function Dashboard() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ classId, portfolio: portfolioPayload }),
       });
-      const d = await res.json();
+      const text = await res.text();
+      let d;
+      try { d = JSON.parse(text); } catch { d = { error: `Server error ${res.status} — check Vercel logs. Response: ${text.slice(0, 120)}` }; }
       if (d.busy) setPortfolioReview({ busy: true, message: d.message });
       else if (d.review) setPortfolioReview(d.review);
       else setPortfolioReview({ error: d.error || 'Something went wrong — try again.' });
-    } catch {
-      setPortfolioReview({ error: 'Network error — try again.' });
+    } catch (err) {
+      setPortfolioReview({ error: `Network error: ${err.message}` });
     }
     setPortfolioReviewLoading(false);
   }, [portfolio, classId, seedMoney]);
