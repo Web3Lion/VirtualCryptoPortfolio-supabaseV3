@@ -675,6 +675,14 @@ export default function Teacher() {
                           <button className="btn btn-accent" onClick={()=>router.push('/teacher/setup')}>+ New Class</button>
                           <button className="btn btn-gold" onClick={()=>router.push('/teacher/learn')}>📚 Manage Lessons</button>
                           <button className="btn btn-muted" onClick={()=>router.push('/teacher/schema')}>🗄️ DB Schema</button>
+                          <button className="btn btn-muted" style={{color:'#00e5a0',border:'1px solid rgba(0,229,160,.3)'}} onClick={async()=>{
+                            setActionMsg({type:'pending',msg:'Syncing lesson videos from source files…'});
+                            const res = await fetch(`/api/admin/sync-learn-videos?classId=${activeClass?.id}`,{method:'POST'});
+                            const d = await res.json().catch(()=>({}));
+                            if(res.ok) setActionMsg({type:'success',msg:`✅ Videos synced — ${d.updated} updated, ${d.skipped} already current`});
+                            else setActionMsg({type:'error',msg:d.error||'Sync failed'});
+                            setTimeout(()=>setActionMsg(null),6000);
+                          }}>🎬 Sync Lesson Videos</button>
                           <button className="btn btn-muted" onClick={()=>router.push('/teacher/migrate')}>📦 Migrate from Sheets</button>
                           <button className="btn btn-muted" onClick={()=>router.push('/market')}>📈 Market & Heatmap</button>
                           <button className="btn btn-muted" onClick={()=>router.push('/news')}>📰 Student News Page</button>
