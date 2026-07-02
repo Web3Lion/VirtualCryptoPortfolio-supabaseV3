@@ -259,6 +259,7 @@ export default function Dashboard() {
   const [portfolioReview, setPortfolioReview] = useState(null);
   const [portfolioReviewLoading, setPortfolioReviewLoading] = useState(false);
   const [seedMoney, setSeedMoney] = useState(10000);
+  const [expandedHolding, setExpandedHolding] = useState(null);
   const [stakingData, setStakingData] = useState(null);
   const [dcaOrders, setDcaOrders] = useState([]);
   const [dcaForm, setDcaForm] = useState({ coin: '', amountUsd: '', frequency: 'daily' });
@@ -1548,70 +1549,114 @@ export default function Dashboard() {
                   </div>
                 ) : holdingsWithVal.length === 0 ? null : (
                   <>
-                    {holdingsWithVal.map((h, i) => (
-                      <div className="holding-row" key={i} style={h.isShort ? {borderLeft:'2px solid rgba(251,146,60,.4)',background:'rgba(251,146,60,.04)'} : h.marginBorrowed>0 ? {borderLeft:'2px solid rgba(96,165,250,.4)',background:'rgba(96,165,250,.04)'} : {}}>
-                        <div className="coin-icon" style={{ background: 'transparent', padding: 0 }}>
-                          <CoinLogo symbol={h.ticker} size={32} />
-                        </div>
-                        <div>
-                          <div style={{display:'flex',alignItems:'center',gap:6}}>
-                            <div
-                              style={{
-                                fontFamily: "'Syne',sans-serif",
-                                fontWeight: 700,
-                                fontSize: 13,
-                              }}
-                            >
-                              {h.ticker}
+                    {holdingsWithVal.map((h, i) => {
+                      const isExpanded = expandedHolding === h.ticker;
+                      const coinTrades = (tradeHistory || []).filter(t => t.coin === h.ticker);
+                      const ACTION_COLOR = { BUY:'var(--up)', SELL:'var(--down)', SHORT:'#fb923c', COVER:'#818cf8', DCA:'var(--up)' };
+                      return (
+                        <React.Fragment key={i}>
+                          <div
+                            className="holding-row"
+                            onClick={() => setExpandedHolding(isExpanded ? null : h.ticker)}
+                            style={{
+                              cursor: 'pointer',
+                              ...(h.isShort ? {borderLeft:'2px solid rgba(251,146,60,.4)',background:'rgba(251,146,60,.04)'} : h.marginBorrowed>0 ? {borderLeft:'2px solid rgba(96,165,250,.4)',background:'rgba(96,165,250,.04)'} : {}),
+                              ...(isExpanded ? {borderBottomLeftRadius:0,borderBottomRightRadius:0,borderBottom:'1px solid var(--border)'} : {}),
+                            }}>
+                            <div className="coin-icon" style={{ background: 'transparent', padding: 0 }}>
+                              <CoinLogo symbol={h.ticker} size={32} />
                             </div>
-                            {h.isShort && <span style={{fontSize:9,background:'rgba(251,146,60,.2)',color:'#fb923c',borderRadius:4,padding:'1px 5px',letterSpacing:'1px'}}><GlossaryTerm term="Short">SHORT</GlossaryTerm></span>}
-                            {!h.isShort && h.marginBorrowed>0 && <span style={{fontSize:9,background:'rgba(96,165,250,.2)',color:'#60a5fa',borderRadius:4,padding:'1px 5px',letterSpacing:'1px'}}><GlossaryTerm term="Leveraged">LEVERAGED</GlossaryTerm></span>}
+                            <div>
+                              <div style={{display:'flex',alignItems:'center',gap:6}}>
+                                <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:13}}>{h.ticker}</div>
+                                {h.isShort && <span style={{fontSize:9,background:'rgba(251,146,60,.2)',color:'#fb923c',borderRadius:4,padding:'1px 5px',letterSpacing:'1px'}}><GlossaryTerm term="Short">SHORT</GlossaryTerm></span>}
+                                {!h.isShort && h.marginBorrowed>0 && <span style={{fontSize:9,background:'rgba(96,165,250,.2)',color:'#60a5fa',borderRadius:4,padding:'1px 5px',letterSpacing:'1px'}}><GlossaryTerm term="Leveraged">LEVERAGED</GlossaryTerm></span>}
+                              </div>
+                              <div style={{fontSize:11,color:'var(--muted)',marginTop:2}}>
+                                {h.isShort
+                                  ? `Entry $${h.avgBuy.toFixed(2)} · ${fmtNum(Math.abs(h.qty))} short`
+                                  : prices[h.ticker]
+                                  ? `$${parseFloat(prices[h.ticker].price).toLocaleString()}`
+                                  : `Avg $${h.avgBuy.toFixed(4)}`}
+                              </div>
+                            </div>
+                            <div style={{textAlign:'right'}}>
+                              <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:13,color:h.isShort?(h.plPct>=0?'var(--up)':'var(--down)'):undefined}}>
+                                {h.isShort?(h.plPct>=0?'+':'')+fmtUSD((h.plPct/100)*h.avgBuy*Math.abs(h.qty)):fmtUSD(h.curVal)}
+                              </div>
+                              <div style={{fontSize:10,color:'var(--muted)',marginTop:2}}>
+                                {h.isShort?`liability ${fmtUSD(Math.abs(h.curVal))}`:`${fmtNum(h.qty)} ${h.ticker}`}
+                              </div>
+                            </div>
+                            <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:4}}>
+                              <div className={`pct-badge ${h.plPct>=0?'up':'down'}`}>
+                                {h.plPct>=0?'▲':'▼'} {Math.abs(h.plPct).toFixed(2)}%
+                              </div>
+                              <span style={{fontSize:9,color:'var(--muted)'}}>{isExpanded?'▲':'▼'}</span>
+                            </div>
                           </div>
-                          <div
-                            style={{
-                              fontSize: 11,
-                              color: "var(--muted)",
-                              marginTop: 2,
-                            }}
-                          >
-                            {h.isShort
-                              ? `Entry $${h.avgBuy.toFixed(2)} · ${fmtNum(Math.abs(h.qty))} short`
-                              : prices[h.ticker]
-                              ? `$${parseFloat(prices[h.ticker].price).toLocaleString()}`
-                              : `Avg $${h.avgBuy.toFixed(4)}`}
-                          </div>
-                        </div>
-                        <div style={{ textAlign: "right" }}>
-                          <div
-                            style={{
-                              fontFamily: "'Syne',sans-serif",
-                              fontWeight: 700,
-                              fontSize: 13,
-                              color: h.isShort ? (h.plPct >= 0 ? 'var(--up)' : 'var(--down)') : undefined,
-                            }}
-                          >
-                            {h.isShort ? (h.plPct >= 0 ? '+' : '') + fmtUSD((h.plPct / 100) * h.avgBuy * Math.abs(h.qty)) : fmtUSD(h.curVal)}
-                          </div>
-                          <div
-                            style={{
-                              fontSize: 10,
-                              color: "var(--muted)",
-                              marginTop: 2,
-                            }}
-                          >
-                            {h.isShort ? `liability ${fmtUSD(Math.abs(h.curVal))}` : `${fmtNum(h.qty)} ${h.ticker}`}
-                          </div>
-                        </div>
-                        <div
-                          className={`pct-badge ${
-                            h.plPct >= 0 ? "up" : "down"
-                          }`}
-                        >
-                          {h.plPct >= 0 ? "▲" : "▼"}{" "}
-                          {Math.abs(h.plPct).toFixed(2)}%
-                        </div>
-                      </div>
-                    ))}
+
+                          {/* Expanded trade history for this coin */}
+                          {isExpanded && (
+                            <div style={{background:'var(--surface2)',border:'1px solid var(--border)',borderTop:'none',borderBottomLeftRadius:12,borderBottomRightRadius:12,padding:'12px 14px',marginBottom:10}}>
+                              <div style={{fontSize:10,fontWeight:700,color:'var(--muted)',letterSpacing:1,textTransform:'uppercase',marginBottom:10}}>
+                                {h.ticker} Trade History ({coinTrades.length})
+                              </div>
+                              {coinTrades.length === 0 ? (
+                                <div style={{fontSize:11,color:'var(--muted)',textAlign:'center',padding:'8px 0'}}>No trades found</div>
+                              ) : (
+                                <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                                  {coinTrades.map((t, ti) => {
+                                    const color = ACTION_COLOR[t.action] || 'var(--muted)';
+                                    const qty = parseFloat(t.quantity || 0);
+                                    const price = parseFloat(t.price || 0);
+                                    const val = parseFloat(t.totalValue || t.grossValue || qty * price);
+                                    const date = new Date(t.createdAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+                                    const time = new Date(t.createdAt).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+                                    return (
+                                      <div key={ti} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 10px',background:'var(--surface)',borderRadius:8,border:'1px solid var(--border)'}}>
+                                        <div style={{width:36,height:36,borderRadius:8,background:`${color}18`,border:`1px solid ${color}40`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:"'DM Mono',monospace",fontWeight:700,fontSize:9,color,flexShrink:0,textAlign:'center'}}>
+                                          {t.action}
+                                        </div>
+                                        <div style={{flex:1,minWidth:0}}>
+                                          <div style={{fontSize:12,fontWeight:600,color:'var(--text)'}}>
+                                            {fmtNum(qty)} {h.ticker} @ {fmtUSD(price)}
+                                          </div>
+                                          {t.reasoning && (
+                                            <div style={{fontSize:10,color:'var(--muted)',marginTop:2,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:200}}>
+                                              "{t.reasoning.replace(/^\[EVENT:[^\]]+\]\s*/,'')}"
+                                            </div>
+                                          )}
+                                        </div>
+                                        <div style={{textAlign:'right',flexShrink:0}}>
+                                          <div style={{fontSize:12,fontWeight:700,fontFamily:"'Syne',sans-serif",color}}>{fmtUSD(val)}</div>
+                                          <div style={{fontSize:9,color:'var(--muted)',marginTop:1}}>{date} · {time}</div>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                              {/* Running totals */}
+                              {coinTrades.length > 0 && (
+                                <div style={{marginTop:10,paddingTop:8,borderTop:'1px solid var(--border)',display:'flex',gap:16,flexWrap:'wrap'}}>
+                                  {[
+                                    {label:'Total bought', val: coinTrades.filter(t=>['BUY','DCA'].includes(t.action)).reduce((s,t)=>s+parseFloat(t.totalValue||t.grossValue||0),0), color:'var(--up)'},
+                                    {label:'Total sold', val: coinTrades.filter(t=>t.action==='SELL').reduce((s,t)=>s+parseFloat(t.totalValue||t.grossValue||0),0), color:'var(--down)'},
+                                    {label:'Trades', val: null, count: coinTrades.length, color:'var(--muted)'},
+                                  ].map(s=>(
+                                    <div key={s.label}>
+                                      <div style={{fontSize:9,color:'var(--muted)',letterSpacing:1,textTransform:'uppercase',marginBottom:1}}>{s.label}</div>
+                                      <div style={{fontSize:12,fontWeight:700,fontFamily:"'Syne',sans-serif",color:s.color}}>{s.val!==null?fmtUSD(s.val):s.count}</div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
                     <div className="cash-row">
                       <div
                         style={{
