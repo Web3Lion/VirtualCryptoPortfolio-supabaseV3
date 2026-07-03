@@ -614,10 +614,10 @@ export default function MinerRunner() {
             </p>
           </div>
           <Link
-            href="/games"
+            href="/dashboard"
             style={{ fontSize: 14, padding: '8px 16px', borderRadius: 8, fontWeight: 500, transition: 'color .2s', background: "var(--surface)", color: "var(--muted)" }}
           >
-            ← Games
+            ← Dashboard
           </Link>
         </div>
 

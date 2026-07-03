@@ -24,19 +24,23 @@ export async function GET(request) {
     db.from('trades')
       .select('id, student_id, action, coin, quantity, price, gross_value, reasoning, created_at, students(name, is_bot)')
       .eq('class_id', classId).gte('created_at', cutoff)
-      .order('created_at', { ascending: false }).limit(50),
+      .order('created_at', { ascending: false }).limit(50)
+      .catch(() => ({ data: null })),
     db.from('badges')
       .select('badge_id, earned_at, students(name)')
       .eq('class_id', classId).gte('earned_at', cutoff)
-      .order('earned_at', { ascending: false }).limit(20),
+      .order('earned_at', { ascending: false }).limit(20)
+      .catch(() => ({ data: null })),
     db.from('class_reward_ledger')
       .select('tokens, reason, created_at, students(name)')
       .eq('class_id', classId).gte('created_at', cutoff)
       .like('reason', 'daily_challenge:%')
-      .order('created_at', { ascending: false }).limit(10),
+      .order('created_at', { ascending: false }).limit(10)
+      .catch(() => ({ data: null })),
     db.from('class_reward_config')
       .select('pinned_message, pinned_updated_at')
-      .eq('class_id', classId).single(),
+      .eq('class_id', classId).single()
+      .catch(() => ({ data: null })),
   ]);
 
   // Fetch reactions for all trade IDs in one query

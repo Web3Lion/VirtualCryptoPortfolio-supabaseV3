@@ -150,7 +150,7 @@ export default function BullBearGame() {
           </div>
           <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>Guess the 24h price direction</div>
         </div>
-        <Link href="/games" style={{ fontSize: 12, padding: '6px 14px', borderRadius: 8, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--muted)', textDecoration: 'none' }}>← Games</Link>
+        <Link href="/dashboard" style={{ fontSize: 12, padding: '6px 14px', borderRadius: 8, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--muted)', textDecoration: 'none' }}>← Dashboard</Link>
       </div>
 
       {/* IDLE — start screen */}
