@@ -39,9 +39,11 @@ const LESSONS = [
       { block_type: 'heading', content: { text: '📊 Reading Candle Size & Wicks' } },
       { block_type: 'text', content: { text: '**Large body = strong conviction** — buyers or sellers were in full control during this period.\n\n**Small body = indecision** — neither buyers nor sellers won decisively.\n\n**Long upper wick** = price tried to go higher but sellers pushed it back down — bearish signal.\n\n**Long lower wick** = price tried to go lower but buyers stepped in and pushed it back up — bullish signal.\n\n```\n  Long upper wick:          Long lower wick:\n  (bearish pressure)        (bullish pressure)\n\n      │ │                      ┌───┐\n      │ │ ← rejected           │   │\n  ┌───┤ │                      │   │\n  │   │ │                      └───┘\n  └───┘                          │\n                                 │\n                                 │ ← rejected\n```\n\n**Rule of thumb:** Where the wick points is where price tried to go but FAILED. That failure tells you something about where price is likely NOT to go next.' } },
 
+      { block_type: 'image', content: { url: '/images/ta/ta-01-candlestick-anatomy.svg', title: 'Candlestick Anatomy', description: 'The high, low, open, close, body, and wicks of a single candle — plus how bullish and bearish candles compare.' } },
+
       { block_type: 'heading', content: { text: '📺 Watch & Learn' } },
-      { block_type: 'video', content: { url: 'PLACEHOLDER_TA_CANDLE', title: 'Candlestick Charts Explained for Beginners', description: 'A clear visual walkthrough of how to read candlestick charts — open, high, low, close, bullish and bearish candles, and what wicks tell you about price action.' } },
-      { block_type: 'article', content: { url: 'PLACEHOLDER_TA_CANDLE_ARTICLE', title: 'How to Read Candlestick Charts — Investopedia', description: 'Investopedia\'s complete guide to reading candlestick charts — anatomy, colors, time frames, and basic interpretation.' } },
+      { block_type: 'video', content: { url: 'https://www.youtube.com/watch?v=IGcq8FiIpOk', title: 'Candlestick Charts Complete Beginner\'s Guide', description: 'A clear visual walkthrough of how to read candlestick charts — open, high, low, close, bullish and bearish candles, and what wicks tell you about price action.' } },
+      { block_type: 'article', content: { url: 'https://www.investopedia.com/terms/c/candlestick.asp', title: 'Candlestick — Investopedia', description: 'Investopedia\'s complete guide to reading candlestick charts — anatomy, colors, time frames, and basic interpretation.' } },
     ],
     questions: [
       { question_text: 'What does OHLC stand for in candlestick charting?', explanation: 'OHLC stands for Open, High, Low, Close — the four data points packed into every single candlestick. These represent where price started, its highest and lowest point, and where it ended during that time period.', options: [{ option_text: 'Open, High, Low, Close', is_correct: true }, { option_text: 'Overall Hourly Line Chart', is_correct: false }, { option_text: 'Order, Hold, Liquidate, Cancel', is_correct: false }, { option_text: 'Oscillation, Height, Length, Cycle', is_correct: false }] },
@@ -77,8 +79,10 @@ const LESSONS = [
       { block_type: 'heading', content: { text: '💪 Pattern 4: Three White Soldiers' } },
       { block_type: 'text', content: { text: '**Three White Soldiers** — three consecutive large green candles, each opening within the previous candle\'s body and closing higher.\n\n```\n  THREE WHITE SOLDIERS\n\n             ┌───┐\n          ┌──┤▓▓▓│\n       ┌──┤▓▓│▓▓▓│\n  ┌────┤▓▓│▓▓│▓▓▓│\n  │▓▓▓▓│▓▓│▓▓│▓▓▓│\n  └────┘▓▓│▓▓│▓▓▓│\n        └──┘▓▓│▓▓▓│\n            └──┘▓▓▓│\n                └───┘\n  Day 1   Day 2   Day 3\n```\n\n**What it means:** Three days of sustained buying pressure with no significant pullbacks. This is not a spike — it\'s a systematic takeover by buyers. One of the strongest bullish signals.\n\n**Watch out:** If the candles get progressively smaller on Day 3, it may signal the rally is running out of steam.' } },
 
+      { block_type: 'image', content: { url: '/images/ta/ta-02-bullish-patterns.svg', title: 'Bullish Candlestick Patterns', description: 'Hammer, Bullish Engulfing, Morning Star, and Three White Soldiers side by side.' } },
+
       { block_type: 'heading', content: { text: '📺 Watch & Learn' } },
-      { block_type: 'video', content: { url: 'PLACEHOLDER_TA_BULLISH', title: 'Bullish Candlestick Patterns Explained', description: 'Visual walkthrough of the most reliable bullish reversal candlestick patterns — Hammer, Engulfing, Morning Star, and Three White Soldiers.' } },
+      { block_type: 'video', content: { url: 'https://www.youtube.com/watch?v=zyqo7ylkJpM', title: 'Bullish Candlestick Patterns (That Work)', description: 'Visual walkthrough of the most reliable bullish reversal candlestick patterns — Hammer, Engulfing, Morning Star, and Three White Soldiers.' } },
       { block_type: 'article', content: { url: 'https://www.investopedia.com/articles/active-trading/092315/5-most-powerful-candlestick-patterns.asp', title: '5 Most Powerful Candlestick Patterns — Investopedia', description: 'Investopedia\'s breakdown of the highest-probability candlestick patterns for predicting price reversals.' } },
     ],
     questions: [
@@ -118,8 +122,10 @@ const LESSONS = [
       { block_type: 'heading', content: { text: '⚠️ Context Is Everything' } },
       { block_type: 'text', content: { text: '**The same candle shape means different things in different contexts:**\n\n| Pattern | After Uptrend = | After Downtrend = |\n|---|---|---|\n| Small body + long lower wick | Hanging Man (BEARISH) | Hammer (BULLISH) |\n| Small body + long upper wick | Shooting Star (BEARISH) | Inverted Hammer (BULLISH) |\n\n**Never read a candle in isolation.** Always ask:\n1. Where is this candle appearing — after a rise or a fall?\n2. What did the previous candles look like?\n3. Is there confirmation from the NEXT candle?\n4. Is this at a meaningful price level (support/resistance)?\n\nPatterns at key price levels carry far more weight than patterns that appear in the middle of nowhere.' } },
 
+      { block_type: 'image', content: { url: '/images/ta/ta-03-bearish-patterns.svg', title: 'Bearish Candlestick Patterns', description: 'Shooting Star, Bearish Engulfing, Evening Star, and Three Black Crows side by side.' } },
+
       { block_type: 'heading', content: { text: '📺 Watch & Learn' } },
-      { block_type: 'video', content: { url: 'PLACEHOLDER_TA_BEARISH', title: 'Bearish Candlestick Patterns Explained', description: 'How to identify Shooting Stars, Bearish Engulfing patterns, Evening Stars, and Three Black Crows — and what they mean for price direction.' } },
+      { block_type: 'video', content: { url: 'https://www.youtube.com/watch?v=lEk4cSA7cqc', title: 'Master Candlestick Patterns (Full Free Course)', description: 'A complete candlestick course covering Shooting Stars, Bearish Engulfing patterns, Evening Stars, Three Black Crows, and how each signals price direction.' } },
       { block_type: 'article', content: { url: 'https://www.investopedia.com/articles/active-trading/062315/using-bullish-candlestick-patterns-buy-stocks.asp', title: 'Candlestick Pattern Guide — Investopedia', description: 'A comprehensive guide to bullish and bearish candlestick patterns with visual examples and trading strategies.' } },
     ],
     questions: [
@@ -156,8 +162,10 @@ const LESSONS = [
       { block_type: 'heading', content: { text: '📦 Price Channels' } },
       { block_type: 'text', content: { text: '**A channel** is formed by drawing a trend line AND a parallel line above/below it, creating a corridor price moves within.\n\n```\n  ASCENDING CHANNEL (Bullish)\n\n  Price\n   ↑   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─  ← Upper channel line\n   │  /\\  /\\  /\\  /\\  /\\\n   │ /  \\/  \\/  \\/  \\/  \\\n   │/                     \\\n   ────────────────────────  ← Lower channel line (trend line)\n   └──────────────────── Time →\n\n  DESCENDING CHANNEL (Bearish)\n\n  Price\n   ↑ ─────────────────────── ← Upper channel line\n   │  /\\  /\\  /\\  /\\  /\n   │ /  \\/  \\/  \\/  \\/\n   │/\n   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─  ← Lower channel line (trend line)\n   └──────────────────── Time →\n```\n\n**Trading a channel:** Buy near the bottom of the channel (support), sell near the top (resistance). A break out of the channel — especially to the upside from a descending channel — is a powerful signal.' } },
 
+      { block_type: 'image', content: { url: '/images/ta/ta-04-support-resistance.svg', title: 'Support, Resistance & Trend Lines', description: 'Support bounces, resistance role reversal, uptrend/downtrend lines, and an ascending price channel.' } },
+
       { block_type: 'heading', content: { text: '📺 Watch & Learn' } },
-      { block_type: 'video', content: { url: 'PLACEHOLDER_TA_SR', title: 'Support and Resistance Explained', description: 'How to identify key support and resistance levels, draw trend lines, and trade price channels — the foundation of all technical analysis.' } },
+      { block_type: 'video', content: { url: 'https://www.youtube.com/watch?v=Fsuzsz7WkHk', title: 'Support & Resistance + Trendlines (How to Draw Them Like a Pro)', description: 'How to identify key support and resistance levels, draw trend lines, and trade price channels — the foundation of all technical analysis.' } },
       { block_type: 'article', content: { url: 'https://www.investopedia.com/trading/support-and-resistance-basics/', title: 'Support and Resistance Basics — Investopedia', description: 'Investopedia\'s explanation of support and resistance, how to identify key levels, and the role reversal concept.' } },
     ],
     questions: [
@@ -194,8 +202,10 @@ const LESSONS = [
       { block_type: 'heading', content: { text: '📉 Double Bottom (Bullish Reversal)' } },
       { block_type: 'text', content: { text: '**Double Bottom** is the mirror of the Double Top — two roughly equal lows with a peak between them. Forms at the end of a downtrend. Also called a "W" pattern.\n\n```\n  DOUBLE BOTTOM  (W-shape)\n\n  Price\n   ↑          /\\\n   │         /  \\\n   │─────────────── ← NECKLINE (peak high)\n   │  \\      /  \\\n   │   \\    /    \\\n   │    \\  /      \\\n   │     \\/        \\/\n   │\n   └──────────────────── Time →\n\n   ↑ Break above neckline = confirmed BULLISH\n```\n\n**The signal:** Confirmed when price breaks ABOVE the neckline. This is a strong buy signal indicating the downtrend has ended and buyers have successfully defended the low twice.\n\n**Triple Top / Triple Bottom** — Same concept but price tests the level THREE times before reversing. Three tests make the reversal even more significant.' } },
 
+      { block_type: 'image', content: { url: '/images/ta/ta-05-reversal-patterns.svg', title: 'Reversal Chart Patterns', description: 'Head & Shoulders, Inverse Head & Shoulders, Double Top, and Double Bottom.' } },
+
       { block_type: 'heading', content: { text: '📺 Watch & Learn' } },
-      { block_type: 'video', content: { url: 'PLACEHOLDER_TA_REVERSAL', title: 'Head & Shoulders, Double Top & Double Bottom Chart Patterns', description: 'How to identify and trade the most reliable reversal chart patterns — Head and Shoulders, Inverse H&S, Double Top, and Double Bottom.' } },
+      { block_type: 'video', content: { url: 'https://www.youtube.com/watch?v=g0LDtYP-SdY', title: 'Head and Shoulder and Double Top Chart Patterns Explained', description: 'How to identify and trade the most reliable reversal chart patterns — Head and Shoulders, Inverse H&S, Double Top, and Double Bottom.' } },
       { block_type: 'article', content: { url: 'https://www.investopedia.com/terms/h/head-shoulders.asp', title: 'Head and Shoulders Pattern — Investopedia', description: 'Investopedia\'s complete guide to the Head and Shoulders pattern — how to identify it, calculate price targets, and trade it.' } },
     ],
     questions: [
@@ -229,8 +239,10 @@ const LESSONS = [
       { block_type: 'heading', content: { text: '☕ Cup & Handle' } },
       { block_type: 'text', content: { text: '**Cup & Handle** is a longer-term bullish continuation pattern. The "cup" is a rounded U-shaped bottom followed by a small "handle" — a brief downward drift — before a breakout to new highs.\n\n```\n  CUP & HANDLE\n\n  Price\n   ↑  *                          *← BREAKOUT!\n   │   \\                        /\n   │    \\     CUP (U-shape)    / HANDLE\n   │     \\                    /  (small drift down)\n   │      \\    /────────────/──\\\n   │       \\  /                 \\\n   │        \\/                   \\← Handle\n   │         Rounded bottom\n   └───────────────────────────── Time →\n\n  * The cup = rounded bottom (takes weeks to months)\n  * The handle = brief pullback (a few days to weeks)\n  * Breakout above the cup rim = strong buy signal\n```\n\n**What it means:** Price took a major dip but gradually recovered back to its previous high (forming the cup). The small handle is the last shakeout before a breakout.\n\n**Famous example:** Many major Bitcoin bull runs have included a cup & handle formation over weeks or months.' } },
 
+      { block_type: 'image', content: { url: '/images/ta/ta-06-continuation-patterns.svg', title: 'Continuation Chart Patterns', description: 'Bull flag, bear flag, the three triangle types, and cup & handle.' } },
+
       { block_type: 'heading', content: { text: '📺 Watch & Learn' } },
-      { block_type: 'video', content: { url: 'PLACEHOLDER_TA_CONTINUATION', title: 'Flags, Triangles & Cup and Handle Chart Patterns Explained', description: 'How to identify and trade continuation patterns — bull/bear flags, ascending/descending/symmetrical triangles, and the cup and handle.' } },
+      { block_type: 'video', content: { url: 'https://www.youtube.com/watch?v=4QmgRrowIiQ', title: 'Chart Patterns: Cup and Handle, Triangles & More', description: 'How to identify and trade continuation patterns — bull/bear flags, ascending/descending/symmetrical triangles, and the cup and handle.' } },
       { block_type: 'article', content: { url: 'https://www.investopedia.com/terms/c/cupandhandle.asp', title: 'Cup and Handle Pattern — Investopedia', description: 'Investopedia\'s guide to the cup and handle formation — how to identify it, when it appears, and how to trade the breakout.' } },
     ],
     questions: [
@@ -267,8 +279,10 @@ const LESSONS = [
       { block_type: 'heading', content: { text: '🎸 Bollinger Bands' } },
       { block_type: 'text', content: { text: '**Bollinger Bands** consist of three lines — a middle SMA and two bands 2 standard deviations above and below it.\n\n```\n  BOLLINGER BANDS\n\n  Price\n   ↑  ────────────────────── ← Upper Band (+2 std dev)\n   │   ~~~~~~~~~~~~~~~~~~~~  ← Middle Band (20 SMA)\n   │  ────────────────────── ← Lower Band (-2 std dev)\n   │\n   │  When bands SQUEEZE together:\n   │  ──╲  /── Upper\n   │     \\/\n   │     /\\   ← SQUEEZE = volatility low = BIG MOVE COMING\n   │  ──/  ╲── Lower\n   └──────────── Time →\n```\n\n**Key readings:**\n- **Price touches upper band:** Potentially overbought — price is 2 standard deviations above average\n- **Price touches lower band:** Potentially oversold — price is 2 standard deviations below average\n- **Band Squeeze:** Bands narrow when volatility is low — a squeeze often precedes a major move (direction unknown)\n- **Band Expansion:** Bands widen during high volatility / strong trends' } },
 
+      { block_type: 'image', content: { url: '/images/ta/ta-07-indicators.svg', title: 'Technical Indicators', description: 'Golden/death cross moving averages, the RSI scale, MACD, and Bollinger Bands.' } },
+
       { block_type: 'heading', content: { text: '📺 Watch & Learn' } },
-      { block_type: 'video', content: { url: 'PLACEHOLDER_TA_INDICATORS', title: 'RSI, MACD & Moving Averages Explained for Beginners', description: 'A clear breakdown of the most-used technical indicators — what they measure, how to read them, and when they give false signals.' } },
+      { block_type: 'video', content: { url: 'https://www.youtube.com/watch?v=fFmcONKy3bA', title: 'Top 5 Technical Analysis Indicators: Moving Average, RSI, Bollinger Bands, MACD', description: 'A clear breakdown of the most-used technical indicators — what they measure, how to read them, and when they give false signals.' } },
       { block_type: 'article', content: { url: 'https://www.investopedia.com/terms/r/rsi.asp', title: 'Relative Strength Index (RSI) — Investopedia', description: 'Investopedia\'s complete guide to the RSI indicator — formula, overbought/oversold levels, divergence signals, and limitations.' } },
     ],
     questions: [
@@ -305,8 +319,10 @@ const LESSONS = [
       { block_type: 'heading', content: { text: '🔍 Confluence: Stacking Your Evidence' } },
       { block_type: 'text', content: { text: '**Confluence** means multiple independent signals pointing to the same trade at the same time.\n\n**Example of a HIGH-confluence trade:**\n```\n  ✅ Price is at a strong SUPPORT LEVEL (bounced 3× before)\n  ✅ A HAMMER CANDLE formed at that support\n  ✅ RSI is showing OVERSOLD conditions (below 30)\n  ✅ MACD is showing a bullish CROSSOVER\n  ✅ The pattern is a confirmed INVERSE HEAD & SHOULDERS\n\n  → 5 signals all agree → HIGH-probability trade\n```\n\n**Example of a LOW-confluence trade:**\n```\n  ❌ Price is in the middle of nowhere\n  ❌ RSI is at 50 (neutral)\n  ❌ No recognizable pattern\n  ❌ Only reason to buy: "it looks like it might go up"\n\n  → No evidence → LOW-probability trade (gambling)\n```\n\n**The more signals that agree, the higher the probability.** Never act on a single indicator alone.' } },
 
+      { block_type: 'image', content: { url: '/images/ta/ta-08-trade-plan.svg', title: 'Trade Structure & Risk/Reward', description: 'Entry, stop loss, and take profit levels, plus a 3:1 risk/reward example.' } },
+
       { block_type: 'heading', content: { text: '📺 Watch & Learn' } },
-      { block_type: 'video', content: { url: 'PLACEHOLDER_TA_PLAN', title: 'How to Build a Crypto Trading Plan — Risk Management', description: 'How to set entry points, stop losses, take profit targets, calculate risk/reward ratio, and size positions correctly — the complete framework for structured trading.' } },
+      { block_type: 'video', content: { url: 'https://www.youtube.com/watch?v=gM65dEuNsMw', title: 'Risk Management & Position Sizing Strategy for Trading', description: 'How to set entry points, stop losses, take profit targets, calculate risk/reward ratio, and size positions correctly — the complete framework for structured trading.' } },
       { block_type: 'article', content: { url: 'https://www.investopedia.com/terms/r/riskrewardratio.asp', title: 'Risk/Reward Ratio Explained — Investopedia', description: 'Investopedia\'s guide to the risk/reward ratio — why it matters, how to calculate it, and how to use it to evaluate trades before entering.' } },
     ],
     questions: [

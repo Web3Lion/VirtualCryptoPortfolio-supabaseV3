@@ -103,6 +103,17 @@ function ContentBlock({ block }) {
       </a>
     );
   }
+  if (block_type === "image") {
+    return (
+      <div style={{ margin: "16px 0" }}>
+        {content.title && <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 6 }}>🖼️ {content.title}</div>}
+        <div style={{ borderRadius: 12, overflow: "hidden", background: "var(--surface2)", border: "1px solid var(--border)" }}>
+          <img src={content.url} alt={content.title || "Diagram"} style={{ display: "block", width: "100%", height: "auto" }} />
+        </div>
+        {content.description && <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 6 }}>{content.description}</div>}
+      </div>
+    );
+  }
   if (block_type === "article") {
     return (
       <a href={content.url} target="_blank" rel="noopener noreferrer" style={{ display: "block", background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 12, padding: 14, margin: "12px 0", textDecoration: "none" }}>

@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 320" font-family="system-ui,-apple-system,'Segoe UI',sans-serif">
+  <style>
+    .bg{fill:#1a1a19}
+    .panel{fill:#202220;stroke:#2c2c2a;stroke-width:1}
+    .title{fill:#ffffff;font-size:17px;font-weight:700}
+    .cap{fill:#c3c2b7;font-size:12.5px}
+    .lbl{fill:#c3c2b7;font-size:13px}
+    .ref{fill:none;stroke-width:2;stroke-dasharray:7,5}
+    .price{fill:none;stroke:#ffffff;stroke-width:2.5;stroke-linejoin:round}
+  </style>
+  <rect class="bg" width="800" height="320"/>
+
+  <!-- Left: Trade structure -->
+  <g transform="translate(20,20)">
+    <rect class="panel" width="360" height="280" rx="10"/>
+    <text x="20" y="34" class="title">🎯 Trade Structure</text>
+
+    <line x1="30" y1="70" x2="290" y2="70" class="ref" stroke="#0ca30c"/>
+    <text x="300" y="75" class="lbl">TP</text>
+
+    <line x1="30" y1="150" x2="290" y2="150" class="ref" stroke="#3987e5"/>
+    <text x="300" y="155" class="lbl">Entry</text>
+
+    <line x1="30" y1="220" x2="290" y2="220" class="ref" stroke="#d03b3b"/>
+    <text x="300" y="225" class="lbl">SL</text>
+
+    <path class="price" d="M30,150 L100,150 L160,110 L230,80 L290,70"/>
+    <circle cx="30" cy="150" r="5" fill="#3987e5"/>
+    <circle cx="290" cy="70" r="5" fill="#0ca30c"/>
+
+    <text x="20" y="265" class="cap">Every trade defines Entry, Stop Loss, and Take Profit first</text>
+  </g>
+
+  <!-- Right: Risk/Reward -->
+  <g transform="translate(420,20)">
+    <rect class="panel" width="360" height="280" rx="10"/>
+    <text x="20" y="34" class="title">⚖️ Risk / Reward = 3:1</text>
+
+    <rect x="90" y="190" width="60" height="50" rx="4" fill="#d03b3b"/>
+    <text x="120" y="260" text-anchor="middle" class="lbl">Risk: $5</text>
+
+    <rect x="210" y="90" width="60" height="150" rx="4" fill="#0ca30c"/>
+    <text x="240" y="260" text-anchor="middle" class="lbl">Reward: $15</text>
+
+    <line x1="60" y1="190" x2="300" y2="190" class="ref" stroke="#898781" stroke-dasharray="3,3"/>
+
+    <text x="20" y="265" class="cap">Win just 25% of trades and still profit at 3:1</text>
+  </g>
+</svg>

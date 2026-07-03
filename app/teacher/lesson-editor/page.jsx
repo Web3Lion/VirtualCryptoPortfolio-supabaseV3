@@ -8,6 +8,7 @@ const BLOCK_TYPES = [
   { value: 'subheading', label: 'Subheading' },
   { value: 'text',       label: 'Text / Markdown' },
   { value: 'video',      label: 'YouTube Video' },
+  { value: 'image',      label: 'Image' },
   { value: 'article',    label: 'Article / Link' },
 ];
 
@@ -52,10 +53,10 @@ function BlockEditor({ block, onChange, onDelete, onMoveUp, onMoveDown, isFirst,
         </>
       )}
 
-      {(block.block_type === 'video' || block.block_type === 'article') && (
+      {(block.block_type === 'video' || block.block_type === 'article' || block.block_type === 'image') && (
         <>
           <label style={labelStyle}>URL</label>
-          <input style={inputStyle} value={block.content.url || ''} onChange={e => upd({ url: e.target.value })} placeholder={block.block_type === 'video' ? 'https://www.youtube.com/watch?v=…' : 'https://…'} />
+          <input style={inputStyle} value={block.content.url || ''} onChange={e => upd({ url: e.target.value })} placeholder={block.block_type === 'video' ? 'https://www.youtube.com/watch?v=…' : block.block_type === 'image' ? '/images/…  or  https://…' : 'https://…'} />
           <label style={labelStyle}>Title</label>
           <input style={inputStyle} value={block.content.title || ''} onChange={e => upd({ title: e.target.value })} placeholder="Display title" />
           <label style={labelStyle}>Description</label>

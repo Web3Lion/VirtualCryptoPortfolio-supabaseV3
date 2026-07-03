@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 560" font-family="system-ui,-apple-system,'Segoe UI',sans-serif">
+  <style>
+    .bg{fill:#1a1a19}
+    .panel{fill:#202220;stroke:#2c2c2a;stroke-width:1}
+    .title{fill:#ffffff;font-size:17px;font-weight:700}
+    .cap{fill:#c3c2b7;font-size:12.5px}
+    .price{fill:none;stroke:#ffffff;stroke-width:2.5;stroke-linejoin:round;stroke-linecap:round}
+    .ref{fill:none;stroke:#3987e5;stroke-width:2;stroke-dasharray:7,5}
+    .dot{fill:#0ca30c}
+  </style>
+  <rect class="bg" width="800" height="560"/>
+
+  <!-- Q1: Support -->
+  <g transform="translate(20,20)">
+    <rect class="panel" width="360" height="250" rx="10"/>
+    <text x="20" y="34" class="title">🛡️ Support</text>
+    <line x1="20" y1="180" x2="330" y2="180" class="ref"/>
+    <path class="price" d="M20,70 L70,180 L120,90 L170,180 L220,100 L270,180 L320,110"/>
+    <circle cx="70" cy="180" r="4" class="dot"/><circle cx="170" cy="180" r="4" class="dot"/><circle cx="270" cy="180" r="4" class="dot"/>
+    <text x="20" y="235" class="cap">Buyers repeatedly step in at the same price floor</text>
+  </g>
+
+  <!-- Q2: Resistance + Role Reversal -->
+  <g transform="translate(420,20)">
+    <rect class="panel" width="360" height="250" rx="10"/>
+    <text x="20" y="34" class="title">🚧 Resistance → Role Reversal</text>
+    <line x1="20" y1="130" x2="330" y2="130" class="ref"/>
+    <path class="price" d="M20,210 L80,135 L140,210 L200,135 L250,65 L320,135"/>
+    <circle cx="80" cy="135" r="4" fill="#d03b3b"/><circle cx="200" cy="135" r="4" fill="#d03b3b"/>
+    <circle cx="320" cy="135" r="4" class="dot"/>
+    <text x="20" y="235" class="cap">Old resistance, once broken, becomes new support</text>
+  </g>
+
+  <!-- Q3: Trend Lines -->
+  <g transform="translate(20,300)">
+    <rect class="panel" width="360" height="250" rx="10"/>
+    <text x="20" y="34" class="title">📐 Trend Lines</text>
+    <line x1="30" y1="205" x2="160" y2="80" class="ref"/>
+    <path class="price" d="M30,140 L65,205 L100,150 L135,175 L160,80 L165,90"/>
+    <text x="95" y="230" text-anchor="middle" class="cap">Uptrend (higher lows)</text>
+
+    <line x1="200" y1="80" x2="330" y2="205" class="ref"/>
+    <path class="price" d="M200,80 L230,140 L260,110 L290,175 L325,205"/>
+    <text x="265" y="230" text-anchor="middle" class="cap">Downtrend (lower highs)</text>
+  </g>
+
+  <!-- Q4: Price Channel -->
+  <g transform="translate(420,300)">
+    <rect class="panel" width="360" height="250" rx="10"/>
+    <text x="20" y="34" class="title">📦 Ascending Channel</text>
+    <line x1="20" y1="200" x2="300" y2="60" class="ref"/>
+    <line x1="20" y1="130" x2="300" y2="-10" class="ref" transform="translate(0,20)"/>
+    <path class="price" d="M20,160 L60,110 L100,150 L140,90 L180,130 L220,70 L260,105 L300,60"/>
+    <text x="20" y="235" class="cap">Buy near the lower line, sell near the upper line</text>
+  </g>
+</svg>

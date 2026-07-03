@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 560" font-family="system-ui,-apple-system,'Segoe UI',sans-serif">
+  <style>
+    .bg{fill:#1a1a19}
+    .panel{fill:#202220;stroke:#2c2c2a;stroke-width:1}
+    .title{fill:#ffffff;font-size:16px;font-weight:700}
+    .cap{fill:#c3c2b7;font-size:12px}
+    .lbl{fill:#898781;font-size:11px}
+    .ref{fill:none;stroke:#383835;stroke-width:1.5;stroke-dasharray:5,4}
+    .fast{fill:none;stroke:#3987e5;stroke-width:2.5}
+    .slow{fill:none;stroke:#c98500;stroke-width:2.5}
+    .price{fill:none;stroke:#ffffff;stroke-width:2.5}
+  </style>
+  <rect class="bg" width="800" height="560"/>
+
+  <!-- Q1: Moving Averages -->
+  <g transform="translate(20,20)">
+    <rect class="panel" width="360" height="250" rx="10"/>
+    <text x="20" y="34" class="title">〰️ Golden Cross / Death Cross</text>
+    <path class="slow" d="M20,140 C120,140 200,120 330,150"/>
+    <path class="fast" d="M20,190 C90,190 110,70 170,70 C230,70 250,180 330,190"/>
+    <circle cx="128" cy="138" r="5" fill="#0ca30c"/>
+    <text x="128" y="118" text-anchor="middle" class="lbl">Golden Cross</text>
+    <circle cx="278" cy="146" r="5" fill="#d03b3b"/>
+    <text x="278" y="200" text-anchor="middle" class="lbl">Death Cross</text>
+    <text x="20" y="235" class="cap">Fast MA (blue) crossing the slow MA (orange)</text>
+  </g>
+
+  <!-- Q2: RSI -->
+  <g transform="translate(420,20)">
+    <rect class="panel" width="360" height="250" rx="10"/>
+    <text x="20" y="34" class="title">💪 RSI Scale</text>
+    <line x1="20" y1="91" x2="330" y2="91" class="ref"/>
+    <text x="335" y="95" class="lbl">70</text>
+    <line x1="20" y1="159" x2="330" y2="159" class="ref"/>
+    <text x="335" y="163" class="lbl">30</text>
+    <path class="price" d="M20,150 L60,85 L100,120 L140,60 L180,130 L220,180 L260,140 L300,175 L330,150" stroke="#3987e5"/>
+    <text x="20" y="235" class="cap">Above 70 = overbought · below 30 = oversold</text>
+  </g>
+
+  <!-- Q3: MACD -->
+  <g transform="translate(20,300)">
+    <rect class="panel" width="360" height="250" rx="10"/>
+    <text x="20" y="34" class="title">📈 MACD</text>
+    <line x1="20" y1="130" x2="330" y2="130" class="ref"/>
+    <rect x="35" y="120" width="10" height="10" fill="#0ca30c"/>
+    <rect x="65" y="105" width="10" height="25" fill="#0ca30c"/>
+    <rect x="95" y="85" width="10" height="45" fill="#0ca30c"/>
+    <rect x="125" y="100" width="10" height="30" fill="#0ca30c"/>
+    <rect x="155" y="130" width="10" height="5" fill="#d03b3b"/>
+    <rect x="185" y="130" width="10" height="25" fill="#d03b3b"/>
+    <rect x="215" y="130" width="10" height="35" fill="#d03b3b"/>
+    <rect x="245" y="130" width="10" height="20" fill="#d03b3b"/>
+    <rect x="275" y="125" width="10" height="5" fill="#0ca30c"/>
+    <rect x="305" y="115" width="10" height="15" fill="#0ca30c"/>
+    <path class="fast" d="M20,150 C80,190 120,80 180,80 C240,80 280,160 330,110"/>
+    <path class="slow" d="M20,130 C100,140 160,100 220,110 C270,115 300,130 330,120"/>
+    <text x="20" y="235" class="cap">MACD line crossing the signal line, with histogram</text>
+  </g>
+
+  <!-- Q4: Bollinger Bands -->
+  <g transform="translate(420,300)">
+    <rect class="panel" width="360" height="250" rx="10"/>
+    <text x="20" y="34" class="title">🎸 Bollinger Bands</text>
+    <path class="ref" d="M20,70 L150,60 L250,90 L330,115" stroke-dasharray="0"/>
+    <path class="ref" d="M20,120 L150,120 L250,120 L330,118"/>
+    <path class="ref" d="M20,170 L150,180 L250,150 L330,120" stroke-dasharray="0"/>
+    <path class="price" d="M20,100 L60,150 L100,80 L140,160 L180,90 L220,130 L260,105 L300,118 L330,117"/>
+    <text x="20" y="235" class="cap">Bands squeeze (right) before a big move</text>
+  </g>
+</svg>

@@ -25,6 +25,8 @@ export default function TeacherLearn() {
   const [seedingDefi, setSeedingDefi] = useState(false);
   const [seedingNft, setSeedingNft] = useState(false);
   const [seedingTa, setSeedingTa] = useState(false);
+  const [seedingSecurity, setSeedingSecurity] = useState(false);
+  const [seedingTaxes, setSeedingTaxes] = useState(false);
   const [migrating, setMigrating] = useState(false);
 
   // Expanded lesson (to show questions)
@@ -183,6 +185,28 @@ export default function TeacherLearn() {
       fetchModules();
     } else flash(d.error || "NFT seed failed", false);
     setSeedingNft(false);
+  };
+
+  const seedSecurityModule = async () => {
+    setSeedingSecurity(true);
+    const res = await fetch("/api/admin/seed-security-module", { method: "POST" });
+    const d = await res.json();
+    if (d.success) {
+      flash(`🔐 Security Module: ${d.created} lessons created, ${d.skipped} already existed`);
+      fetchModules();
+    } else flash(d.error || "Security seed failed", false);
+    setSeedingSecurity(false);
+  };
+
+  const seedTaxesModule = async () => {
+    setSeedingTaxes(true);
+    const res = await fetch("/api/admin/seed-taxes-module", { method: "POST" });
+    const d = await res.json();
+    if (d.success) {
+      flash(`💸 Taxes Module: ${d.created} lessons created, ${d.skipped} already existed`);
+      fetchModules();
+    } else flash(d.error || "Taxes seed failed", false);
+    setSeedingTaxes(false);
   };
 
   const importJSON = async (e) => {
@@ -456,6 +480,12 @@ export default function TeacherLearn() {
           </button>
           <button className="btn btn-ghost" onClick={seedTaModule} disabled={seedingTa || dbReady === false}>
             {seedingTa ? "Seeding..." : "🕯️ Seed TA Module"}
+          </button>
+          <button className="btn btn-ghost" onClick={seedSecurityModule} disabled={seedingSecurity || dbReady === false}>
+            {seedingSecurity ? "Seeding..." : "🔐 Seed Security Module"}
+          </button>
+          <button className="btn btn-ghost" onClick={seedTaxesModule} disabled={seedingTaxes || dbReady === false}>
+            {seedingTaxes ? "Seeding..." : "💸 Seed Taxes Module"}
           </button>
           <label style={{ cursor: importing || dbReady === false ? "not-allowed" : "pointer", opacity: importing || dbReady === false ? 0.5 : 1 }}>
             <input type="file" accept=".json" onChange={importJSON} style={{ display: "none" }} disabled={importing || dbReady === false} />
