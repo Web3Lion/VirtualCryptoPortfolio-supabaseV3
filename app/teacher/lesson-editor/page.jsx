@@ -289,12 +289,12 @@ function LessonEditorInner() {
 
   return (
     <>
-      <style>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Mono:wght@300;400;500&display=swap');
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
         body{background:var(--bg,#080c14);color:var(--text,#e2e8f0);font-family:'DM Mono',monospace;min-height:100vh}
         select option{background:#0f172a;color:#e2e8f0}
-      `}</style>
+      ` }} />
 
       <div style={{ maxWidth:820, margin:'0 auto', padding:'28px 16px 60px' }}>
 
@@ -340,7 +340,7 @@ function LessonEditorInner() {
         {loading && (
           <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
             {[1,2,3].map(i => <div key={i} style={{ height:72, borderRadius:14, background:'var(--surface)', animation:'shimmer 1.5s infinite', backgroundImage:'linear-gradient(90deg,var(--surface) 25%,var(--surface2) 50%,var(--surface) 75%)', backgroundSize:'200% 100%' }} />)}
-            <style>{`@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style>
+            <style dangerouslySetInnerHTML={{ __html: `@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}` }} />
           </div>
         )}
 

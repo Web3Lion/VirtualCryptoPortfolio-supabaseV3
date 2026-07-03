@@ -403,7 +403,7 @@ export default function MigratePage() {
 
   return (
     <>
-      <style>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap');
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
         body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;min-height:100vh}
@@ -428,7 +428,7 @@ export default function MigratePage() {
         .log{background:#0a0f1a;border:1px solid var(--border);border-radius:12px;padding:14px;max-height:280px;overflow-y:auto;font-size:11px;line-height:1.8;margin-top:16px}
         .log-info{color:var(--muted)}.log-success{color:var(--accent)}.log-error{color:var(--down)}.log-warn{color:var(--gold)}
         .result-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);color:var(--text)}
-      `}</style>
+      ` }} />
 
       <div className="page">
         <nav className="nav">

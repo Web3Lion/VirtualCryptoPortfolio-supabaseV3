@@ -119,7 +119,7 @@ export default function ClassSetup() {
 
   return (
     <>
-      <style>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap');
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
         body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;min-height:100vh}
@@ -155,7 +155,7 @@ export default function ClassSetup() {
         .skeleton{background:linear-gradient(90deg,var(--surface) 25%,var(--surface2) 50%,var(--surface) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:8px}
         @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
         @media(max-width:640px){.form-row{grid-template-columns:1fr}.add-row{grid-template-columns:1fr}.student-row{grid-template-columns:1fr auto}}
-      `}</style>
+      ` }} />
 
       <div className="page">
         <nav className="nav">

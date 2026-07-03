@@ -333,7 +333,7 @@ export default function Market() {
 
   return (
     <>
-      <style>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap');
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
         body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;min-height:100vh}
@@ -375,7 +375,7 @@ export default function Market() {
           .coin-sym{font-size:12px}
           .sector-tag{display:none}
         }
-      `}</style>
+      ` }} />
 
       <div className="page">
         <Nav active="market" right={lastUpdated && <span style={{fontSize:10,color:'var(--muted)',fontSize:10}}>Updated {lastUpdated.toLocaleTimeString()}</span>} />

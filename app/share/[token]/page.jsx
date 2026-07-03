@@ -24,7 +24,7 @@ export default function SharePage() {
 
   return (
     <>
-      <style>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Mono:wght@300;400;500&display=swap');
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
         body{background:#080c14;color:#e2e8f0;font-family:'DM Mono',monospace;min-height:100vh;padding:24px 16px}
@@ -41,7 +41,7 @@ export default function SharePage() {
         .buy-badge{background:rgba(0,229,160,.12);color:#00e5a0}
         .sell-badge{background:rgba(244,63,94,.1);color:#f43f5e}
         @media(max-width:480px){.stat-grid{grid-template-columns:1fr 1fr}}
-      `}</style>
+      ` }} />
 
       <div className="page">
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20,flexWrap:'wrap',gap:8}}>

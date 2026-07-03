@@ -183,12 +183,12 @@ export default function SpinPage() {
   return (
     <main style={{ maxWidth: 520, margin: '0 auto', padding: '24px 16px' }}>
       <Nav />
-      <style>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         @keyframes prizeReveal{0%{transform:scale(.8) translateY(10px);opacity:0}100%{transform:scale(1) translateY(0);opacity:1}}
         @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
         .spin-btn{width:100%;padding:16px;border-radius:14px;border:none;font-family:'Syne',sans-serif;font-weight:800;font-size:18px;cursor:pointer;transition:all .2s;letter-spacing:.5px}
         .spin-btn:disabled{opacity:.5;cursor:not-allowed}
-      `}</style>
+      ` }} />
 
       <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 28, letterSpacing: -1, marginBottom: 4 }}>
         🎡 Daily <span style={{ color: 'var(--accent)' }}>Spin</span>

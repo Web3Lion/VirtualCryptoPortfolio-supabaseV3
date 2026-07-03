@@ -792,7 +792,7 @@ export default function Dashboard() {
 
   return (
     <>
-      <style>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap');
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
         body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;min-height:100vh}
@@ -892,7 +892,7 @@ export default function Dashboard() {
           .watch-row{grid-template-columns:1fr auto;flex-wrap:wrap}
           .page{padding:16px 12px}
         }
-      `}</style>
+      ` }} />
 
       <div className="page">
         <Nav active="wallet" right={
@@ -4241,7 +4241,7 @@ export default function Dashboard() {
       {milestoneToast && (
         <div style={{position:'fixed',inset:0,display:'flex',alignItems:'center',justifyContent:'center',zIndex:10000,pointerEvents:'none'}}>
           <div style={{background:'var(--surface)',border:`2px solid ${milestoneToast.milestone?.color||'#00e5a0'}`,borderRadius:24,padding:'32px 48px',textAlign:'center',boxShadow:`0 0 60px ${milestoneToast.milestone?.color||'#00e5a0'}44`,animation:'milestoneIn .5s cubic-bezier(.175,.885,.32,1.275)',maxWidth:360,pointerEvents:'auto'}}>
-            <style>{`@keyframes milestoneIn{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:scale(1)}}`}</style>
+            <style dangerouslySetInnerHTML={{ __html: `@keyframes milestoneIn{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:scale(1)}}` }} />
             <div style={{fontSize:64,marginBottom:12,lineHeight:1}}>{milestoneToast.milestone?.emoji||'🏆'}</div>
             <div style={{fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:28,color:milestoneToast.milestone?.color||'#00e5a0',letterSpacing:-1,marginBottom:6}}>{milestoneToast.milestone?.label||'Milestone!'}</div>
             <div style={{fontSize:13,color:'var(--muted)',marginBottom:4}}>Portfolio milestone reached</div>

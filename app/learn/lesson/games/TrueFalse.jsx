@@ -64,10 +64,10 @@ export default function TrueFalse({ config, onComplete, completed }) {
 
   return (
     <div style={{ padding: '8px 0' }}>
-      <style>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         @keyframes tf-shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
         @keyframes tf-pop{0%{transform:scale(1)}50%{transform:scale(1.04)}100%{transform:scale(1)}}
-      `}</style>
+      ` }} />
 
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>

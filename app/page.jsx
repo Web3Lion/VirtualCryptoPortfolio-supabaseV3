@@ -35,7 +35,7 @@ export default function Home() {
 
   return (
     <>
-      <style>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:wght@300;400;500&display=swap');
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
         body{background:#05080f;min-height:100vh;font-family:'DM Mono',monospace;overflow-x:hidden}
@@ -130,7 +130,7 @@ export default function Home() {
         .disclaimer{font-size:11px;color:#64748b;margin-top:16px;line-height:1.7;padding:12px 14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;text-align:center}
 
         @media(max-width:400px){.card{padding:36px 24px}.logo{font-size:26px}}
-      `}</style>
+      ` }} />
 
       {/* Animated background */}
       <div className="hero-bg" />

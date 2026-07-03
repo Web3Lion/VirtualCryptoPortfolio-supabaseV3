@@ -141,7 +141,7 @@ export default function HigherLowerGame() {
     <main style={{ maxWidth: 700, margin: "0 auto", padding: "24px 16px" }}>
       <Nav active="higher-lower" />
 
-      <style>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         .hl-header { text-align:center; margin-bottom:28px; }
         .hl-title { font-size:28px; font-weight:800; letter-spacing:-0.5px; margin-bottom:6px; }
         .hl-sub { color:var(--muted); font-size:13px; }
@@ -189,7 +189,7 @@ export default function HigherLowerGame() {
         .hl-toast-success { background:var(--surface); border:1px solid rgba(0,229,160,.4); color:var(--accent); }
         .hl-toast-error   { background:var(--surface); border:1px solid rgba(239,68,68,.4); color:#ef4444; }
         .hl-reward-note { font-size:11px; color:var(--muted); text-align:center; margin-top:-16px; margin-bottom:24px; }
-      `}</style>
+      ` }} />
 
       <div className="hl-header">
         <div className="hl-title">📈 Higher or Lower?</div>

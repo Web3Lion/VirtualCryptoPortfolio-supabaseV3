@@ -246,7 +246,7 @@ function LessonPage() {
 
   return (
     <>
-      <style>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap');
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
         body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;min-height:100vh}
@@ -268,7 +268,7 @@ function LessonPage() {
         .tutor-bubble.err{border-color:rgba(244,63,94,.3);background:rgba(244,63,94,.07);color:#f87171}
         .tutor-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:10px 14px;color:var(--text);font-family:'DM Mono',monospace;font-size:12px;resize:none;outline:none;transition:border .2s}
         .tutor-input:focus{border-color:var(--accent)}
-      `}</style>
+      ` }} />
       <div className="page">
         <Nav active="learn" />
 
@@ -572,10 +572,10 @@ function ModuleCompleteOverlay({ module, tokensTotal, onDismiss }) {
 
   return (
     <>
-      <style>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         @keyframes mc-fall{0%{opacity:1;transform:translateY(-10px) rotate(0deg)}100%{opacity:0;transform:translateY(110vh) rotate(600deg)}}
         @keyframes mc-in{0%{opacity:0;transform:scale(.85) translateY(20px)}100%{opacity:1;transform:none}}
-      `}</style>
+      ` }} />
       <div style={{ position:'fixed', inset:0, zIndex:9500, background:'rgba(0,0,0,.75)', display:'flex', alignItems:'center', justifyContent:'center', padding:20 }} onClick={onDismiss}>
         {/* Confetti */}
         {pieces.map((p, i) => (

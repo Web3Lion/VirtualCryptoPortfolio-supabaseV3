@@ -119,7 +119,7 @@ export default function ProfilePage() {
 
   return (
     <main style={{ maxWidth: 720, margin: '0 auto', padding: '24px 16px' }}>
-      <style>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace}
         .card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:22px;margin-bottom:16px}
         .stat{background:var(--surface2);border-radius:12px;padding:10px 12px;text-align:center}
@@ -127,7 +127,7 @@ export default function ProfilePage() {
         .stat-val{font-family:'Syne',sans-serif;font-weight:700;font-size:13px}
         @keyframes glowPulse{0%,100%{opacity:.7;transform:scale(1)}50%{opacity:1;transform:scale(1.04)}}
         @keyframes glowSpin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
-      `}</style>
+      ` }} />
       <Nav />
 
       <Link href="/leaderboard" style={{ fontSize: 11, color: 'var(--muted)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4, marginBottom: 20 }}>

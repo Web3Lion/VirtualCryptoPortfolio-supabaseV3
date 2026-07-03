@@ -56,7 +56,7 @@ export default function SchemaPage() {
 
   return (
     <>
-      <style>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Mono:wght@400;500&display=swap');
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
         body{background:#080c14;color:#e2e8f0;font-family:'DM Mono',monospace;min-height:100vh}
@@ -71,7 +71,7 @@ export default function SchemaPage() {
         pre{background:#0f172a;border:1px solid #1e293b;border-radius:12px;padding:18px;font-size:11px;color:#00e5a0;overflow-x:auto;white-space:pre-wrap;word-break:break-all;max-height:480px;overflow-y:auto}
         .group-label{font-size:9px;color:#475569;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px}
         .table-grid{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:4px}
-      `}</style>
+      ` }} />
       <div className="page">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
           <button onClick={() => router.push('/teacher')} style={{ background: 'none', border: '1px solid #1e293b', borderRadius: 8, padding: '6px 12px', color: '#475569', cursor: 'pointer', fontSize: 12 }}>← Back</button>

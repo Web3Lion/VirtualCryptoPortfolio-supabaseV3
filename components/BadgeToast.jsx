@@ -42,14 +42,14 @@ export default function BadgeToast({ badgeIds = [] }) {
 
   return (
     <>
-      <style>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         .badge-toast-wrap{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:10px;pointer-events:none}
         .badge-toast{background:var(--surface,#0f172a);border:1px solid rgba(0,229,160,.4);border-radius:16px;padding:14px 18px;display:flex;align-items:center;gap:14px;box-shadow:0 8px 32px rgba(0,0,0,.5),0 0 24px rgba(0,229,160,.15);animation:toastIn .35s ease;min-width:220px}
         .badge-toast-emoji{font-size:28px;line-height:1;flex-shrink:0}
         .badge-toast-label{font-size:9px;color:#00e5a0;letter-spacing:2px;text-transform:uppercase;margin-bottom:3px;font-family:'DM Mono',monospace}
         .badge-toast-name{font-family:'Syne',sans-serif;font-weight:700;font-size:15px;color:#e2e8f0}
         @keyframes toastIn{from{opacity:0;transform:translateY(16px) scale(.95)}to{opacity:1;transform:none}}
-      `}</style>
+      ` }} />
       <div className="badge-toast-wrap">
         {visible.map(({ id, key }) => (
           <div key={key} className="badge-toast">

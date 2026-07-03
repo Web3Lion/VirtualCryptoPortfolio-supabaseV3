@@ -133,14 +133,14 @@ export default function BullBearGame() {
   return (
     <main style={{ maxWidth: 480, margin: '0 auto', padding: '24px 16px' }}>
       <Nav active="games" />
-      <style>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         @keyframes cardIn{0%{transform:translateY(20px) scale(.96);opacity:0}100%{transform:translateY(0) scale(1);opacity:1}}
         @keyframes revealPop{0%{transform:scale(.7);opacity:0}60%{transform:scale(1.1)}100%{transform:scale(1);opacity:1}}
         @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
         .guess-btn{flex:1;padding:18px;border-radius:16px;border:2px solid;font-family:'Syne',sans-serif;font-weight:800;font-size:20px;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:8px}
         .guess-btn:hover{transform:translateY(-2px)}
         .guess-btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
-      `}</style>
+      ` }} />
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>

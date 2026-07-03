@@ -81,7 +81,7 @@ export default function NewsTab() {
 
   return (
     <>
-      <style>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         .ntabs{display:flex;gap:4px;background:#0f172a;border:1px solid #1e293b;border-radius:12px;padding:4px;margin-bottom:20px}
         .ntab{flex:1;padding:8px;text-align:center;border-radius:8px;border:none;background:transparent;font-family:'DM Mono',monospace;font-size:11px;color:#475569;cursor:pointer;transition:all .2s}
         .ntab.active{background:#1a2235;color:#f59e0b;border:1px solid #1e293b}
@@ -116,7 +116,7 @@ export default function NewsTab() {
         .refresh-btn:disabled{opacity:.5;cursor:not-allowed}
         @keyframes spin{to{transform:rotate(360deg)}}
         .spinning{animation:spin .8s linear infinite;display:inline-block}
-      `}</style>
+      ` }} />
 
       {/* Header row with title + refresh button */}
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16,flexWrap:'wrap',gap:10}}>

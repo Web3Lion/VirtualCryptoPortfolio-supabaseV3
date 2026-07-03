@@ -42,10 +42,10 @@ export default function GradebookPage() {
 
   if (loading) return (
     <div style={{ maxWidth:1200, margin:'0 auto', padding:24, fontFamily:"'DM Mono',monospace", color:'var(--text,#e2e8f0)' }}>
-      <style>{`body{background:var(--bg,#080c14)}`}</style>
+      <style dangerouslySetInnerHTML={{ __html: `body{background:var(--bg,#080c14)}` }} />
       <div style={{ height:60, borderRadius:12, background:'#1e293b', marginBottom:16, animation:'shimmer 1.5s infinite', backgroundImage:'linear-gradient(90deg,#1e293b 25%,#334155 50%,#1e293b 75%)', backgroundSize:'200% 100%' }} />
       <div style={{ height:400, borderRadius:12, background:'#1e293b', animation:'shimmer 1.5s infinite', backgroundImage:'linear-gradient(90deg,#1e293b 25%,#334155 50%,#1e293b 75%)', backgroundSize:'200% 100%' }} />
-      <style>{`@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style>
+      <style dangerouslySetInnerHTML={{ __html: `@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}` }} />
     </div>
   );
 
@@ -57,7 +57,7 @@ export default function GradebookPage() {
 
   return (
     <div style={{ maxWidth:1400, margin:'0 auto', padding:'24px 16px 60px', fontFamily:"'DM Mono',monospace", color:'var(--text,#e2e8f0)' }}>
-      <style>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Mono:wght@400;500&display=swap');
         body{background:var(--bg,#080c14)}
         .gb-table{border-collapse:collapse;width:100%;font-size:11px}
@@ -67,7 +67,7 @@ export default function GradebookPage() {
         .cell-fail{background:rgba(244,63,94,.08)}
         .cell-empty{background:transparent}
         .cell-hover{outline:2px solid var(--accent,#00e5a0);z-index:2;position:relative}
-      `}</style>
+      ` }} />
 
       <div style={{ display:'flex', alignItems:'center', gap:16, marginBottom:24, flexWrap:'wrap' }}>
         <button onClick={() => router.back()} style={{ padding:'7px 14px', borderRadius:9, border:'1px solid #1e293b', background:'#0f172a', color:'#64748b', cursor:'pointer', fontSize:12 }}>← Back</button>

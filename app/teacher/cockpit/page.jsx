@@ -298,7 +298,7 @@ export default function TeacherCockpit() {
 
   return (
     <>
-      <style>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Mono:wght@400;500;700&display=swap');
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
         body{background:#05070d;color:#e2e8f0;font-family:'DM Mono',monospace}
@@ -325,7 +325,7 @@ export default function TeacherCockpit() {
           .warning-strip{padding:14px 16px;gap:12px}
           .odo-bar{padding:12px 16px;gap:16px}
         }
-      `}</style>
+      ` }} />
 
       {/* Scanline overlay (subtle) */}
       <div style={{ position: 'fixed', inset: 0, background: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,.03) 2px, rgba(0,0,0,.03) 4px)', pointerEvents: 'none', zIndex: 0 }} />
