@@ -24,6 +24,7 @@ export default function TeacherLearn() {
   const [seedingBlockchain, setSeedingBlockchain] = useState(false);
   const [seedingDefi, setSeedingDefi] = useState(false);
   const [seedingNft, setSeedingNft] = useState(false);
+  const [seedingTa, setSeedingTa] = useState(false);
   const [migrating, setMigrating] = useState(false);
 
   // Expanded lesson (to show questions)
@@ -160,6 +161,17 @@ export default function TeacherLearn() {
       fetchModules();
     } else flash(d.error || "DeFi seed failed", false);
     setSeedingDefi(false);
+  };
+
+  const seedTaModule = async () => {
+    setSeedingTa(true);
+    const res = await fetch("/api/admin/seed-ta-module", { method: "POST" });
+    const d = await res.json();
+    if (d.success) {
+      flash(`🕯️ TA Module: ${d.created} lessons created, ${d.skipped} already existed`);
+      fetchModules();
+    } else flash(d.error || "TA seed failed", false);
+    setSeedingTa(false);
   };
 
   const seedNftModule = async () => {
@@ -441,6 +453,9 @@ export default function TeacherLearn() {
           </button>
           <button className="btn btn-ghost" onClick={seedNftModule} disabled={seedingNft || dbReady === false}>
             {seedingNft ? "Seeding..." : "🖼️ Seed NFT Module"}
+          </button>
+          <button className="btn btn-ghost" onClick={seedTaModule} disabled={seedingTa || dbReady === false}>
+            {seedingTa ? "Seeding..." : "🕯️ Seed TA Module"}
           </button>
           <label style={{ cursor: importing || dbReady === false ? "not-allowed" : "pointer", opacity: importing || dbReady === false ? 0.5 : 1 }}>
             <input type="file" accept=".json" onChange={importJSON} style={{ display: "none" }} disabled={importing || dbReady === false} />
