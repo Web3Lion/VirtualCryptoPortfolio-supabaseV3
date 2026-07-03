@@ -243,6 +243,14 @@ export default function Dashboard() {
   const [refreshCooldown, setRefreshCooldown] = useState(null);
   const [refreshCountdown, setRefreshCountdown] = useState("");
   const [refreshResult, setRefreshResult] = useState(null);
+  const [itemsData, setItemsData] = useState(null);
+  const [itemsLoading, setItemsLoading] = useState(false);
+  const [freezeExpanded, setFreezeExpanded] = useState(false);
+  const [timeTravelIdx, setTimeTravelIdx] = useState(null);
+  const [learnData, setLearnData] = useState(null);
+  const [learnLoading, setLearnLoading] = useState(false);
+  const [assignmentsData, setAssignmentsData] = useState(null);
+  const [assignmentsLoading, setAssignmentsLoading] = useState(false);
   const [executedOrders, setExecutedOrders] = useState([]);
   const [dismissedOrderAlerts, setDismissedOrderAlerts] = useState(false);
   const [showRewardDetail, setShowRewardDetail] = useState(false);
@@ -361,7 +369,10 @@ export default function Dashboard() {
 
   const fetchWatchlist = useCallback(async () => {
     const res = await fetch("/api/watchlist");
-    if (res.ok) setWatchlist(await res.json());
+    if (res.ok) {
+      const data = await res.json();
+      setWatchlist(Array.isArray(data) ? data : []);
+    }
   }, []);
 
   const fetchOrders = useCallback(async () => {
@@ -778,15 +789,6 @@ export default function Dashboard() {
     "learn",
     "assignments",
   ];
-
-  const [itemsData, setItemsData] = useState(null);
-  const [itemsLoading, setItemsLoading] = useState(false);
-  const [freezeExpanded, setFreezeExpanded] = useState(false);
-  const [timeTravelIdx, setTimeTravelIdx] = useState(null);
-  const [learnData, setLearnData] = useState(null);
-  const [learnLoading, setLearnLoading] = useState(false);
-  const [assignmentsData, setAssignmentsData] = useState(null);
-  const [assignmentsLoading, setAssignmentsLoading] = useState(false);
 
   return (
     <>
@@ -2130,7 +2132,7 @@ export default function Dashboard() {
                 })()}
 
                 {/* ── Time Travel ── */}
-                {history.daily?.length > 1 && (() => {
+                {portfolio && history.daily?.length > 1 && (() => {
                   const days = history.daily;
                   const idx = timeTravelIdx ?? days.length - 1;
                   const snap = days[Math.min(idx, days.length - 1)];
