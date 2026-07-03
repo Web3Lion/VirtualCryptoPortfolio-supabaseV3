@@ -227,8 +227,8 @@ export async function POST(request) {
       // Derive emoji/description from the first file with this title, or use defaults
       const { data: created } = await db.from('learn_modules').insert({
         title: moduleTitle,
-        description: fileData.description || '',
-        emoji: fileData.emoji || '📚',
+        description: fileData.moduleDescription || fileData.description || '',
+        emoji: fileData.moduleEmoji || fileData.emoji || '📚',
         order_index: fileData.order_index || 0,
         is_published: true,
       }).select('id').single();
