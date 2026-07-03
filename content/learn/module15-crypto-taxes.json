@@ -13,6 +13,12 @@
       "pass_threshold": 70,
       "blocks": [
         {
+          "block_type": "text",
+          "content": {
+            "text": "⚠️ **This lesson is for educational purposes only — it is not financial or tax advice.** Tax laws vary by individual situation and jurisdiction and change frequently. Always consult a qualified tax professional or CPA before making real tax decisions."
+          }
+        },
+        {
           "block_type": "heading",
           "content": {
             "text": "🏛️ Cryptocurrency = Property Under US Tax Law"
@@ -68,6 +74,12 @@
             "url": "https://www.coindesk.com/learn/crypto-taxes-usa-guide/",
             "title": "Crypto Taxes USA Guide — CoinDesk",
             "description": "CoinDesk's comprehensive guide to US cryptocurrency taxes — how the IRS classifies crypto, what must be reported, and key deadlines."
+          }
+        },
+        {
+          "block_type": "text",
+          "content": {
+            "text": "⚠️ **Not financial advice.** CryptoClassroom is an educational simulator for entertainment and learning purposes only. No real money is used. Past simulated performance does not reflect real-world results. Always consult a qualified financial advisor before making real investment decisions."
           }
         }
       ],
@@ -237,6 +249,12 @@
       "pass_threshold": 70,
       "blocks": [
         {
+          "block_type": "text",
+          "content": {
+            "text": "⚠️ **This lesson is for educational purposes only — it is not financial or tax advice.** Tax laws vary by individual situation and jurisdiction and change frequently. Always consult a qualified tax professional or CPA before making real tax decisions."
+          }
+        },
+        {
           "block_type": "heading",
           "content": {
             "text": "📅 The One-Year Rule"
@@ -292,6 +310,12 @@
             "url": "https://www.investopedia.com/terms/c/capital_gains_tax.asp",
             "title": "Capital Gains Tax — Investopedia",
             "description": "Investopedia's guide to capital gains tax — short-term vs long-term rates, 2024 tax brackets, and how losses offset gains."
+          }
+        },
+        {
+          "block_type": "text",
+          "content": {
+            "text": "⚠️ **Not financial advice.** CryptoClassroom is an educational simulator for entertainment and learning purposes only. No real money is used. Past simulated performance does not reflect real-world results. Always consult a qualified financial advisor before making real investment decisions."
           }
         }
       ],
@@ -461,6 +485,12 @@
       "pass_threshold": 70,
       "blocks": [
         {
+          "block_type": "text",
+          "content": {
+            "text": "⚠️ **This lesson is for educational purposes only — it is not financial or tax advice.** Tax laws vary by individual situation and jurisdiction and change frequently. Always consult a qualified tax professional or CPA before making real tax decisions."
+          }
+        },
+        {
           "block_type": "heading",
           "content": {
             "text": "🧮 What Is Cost Basis?"
@@ -516,6 +546,12 @@
             "url": "https://www.coindesk.com/learn/crypto-tax-loss-harvesting-what-is-it-and-how-does-it-work/",
             "title": "Cost Basis and Tax-Loss Harvesting in Crypto — CoinDesk",
             "description": "CoinDesk's guide to crypto cost basis methods and how to use them strategically to minimize taxes."
+          }
+        },
+        {
+          "block_type": "text",
+          "content": {
+            "text": "⚠️ **Not financial advice.** CryptoClassroom is an educational simulator for entertainment and learning purposes only. No real money is used. Past simulated performance does not reflect real-world results. Always consult a qualified financial advisor before making real investment decisions."
           }
         }
       ],
@@ -685,6 +721,12 @@
       "pass_threshold": 70,
       "blocks": [
         {
+          "block_type": "text",
+          "content": {
+            "text": "⚠️ **This lesson is for educational purposes only — it is not financial or tax advice.** Tax laws vary by individual situation and jurisdiction and change frequently. Always consult a qualified tax professional or CPA before making real tax decisions."
+          }
+        },
+        {
           "block_type": "heading",
           "content": {
             "text": "⛏️ Mining Rewards"
@@ -740,6 +782,12 @@
             "url": "https://www.coindesk.com/learn/how-is-staking-crypto-taxed/",
             "title": "How Is Staking Crypto Taxed? — CoinDesk",
             "description": "CoinDesk's explainer on staking tax treatment — the IRS position, the Jarrett case, and practical implications for DeFi yield farmers."
+          }
+        },
+        {
+          "block_type": "text",
+          "content": {
+            "text": "⚠️ **Not financial advice.** CryptoClassroom is an educational simulator for entertainment and learning purposes only. No real money is used. Past simulated performance does not reflect real-world results. Always consult a qualified financial advisor before making real investment decisions."
           }
         }
       ],
@@ -909,6 +957,12 @@
       "pass_threshold": 70,
       "blocks": [
         {
+          "block_type": "text",
+          "content": {
+            "text": "⚠️ **This lesson is for educational purposes only — it is not financial or tax advice.** Tax laws vary by individual situation and jurisdiction and change frequently. Always consult a qualified tax professional or CPA before making real tax decisions."
+          }
+        },
+        {
           "block_type": "heading",
           "content": {
             "text": "🌾 What Is Tax-Loss Harvesting?"
@@ -964,6 +1018,12 @@
             "url": "https://www.coindesk.com/learn/crypto-tax-loss-harvesting-what-is-it-and-how-does-it-work/",
             "title": "Crypto Tax-Loss Harvesting — CoinDesk",
             "description": "CoinDesk's guide to tax-loss harvesting strategies — what it is, why crypto has advantages over stocks, and when it makes sense to do it."
+          }
+        },
+        {
+          "block_type": "text",
+          "content": {
+            "text": "⚠️ **Not financial advice.** CryptoClassroom is an educational simulator for entertainment and learning purposes only. No real money is used. Past simulated performance does not reflect real-world results. Always consult a qualified financial advisor before making real investment decisions."
           }
         }
       ],
@@ -1133,6 +1193,12 @@
       "pass_threshold": 70,
       "blocks": [
         {
+          "block_type": "text",
+          "content": {
+            "text": "⚠️ **This lesson is for educational purposes only — it is not financial or tax advice.** Tax laws vary by individual situation and jurisdiction and change frequently. Always consult a qualified tax professional or CPA before making real tax decisions."
+          }
+        },
+        {
           "block_type": "heading",
           "content": {
             "text": "📝 The Forms You Need"
@@ -1176,6 +1242,12 @@
             "url": "https://www.coindesk.com/learn/crypto-taxes-usa-guide/",
             "title": "Complete US Crypto Tax Guide — CoinDesk",
             "description": "CoinDesk's complete breakdown of US crypto tax reporting — which forms to use, what exchanges report, and what to do if you missed prior year transactions."
+          }
+        },
+        {
+          "block_type": "text",
+          "content": {
+            "text": "⚠️ **Not financial advice.** CryptoClassroom is an educational simulator for entertainment and learning purposes only. No real money is used. Past simulated performance does not reflect real-world results. Always consult a qualified financial advisor before making real investment decisions."
           }
         }
       ],
@@ -1345,6 +1417,12 @@
       "pass_threshold": 70,
       "blocks": [
         {
+          "block_type": "text",
+          "content": {
+            "text": "⚠️ **This lesson is for educational purposes only — it is not financial or tax advice.** Tax laws vary by individual situation and jurisdiction and change frequently. Always consult a qualified tax professional or CPA before making real tax decisions."
+          }
+        },
+        {
           "block_type": "heading",
           "content": {
             "text": "💻 Why You Need Specialized Software"
@@ -1388,6 +1466,12 @@
             "url": "https://www.coindesk.com/learn/best-crypto-tax-software/",
             "title": "Best Crypto Tax Software — CoinDesk",
             "description": "CoinDesk's reviewed comparison of crypto tax software — Koinly, CoinTracker, TaxBit, and others — with pricing and feature breakdowns."
+          }
+        },
+        {
+          "block_type": "text",
+          "content": {
+            "text": "⚠️ **Not financial advice.** CryptoClassroom is an educational simulator for entertainment and learning purposes only. No real money is used. Past simulated performance does not reflect real-world results. Always consult a qualified financial advisor before making real investment decisions."
           }
         }
       ],
@@ -1557,6 +1641,12 @@
       "pass_threshold": 70,
       "blocks": [
         {
+          "block_type": "text",
+          "content": {
+            "text": "⚠️ **This lesson is for educational purposes only — it is not financial or tax advice.** Tax laws vary by individual situation and jurisdiction and change frequently. Always consult a qualified tax professional or CPA before making real tax decisions."
+          }
+        },
+        {
           "block_type": "heading",
           "content": {
             "text": "🌍 How Other Countries Tax Crypto"
@@ -1612,6 +1702,12 @@
             "url": "https://www.coindesk.com/learn/crypto-taxes-usa-guide/",
             "title": "Crypto Gift Tax & Charity Donations — CoinDesk",
             "description": "How crypto gifts, inheritances, and charitable donations are taxed — including the stepped-up basis rule for inherited crypto and charity donation strategies."
+          }
+        },
+        {
+          "block_type": "text",
+          "content": {
+            "text": "⚠️ **Not financial advice.** CryptoClassroom is an educational simulator for entertainment and learning purposes only. No real money is used. Past simulated performance does not reflect real-world results. Always consult a qualified financial advisor before making real investment decisions."
           }
         }
       ],
