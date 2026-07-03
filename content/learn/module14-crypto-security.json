@@ -1,0 +1,1800 @@
+{
+  "moduleTitle": "Crypto Security & Self-Custody",
+  "moduleEmoji": "🔐",
+  "moduleDescription": "How to protect your crypto — private keys, seed phrases, hardware wallets, phishing attacks, SIM swaps, and the lessons from FTX, Celsius, and Mt. Gox. Not your keys, not your coins.",
+  "order_index": 14,
+  "lessons": [
+    {
+      "title": "Private Keys & Public Keys",
+      "emoji": "🔑",
+      "description": "The cryptographic foundation of all crypto ownership — how public and private keys work together, why your private key is your only real proof of ownership, and what happens when it's lost.",
+      "order_index": 1,
+      "tokens_reward": 35,
+      "pass_threshold": 70,
+      "blocks": [
+        {
+          "block_type": "heading",
+          "content": {
+            "text": "🔑 The Lock and Key of Crypto"
+          }
+        },
+        {
+          "block_type": "text",
+          "content": {
+            "text": "Every crypto wallet is built on a pair of mathematically linked keys:\n\n**Public Key → Your Wallet Address**\n- Like your email address or bank account number\n- You share this with anyone who wants to send you crypto\n- Generated from your private key using a one-way mathematical function\n- Example: `0x742d35Cc6634C0532925a3b8D4C9B8B8C3e7c1a`\n\n**Private Key → Your Proof of Ownership**\n- Like the password to your bank account — but you can never reset it\n- A 256-bit number, usually shown as 64 hexadecimal characters\n- Used to SIGN transactions, proving you authorize a transfer\n- Anyone who has your private key has your crypto — no exceptions\n\n```\n  HOW THEY WORK TOGETHER\n\n  Private Key ──math──→ Public Key ──math──→ Wallet Address\n  (secret)              (shareable)           (shareable)\n\n  ↑ One-way only! You CANNOT reverse-engineer the private key\n    from a public key or wallet address.\n```"
+          }
+        },
+        {
+          "block_type": "heading",
+          "content": {
+            "text": "✍️ How Transactions Are Signed"
+          }
+        },
+        {
+          "block_type": "text",
+          "content": {
+            "text": "When you send crypto, your wallet uses your private key to create a **digital signature** — mathematical proof that you authorized the transaction.\n\n```\n  SENDING CRYPTO\n\n  You want to send 1 ETH to Alice:\n\n  1. Your wallet creates the transaction:\n     \"Send 1 ETH from MY address TO Alice's address\"\n\n  2. Your wallet SIGNS it with your private key:\n     Transaction + Private Key → Digital Signature\n\n  3. The network verifies the signature using your PUBLIC KEY:\n     \"Yes, this matches — the private key owner authorized it\"\n\n  4. Transaction is confirmed. 1 ETH sent.\n\n  ⚠️ No company, no bank, no one can reverse this.\n     Crypto transactions are FINAL.\n```\n\n**Critical:** The private key never leaves your device during signing. The signature is what gets broadcast to the network — not the key itself."
+          }
+        },
+        {
+          "block_type": "heading",
+          "content": {
+            "text": "💀 What Happens If You Lose Your Private Key"
+          }
+        },
+        {
+          "block_type": "text",
+          "content": {
+            "text": "There is **no password reset** for a crypto private key. No company to call. No support ticket to file.\n\n**Real examples of lost crypto:**\n- **James Howells (2013):** Accidentally threw away a hard drive with 7,500 BTC (worth hundreds of millions today). The drive is in a Welsh landfill. He has been trying to get permission to dig it up for years.\n- **Stefan Thomas:** Forgot the password to his IronKey drive containing 7,002 BTC. He has two password attempts left before the drive self-destructs.\n- **Estimated 20%** of all Bitcoin in existence (~4 million BTC) is considered permanently lost — wallets whose owners have died or lost access.\n\n**The lesson:** Protecting your private key is as important as protecting the crypto itself. The two cannot be separated."
+          }
+        },
+        {
+          "block_type": "heading",
+          "content": {
+            "text": "📺 Watch & Learn"
+          }
+        },
+        {
+          "block_type": "video",
+          "content": {
+            "url": "https://www.youtube.com/watch?v=jqUgSzgMV3s",
+            "title": "Public and Private Keys in Crypto Explained Simply",
+            "description": "How public and private keys work in crypto — the math behind digital signatures, why you can't reverse-engineer a private key from a public key, and what it means to truly own your crypto."
+          }
+        },
+        {
+          "block_type": "article",
+          "content": {
+            "url": "https://www.coinbase.com/learn/crypto-basics/what-is-a-private-key",
+            "title": "What Is a Private Key? — Coinbase",
+            "description": "What a private key is, how it differs from a public key, and why losing it means permanently losing your crypto."
+          }
+        }
+      ],
+      "questions": [
+        {
+          "question_text": "What is a PRIVATE KEY in crypto?",
+          "explanation": "A private key is a secret 256-bit number that proves you own a wallet and authorizes transactions. Anyone who has your private key has complete control over all the crypto in that wallet — it's your only proof of ownership.",
+          "options": [
+            {
+              "option_text": "A secret number that proves ownership and signs transactions — never share it",
+              "is_correct": true
+            },
+            {
+              "option_text": "Your wallet's public address that you share to receive crypto",
+              "is_correct": false
+            },
+            {
+              "option_text": "The password you set when creating an exchange account",
+              "is_correct": false
+            },
+            {
+              "option_text": "A government-issued ID number for crypto investors",
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "question_text": "What can you DERIVE from a private key?",
+          "explanation": "From a private key, you can mathematically derive the public key and wallet address. But this is a one-way function — you CANNOT reverse-engineer the private key from a public key or wallet address.",
+          "options": [
+            {
+              "option_text": "The public key and wallet address — but NOT the other direction",
+              "is_correct": true
+            },
+            {
+              "option_text": "Your transaction history on the blockchain",
+              "is_correct": false
+            },
+            {
+              "option_text": "The exchange where you first bought the crypto",
+              "is_correct": false
+            },
+            {
+              "option_text": "A new private key to replace the old one",
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "question_text": "What is a DIGITAL SIGNATURE in the context of a crypto transaction?",
+          "explanation": "A digital signature is mathematical proof created by combining a transaction with your private key. It proves you authorized the transaction without revealing your private key. The network verifies it using your public key.",
+          "options": [
+            {
+              "option_text": "Mathematical proof that the private key owner authorized the transaction",
+              "is_correct": true
+            },
+            {
+              "option_text": "Your handwritten signature scanned and attached to the transaction",
+              "is_correct": false
+            },
+            {
+              "option_text": "The exchange's confirmation that your trade was processed",
+              "is_correct": false
+            },
+            {
+              "option_text": "A two-factor authentication code sent to your phone",
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "question_text": "If you lose your private key, what can you do to recover your crypto?",
+          "explanation": "Nothing. There is no password reset, no customer support, and no way to recover a lost private key. This is by design — it's what makes crypto truly decentralized. Approximately 20% of all Bitcoin is permanently lost this way.",
+          "options": [
+            {
+              "option_text": "Nothing — there is no recovery option; the crypto is permanently inaccessible",
+              "is_correct": true
+            },
+            {
+              "option_text": "Contact the blockchain network to issue a new key for your address",
+              "is_correct": false
+            },
+            {
+              "option_text": "File a report with the exchange where you bought the crypto",
+              "is_correct": false
+            },
+            {
+              "option_text": "Use your seed phrase to generate a new private key",
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "question_text": "Is it safe to share your PUBLIC KEY (wallet address) with others?",
+          "explanation": "Yes — your public key/wallet address is designed to be shared. It's like your bank account number: others need it to send you money. Knowing your wallet address cannot give anyone access to your funds.",
+          "options": [
+            {
+              "option_text": "Yes — it's meant to be shared so others can send you crypto",
+              "is_correct": true
+            },
+            {
+              "option_text": "No — sharing your public key gives hackers full access to your wallet",
+              "is_correct": false
+            },
+            {
+              "option_text": "Only share it with verified exchanges, never with individuals",
+              "is_correct": false
+            },
+            {
+              "option_text": "Only when receiving from trusted wallets — never from strangers",
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "question_text": "Why can't someone steal your crypto just by watching your transaction on the blockchain?",
+          "explanation": "Blockchain transactions are public but only show the digital signature and wallet addresses — not the private key. The signing process is one-way: the private key produces the signature, but the signature cannot be reversed to reveal the private key.",
+          "options": [
+            {
+              "option_text": "Transactions show signatures and addresses — the private key is never broadcast",
+              "is_correct": true
+            },
+            {
+              "option_text": "Blockchain transactions are encrypted and invisible to observers",
+              "is_correct": false
+            },
+            {
+              "option_text": "Transactions expire after 24 hours and cannot be copied",
+              "is_correct": false
+            },
+            {
+              "option_text": "Your ISP blocks other users from seeing your transactions",
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "question_text": "What does \"not your keys, not your coins\" mean?",
+          "explanation": "If you store crypto on an exchange, the exchange holds the private keys — you only have an IOU. If the exchange gets hacked, goes bankrupt, or freezes withdrawals (like FTX, Celsius), you lose access. Only holding your own private key gives you true ownership.",
+          "options": [
+            {
+              "option_text": "If someone else holds your private key, they control your crypto — not you",
+              "is_correct": true
+            },
+            {
+              "option_text": "You must physically hold metal coins to truly own cryptocurrency",
+              "is_correct": false
+            },
+            {
+              "option_text": "You need a hardware wallet to legally own crypto in most countries",
+              "is_correct": false
+            },
+            {
+              "option_text": "Crypto stored on exchanges doesn't count toward your net worth",
+              "is_correct": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Seed Phrases — Your Master Key",
+      "emoji": "🌱",
+      "description": "A seed phrase is 12–24 ordinary words that can regenerate your entire wallet. It's the most important thing to protect in crypto — and one of the easiest to lose.",
+      "order_index": 2,
+      "tokens_reward": 35,
+      "pass_threshold": 70,
+      "blocks": [
+        {
+          "block_type": "heading",
+          "content": {
+            "text": "🌱 What Is a Seed Phrase?"
+          }
+        },
+        {
+          "block_type": "text",
+          "content": {
+            "text": "A **seed phrase** (also called a recovery phrase or mnemonic phrase) is a sequence of 12, 18, or 24 common English words that encodes your wallet's master private key.\n\n**Example (never use this — it's public):**\n```\n  witch collapse practice feed shame open\n  despair creek road again ice least\n```\n\nThese 12 words can regenerate EVERY private key for EVERY wallet you've ever created — across Ethereum, Bitcoin, Solana, and more.\n\n**Why words instead of numbers?**\nWords are easier for humans to write down and verify than a 256-bit number. The BIP-39 standard defines 2,048 possible words — 12 of them gives 2^132 possible combinations, making it practically impossible to guess.\n\n**The relationship:**\n```\n  Seed Phrase → Master Private Key → All Your Private Keys\n                                   → All Your Public Keys\n                                   → All Your Wallet Addresses\n```\n\nOne seed phrase = the master key to your entire crypto life."
+          }
+        },
+        {
+          "block_type": "heading",
+          "content": {
+            "text": "💾 How to Store Your Seed Phrase"
+          }
+        },
+        {
+          "block_type": "text",
+          "content": {
+            "text": "**NEVER store your seed phrase digitally:**\n- ❌ Do NOT take a screenshot\n- ❌ Do NOT email it to yourself\n- ❌ Do NOT store it in Google Drive, iCloud, or Dropbox\n- ❌ Do NOT type it into any website or app (except your own wallet during recovery)\n- ❌ Do NOT store it in a password manager\n- ❌ Do NOT photograph it with your phone\n\n**Why not?** If any of these services are hacked, or if malware scans your files, your seed phrase is exposed — and your crypto is gone within minutes.\n\n**DO store it physically:**\n- ✅ Write it on paper — use a pen, not pencil (pencil fades)\n- ✅ Make multiple copies and store them in separate secure locations\n- ✅ Consider a fireproof/waterproof safe\n- ✅ For large amounts: **metal seed phrase plates** (stainless steel) that survive fire and flood\n- ✅ Tell a trusted family member where it is (in case you die)\n\n**The threat model:** Paper is vulnerable to fire and water. A phone screenshot is vulnerable to hackers worldwide. Metal plates survive disasters. Choose based on how much crypto you're protecting."
+          }
+        },
+        {
+          "block_type": "heading",
+          "content": {
+            "text": "⚠️ The Most Common Seed Phrase Scams"
+          }
+        },
+        {
+          "block_type": "text",
+          "content": {
+            "text": "**Scam #1: \"Enter your seed phrase to verify your wallet\"**\nNo legitimate wallet, exchange, or support team will EVER ask for your seed phrase. If anything asks you to type it, it's a scam — close it immediately.\n\n**Scam #2: Fake wallet apps**\nMalicious wallet apps in the App Store/Google Play collect seed phrases. Always download wallets from the official website URL — never search \"MetaMask\" or \"Ledger Live\" in an app store and trust the first result.\n\n**Scam #3: \"Support\" in Discord/Telegram**\nFake \"helpers\" in official Discord and Telegram groups (sometimes posing as admins) ask for your seed phrase to \"troubleshoot\" your issue. Real support never needs it.\n\n**Scam #4: Recovery services**\nAfter you lose crypto, fake \"recovery experts\" reach out claiming they can recover your funds — if you give them your seed phrase. They drain everything that remains.\n\n**Rule:** Your seed phrase is like your banking PIN. No one should ever need it. Not your wallet, not support, not anyone."
+          }
+        },
+        {
+          "block_type": "heading",
+          "content": {
+            "text": "📺 Watch & Learn"
+          }
+        },
+        {
+          "block_type": "video",
+          "content": {
+            "url": "https://www.youtube.com/watch?v=JC9y4tZmOVg",
+            "title": "Seed Phrases Explained: 12-24 Word Recovery Keys for Crypto Wallets",
+            "description": "What a seed phrase is, how it generates all your private keys, and the critical do's and don'ts of storing it safely — including why you should never store it digitally."
+          }
+        },
+        {
+          "block_type": "article",
+          "content": {
+            "url": "https://decrypt.co/resources/what-is-a-seed-phrase",
+            "title": "What Is a Seed Phrase? — Decrypt",
+            "description": "Decrypt's explainer on how seed phrases work, what BIP-39 is, and best practices for keeping your recovery phrase safe."
+          }
+        }
+      ],
+      "questions": [
+        {
+          "question_text": "What does a seed phrase allow you to do?",
+          "explanation": "A seed phrase regenerates your entire wallet — all private keys, public keys, and wallet addresses across all blockchains. It's the master backup for everything in your wallet.",
+          "options": [
+            {
+              "option_text": "Regenerate your entire wallet and all its private keys on any device",
+              "is_correct": true
+            },
+            {
+              "option_text": "Log into crypto exchanges without a password",
+              "is_correct": false
+            },
+            {
+              "option_text": "Recover only the most recent transactions in your wallet",
+              "is_correct": false
+            },
+            {
+              "option_text": "Prove your identity to government regulators",
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "question_text": "Which of the following is the SAFEST way to store a seed phrase?",
+          "explanation": "Writing it on paper (or metal) and storing it physically in a secure location is the safest option. Digital storage (screenshots, email, cloud) exposes it to hackers who can steal it remotely and instantly drain your wallet.",
+          "options": [
+            {
+              "option_text": "Written on paper stored in a fireproof safe — or engraved on metal",
+              "is_correct": true
+            },
+            {
+              "option_text": "Saved in a password manager app on your phone",
+              "is_correct": false
+            },
+            {
+              "option_text": "Emailed to yourself with a secret subject line",
+              "is_correct": false
+            },
+            {
+              "option_text": "Saved as a note in Google Drive with two-factor authentication",
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "question_text": "When is it acceptable to enter your seed phrase into a website or app?",
+          "explanation": "You should NEVER enter your seed phrase into any website. You only use it in your own wallet software during the initial setup or recovery process — and only after downloading that wallet from the official source.",
+          "options": [
+            {
+              "option_text": "Never on a website — only in your own wallet software during recovery",
+              "is_correct": true
+            },
+            {
+              "option_text": "When a crypto exchange support agent requests it to fix a problem",
+              "is_correct": false
+            },
+            {
+              "option_text": "When a website offers to check if your seed phrase is valid",
+              "is_correct": false
+            },
+            {
+              "option_text": "When connecting to a new DeFi app for the first time",
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "question_text": "How many possible combinations exist with a standard 12-word BIP-39 seed phrase?",
+          "explanation": "The BIP-39 standard uses 2,048 possible words. A 12-word phrase gives 2^132 possible combinations — a number so enormous it's practically impossible to brute-force guess.",
+          "options": [
+            {
+              "option_text": "2^132 — an astronomically large number that cannot be brute-forced",
+              "is_correct": true
+            },
+            {
+              "option_text": "2,048 — one for each word in the BIP-39 word list",
+              "is_correct": false
+            },
+            {
+              "option_text": "12 million — one for each permutation of 12 specific words",
+              "is_correct": false
+            },
+            {
+              "option_text": "256 — the same as the number of bits in a private key",
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "question_text": "A \"support agent\" in a wallet's official Discord asks for your seed phrase to fix a connection issue. What should you do?",
+          "explanation": "This is always a scam. No legitimate support team, wallet company, or exchange will ever ask for your seed phrase. Leave the conversation immediately and report the user.",
+          "options": [
+            {
+              "option_text": "Refuse — legitimate support never asks for seed phrases. Report the user.",
+              "is_correct": true
+            },
+            {
+              "option_text": "Provide it only if they can verify they work for the company",
+              "is_correct": false
+            },
+            {
+              "option_text": "Give them the first 6 words only for partial verification",
+              "is_correct": false
+            },
+            {
+              "option_text": "Reset your seed phrase first, then share the old one safely",
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "question_text": "Why are METAL seed phrase storage plates better than paper for large crypto holdings?",
+          "explanation": "Metal plates (typically stainless steel) survive fire temperatures and water damage that would destroy paper. For large amounts of crypto, the risk of losing your paper backup in a house fire could mean losing everything.",
+          "options": [
+            {
+              "option_text": "Metal survives fire and water damage that would destroy paper backups",
+              "is_correct": true
+            },
+            {
+              "option_text": "Metal plates are encrypted — paper can be read by anyone who finds it",
+              "is_correct": false
+            },
+            {
+              "option_text": "Exchanges require metal storage for large crypto holdings",
+              "is_correct": false
+            },
+            {
+              "option_text": "Metal storage is blockchain-verified — paper is not",
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "question_text": "What is the difference between a seed phrase and a private key?",
+          "explanation": "A private key controls ONE wallet address. A seed phrase is the master backup that can regenerate ALL private keys across ALL wallet addresses you've ever created. Lose the seed phrase and you lose access to everything in that wallet.",
+          "options": [
+            {
+              "option_text": "A seed phrase generates ALL private keys; a private key controls just ONE address",
+              "is_correct": true
+            },
+            {
+              "option_text": "They are the same thing presented in different formats",
+              "is_correct": false
+            },
+            {
+              "option_text": "A private key is more secure; seed phrases are for convenience only",
+              "is_correct": false
+            },
+            {
+              "option_text": "Seed phrases are used for Bitcoin only; private keys are for Ethereum",
+              "is_correct": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Hot Wallets vs. Cold Wallets",
+      "emoji": "🔥",
+      "description": "The core tradeoff in crypto storage — internet-connected hot wallets for convenience vs. hardware cold wallets for maximum security. When to use each and how hardware wallets actually work.",
+      "order_index": 3,
+      "tokens_reward": 35,
+      "pass_threshold": 70,
+      "blocks": [
+        {
+          "block_type": "heading",
+          "content": {
+            "text": "🔥 Hot Wallets — Convenience with Risk"
+          }
+        },
+        {
+          "block_type": "text",
+          "content": {
+            "text": "A **hot wallet** is any crypto wallet that is connected to the internet. Private keys are stored on an internet-connected device.\n\n**Types of hot wallets:**\n- **Browser extensions:** MetaMask, Phantom, Rabby — installed in Chrome/Firefox\n- **Mobile apps:** Trust Wallet, Coinbase Wallet, Rainbow\n- **Desktop apps:** Exodus, Electrum\n\n**Advantages:**\n- ✅ Instant access — buy, sell, trade, connect to DeFi apps in seconds\n- ✅ Free to use\n- ✅ Convenient for daily transactions and small amounts\n- ✅ Easy to set up\n\n**Risks:**\n- ❌ Private keys on an internet-connected device can be exposed by malware\n- ❌ Browser extensions can be exploited by malicious websites\n- ❌ If your computer or phone is compromised, funds can be drained\n- ❌ Phishing sites can trick you into connecting and signing malicious transactions\n\n**Best practice:** Use a hot wallet like a physical wallet — keep only what you'd carry in your pocket, not your life savings."
+          }
+        },
+        {
+          "block_type": "heading",
+          "content": {
+            "text": "❄️ Cold Wallets — Security over Convenience"
+          }
+        },
+        {
+          "block_type": "text",
+          "content": {
+            "text": "A **cold wallet** stores your private keys on a device that is NEVER connected to the internet. The most popular form is a **hardware wallet**.\n\n**Popular hardware wallets:**\n- **Ledger** (Nano S Plus, Nano X, Stax) — French company, USB/Bluetooth\n- **Trezor** (Model One, Model T, Safe 3) — Czech company, USB\n- **Coldcard** — Bitcoin-only, maximum security for serious holders\n\n**How a hardware wallet works:**\n```\n  HARDWARE WALLET TRANSACTION\n\n  1. You connect the Ledger to your computer\n  2. You initiate a transaction on screen (e.g., send 0.5 ETH)\n  3. The transaction is sent to the Ledger device\n  4. The private key STAYS INSIDE the hardware device\n  5. The Ledger signs the transaction INTERNALLY\n  6. Only the signature is sent back to the computer\n  7. ✅ Private key NEVER leaves the secure hardware chip\n```\n\n**Even if your computer has malware**, the key never passes through it. The hardware device is the only place the key exists.\n\n**Cost:** $50–$250 USD for reputable hardware wallets. Buy ONLY from the official manufacturer website — never from Amazon third-party sellers (devices may be pre-compromised)."
+          }
+        },
+        {
+          "block_type": "heading",
+          "content": {
+            "text": "📊 When to Use Each"
+          }
+        },
+        {
+          "block_type": "text",
+          "content": {
+            "text": "| | Hot Wallet | Cold Wallet |\n|---|---|---|\n| **Internet connection** | Always connected | Never connected during signing |\n| **Security level** | Medium | Very High |\n| **Convenience** | High | Medium (setup required) |\n| **Cost** | Free | $50–$250 |\n| **Best for** | Small amounts, daily DeFi | Large holdings, long-term storage |\n| **Risk** | Malware, phishing | Physical theft, loss |\n\n**The hybrid approach (recommended):**\n- **Hardware wallet:** 80–90% of your holdings — long-term storage\n- **Hot wallet:** 10–20% — active DeFi, daily transactions, amounts you can afford to lose\n\n**Analogy:** A hardware wallet is your savings account. A hot wallet is your wallet in your pocket. You don't carry $50,000 in your back pocket."
+          }
+        },
+        {
+          "block_type": "heading",
+          "content": {
+            "text": "📺 Watch & Learn"
+          }
+        },
+        {
+          "block_type": "video",
+          "content": {
+            "url": "https://www.youtube.com/watch?v=qlzHmvbrSZk",
+            "title": "Crypto Wallets: Hot Wallet vs Cold Wallet vs Exchanges (Explained)",
+            "description": "The difference between hot and cold wallets, how hardware wallets keep your private key offline, and when to use each type of storage."
+          }
+        },
+        {
+          "block_type": "article",
+          "content": {
+            "url": "https://decrypt.co/resources/hot-wallet-vs-cold-wallet-whats-the-difference",
+            "title": "Hot Wallet vs Cold Wallet — Decrypt",
+            "description": "Decrypt's comparison of hot and cold wallet storage — security tradeoffs, costs, and best practices for different amounts of crypto."
+          }
+        }
+      ],
+      "questions": [
+        {
+          "question_text": "What is the defining characteristic of a HOT wallet?",
+          "explanation": "A hot wallet is defined by being connected to the internet — private keys are stored on an internet-connected device. This makes it convenient but vulnerable to online attacks.",
+          "options": [
+            {
+              "option_text": "It is connected to the internet — private keys are on an online device",
+              "is_correct": true
+            },
+            {
+              "option_text": "It can only hold tokens that are currently rising in price",
+              "is_correct": false
+            },
+            {
+              "option_text": "It charges higher transaction fees than cold wallets",
+              "is_correct": false
+            },
+            {
+              "option_text": "It requires a subscription to use",
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "question_text": "How does a hardware wallet protect your private key from malware?",
+          "explanation": "The private key never leaves the hardware device — even when signing transactions. The signing happens INSIDE the secure chip. Only the completed signature is sent to the computer, never the key itself.",
+          "options": [
+            {
+              "option_text": "The key never leaves the device — signing happens internally so malware never touches it",
+              "is_correct": true
+            },
+            {
+              "option_text": "The hardware wallet encrypts the key before sending it to the computer",
+              "is_correct": false
+            },
+            {
+              "option_text": "Hardware wallets use a different blockchain that malware cannot access",
+              "is_correct": false
+            },
+            {
+              "option_text": "Malware cannot run on the same network as a hardware wallet",
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "question_text": "Where should you ALWAYS buy a hardware wallet?",
+          "explanation": "Always buy hardware wallets directly from the manufacturer's official website. Third-party sellers (Amazon, eBay) may sell pre-tampered devices with compromised firmware or pre-generated seed phrases that the seller knows.",
+          "options": [
+            {
+              "option_text": "Only from the official manufacturer website — never third-party sellers",
+              "is_correct": true
+            },
+            {
+              "option_text": "Amazon is safest — they have buyer protection policies",
+              "is_correct": false
+            },
+            {
+              "option_text": "Any authorized retailer is fine — hardware wallets are tamper-proof",
+              "is_correct": false
+            },
+            {
+              "option_text": "The cheapest option available — all hardware wallets are identical",
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "question_text": "What is the recommended HYBRID storage approach for serious crypto holders?",
+          "explanation": "Keep 80-90% of holdings in a hardware (cold) wallet for maximum security, and 10-20% in a hot wallet for active trading and DeFi. Like keeping most of your money in a savings account and just daily spending money in your physical wallet.",
+          "options": [
+            {
+              "option_text": "Most holdings in cold storage, a small active amount in a hot wallet",
+              "is_correct": true
+            },
+            {
+              "option_text": "Everything in one hot wallet for maximum convenience",
+              "is_correct": false
+            },
+            {
+              "option_text": "Everything in one cold wallet and never move it",
+              "is_correct": false
+            },
+            {
+              "option_text": "Split exactly 50/50 between hot and cold",
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "question_text": "MetaMask is an example of what type of wallet?",
+          "explanation": "MetaMask is a browser extension hot wallet — it's connected to the internet at all times, making it convenient for DeFi but vulnerable to online attacks. Your private key is stored on your computer.",
+          "options": [
+            {
+              "option_text": "A hot wallet — a browser extension that is always internet-connected",
+              "is_correct": true
+            },
+            {
+              "option_text": "A cold wallet — MetaMask uses hardware encryption",
+              "is_correct": false
+            },
+            {
+              "option_text": "A custodial wallet — MetaMask holds your keys",
+              "is_correct": false
+            },
+            {
+              "option_text": "A paper wallet — MetaMask stores keys as printed text",
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "question_text": "What is the main RISK of a cold (hardware) wallet compared to a hot wallet?",
+          "explanation": "Cold wallets are secure from online attacks, but they are physical devices that can be physically lost, stolen, or damaged. However, as long as your seed phrase backup exists, you can recover your funds on a new device.",
+          "options": [
+            {
+              "option_text": "Physical loss or damage — the device can be stolen, lost, or broken",
+              "is_correct": true
+            },
+            {
+              "option_text": "Cold wallets are more vulnerable to hackers than hot wallets",
+              "is_correct": false
+            },
+            {
+              "option_text": "Cold wallets charge monthly storage fees",
+              "is_correct": false
+            },
+            {
+              "option_text": "Cold wallets only support Bitcoin — not altcoins",
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "question_text": "Why is a hot wallet compared to a \"physical wallet in your pocket\"?",
+          "explanation": "Just like you wouldn't carry your life savings in a physical wallet in your pocket (risk of theft), you shouldn't keep your entire crypto portfolio in a hot wallet (risk of hacking). Both should hold only what you're actively using.",
+          "options": [
+            {
+              "option_text": "Both should hold only small, actively-used amounts — not your life savings",
+              "is_correct": true
+            },
+            {
+              "option_text": "Both are made of leather and have card slots",
+              "is_correct": false
+            },
+            {
+              "option_text": "Hot wallets, like physical wallets, have a maximum capacity of $500",
+              "is_correct": false
+            },
+            {
+              "option_text": "Both can be insured against theft by homeowners insurance",
+              "is_correct": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Custodial vs. Non-Custodial",
+      "emoji": "🏦",
+      "description": "When you leave crypto on an exchange, the exchange holds your keys. This lesson explains the difference between trusting a custodian vs. holding your own keys — and what the FTX collapse taught us.",
+      "order_index": 4,
+      "tokens_reward": 35,
+      "pass_threshold": 70,
+      "blocks": [
+        {
+          "block_type": "heading",
+          "content": {
+            "text": "🏦 Custodial Wallets — Trusting a Third Party"
+          }
+        },
+        {
+          "block_type": "text",
+          "content": {
+            "text": "A **custodial wallet** is one where a third party (usually an exchange) holds your private keys for you. When you buy crypto on Coinbase, Binance, or Kraken and leave it there, you're using a custodial wallet.\n\n**What you actually have:** An account balance on the exchange's internal ledger — an IOU.\n\n**What the exchange has:** The actual crypto and private keys.\n\n**Advantages of custodial storage:**\n- ✅ Password recovery available — forget your password, use email reset\n- ✅ No risk of losing a seed phrase\n- ✅ Easy for beginners\n- ✅ Familiar — works like online banking\n- ✅ Customer support available\n\n**Risks of custodial storage:**\n- ❌ Exchange can be hacked (Mt. Gox lost 850,000 BTC)\n- ❌ Exchange can freeze your withdrawals (Celsius, BlockFi)\n- ❌ Exchange can go bankrupt (FTX)\n- ❌ Your account can be locked (government order, KYC issues)\n- ❌ Exchange can restrict access during a \"bank run\""
+          }
+        },
+        {
+          "block_type": "heading",
+          "content": {
+            "text": "🔐 Non-Custodial Wallets — You Are the Bank"
+          }
+        },
+        {
+          "block_type": "text",
+          "content": {
+            "text": "A **non-custodial wallet** means you — and only you — control the private keys. MetaMask, Ledger, and Trezor are examples.\n\n**What you have:** The actual crypto on the blockchain AND the private keys.\n\n**What no one else has:** Any control over your funds.\n\n**Advantages:**\n- ✅ True ownership — no company can freeze or seize your funds\n- ✅ Funds available even if exchanges shut down\n- ✅ Required to use DeFi, NFT platforms, and Web3 apps\n- ✅ No counterparty risk\n\n**Risks:**\n- ❌ Lose your seed phrase = lose your crypto permanently\n- ❌ No customer support — no one to call\n- ❌ Full responsibility on you — mistakes are final\n- ❌ Requires more technical knowledge\n\n**Rule of thumb:** If you don't need to do anything with your crypto in the next month, move it to a non-custodial wallet. If you're actively trading, an exchange may be more convenient — but don't keep more there than you'd be comfortable losing."
+          }
+        },
+        {
+          "block_type": "heading",
+          "content": {
+            "text": "💥 The FTX Lesson"
+          }
+        },
+        {
+          "block_type": "text",
+          "content": {
+            "text": "In November 2022, **FTX** — the world's third-largest crypto exchange — collapsed in under a week.\n\n**What happened:**\n- FTX was secretly using customer funds to make risky investments through its affiliated trading firm Alameda Research\n- When a CoinDesk report revealed the situation, users tried to withdraw $6 billion in 72 hours\n- FTX couldn't pay — the funds weren't there\n- FTX filed for bankruptcy. Founder Sam Bankman-Fried was arrested and later convicted of fraud.\n- Approximately 1 million customers lost access to their funds — estimated $8 billion total\n\n**Who was protected?** Users who had moved their crypto off FTX to their own non-custodial wallets before the collapse kept everything.\n\n**The lesson:** \"Proof of reserves\" and \"we have your funds\" from a centralized exchange are promises, not guarantees. Until crypto is in a wallet whose seed phrase you control, it is not truly yours.\n\n**The same pattern:** Mt. Gox (2014) → Bitfinex (2016) → QuadrigaCX (2018) → Celsius (2022) → FTX (2022). History repeats."
+          }
+        },
+        {
+          "block_type": "heading",
+          "content": {
+            "text": "📺 Watch & Learn"
+          }
+        },
+        {
+          "block_type": "video",
+          "content": {
+            "url": "https://www.youtube.com/watch?v=byfncZvCd7U",
+            "title": "What Is \"Not Your Keys, Not Your Bitcoin\"? (Non-Custodial Wallets)",
+            "description": "The difference between keeping crypto on an exchange vs. in your own wallet — and what the FTX collapse demonstrated about custodial risk."
+          }
+        },
+        {
+          "block_type": "article",
+          "content": {
+            "url": "https://www.coindesk.com/business/2022/11/11/ftx-the-downfall-of-a-crypto-exchange/",
+            "title": "FTX: The Downfall of a Crypto Exchange — CoinDesk",
+            "description": "CoinDesk's coverage of the FTX collapse — how an $32B exchange imploded in days and why 1 million customers lost access to their funds."
+          }
+        }
+      ],
+      "questions": [
+        {
+          "question_text": "When you hold crypto on Coinbase or Binance, what do you actually own?",
+          "explanation": "When your crypto is on an exchange, you own an IOU — a balance on the exchange's internal ledger. The exchange holds the actual crypto and private keys. If the exchange fails, your \"crypto\" may disappear with it.",
+          "options": [
+            {
+              "option_text": "An IOU — a balance on the exchange's ledger; they hold the actual keys",
+              "is_correct": true
+            },
+            {
+              "option_text": "The actual crypto on the blockchain with your own private key",
+              "is_correct": false
+            },
+            {
+              "option_text": "A legally guaranteed claim to that amount of crypto",
+              "is_correct": false
+            },
+            {
+              "option_text": "An insured crypto balance backed by the FDIC",
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "question_text": "What happened to FTX customers who held crypto on the exchange during the 2022 collapse?",
+          "explanation": "FTX collapsed in November 2022 after secretly misusing customer funds. Approximately 1 million customers lost access to an estimated $8 billion. Those who had moved their crypto to their own non-custodial wallets were unaffected.",
+          "options": [
+            {
+              "option_text": "They lost access to approximately $8 billion — funds FTX had misused",
+              "is_correct": true
+            },
+            {
+              "option_text": "They were fully reimbursed by the US government within 30 days",
+              "is_correct": false
+            },
+            {
+              "option_text": "Their funds were frozen temporarily then returned within a week",
+              "is_correct": false
+            },
+            {
+              "option_text": "Only institutional investors were affected — retail customers were protected",
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "question_text": "What is the KEY ADVANTAGE of a non-custodial wallet over a custodial one?",
+          "explanation": "With a non-custodial wallet, no company or person can freeze, seize, or restrict your funds. You are the only one with the private keys — true ownership that exchange collapses, government orders, or company fraud cannot affect.",
+          "options": [
+            {
+              "option_text": "No company can freeze or seize your funds — you have true ownership",
+              "is_correct": true
+            },
+            {
+              "option_text": "Non-custodial wallets are insured by the government up to $250,000",
+              "is_correct": false
+            },
+            {
+              "option_text": "Non-custodial wallets have lower transaction fees than exchanges",
+              "is_correct": false
+            },
+            {
+              "option_text": "You can recover your wallet if you forget your password with customer support",
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "question_text": "Which is required to use DeFi platforms and Web3 apps?",
+          "explanation": "DeFi and Web3 apps require you to connect a non-custodial wallet (like MetaMask) directly — the smart contract interacts with YOUR wallet. Exchange accounts cannot connect to DeFi protocols.",
+          "options": [
+            {
+              "option_text": "A non-custodial wallet — DeFi apps connect directly to your own wallet",
+              "is_correct": true
+            },
+            {
+              "option_text": "A custodial exchange account with API access",
+              "is_correct": false
+            },
+            {
+              "option_text": "A hardware wallet specifically — hot wallets cannot use DeFi",
+              "is_correct": false
+            },
+            {
+              "option_text": "A bank account linked to a licensed crypto broker",
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "question_text": "What does \"counterparty risk\" mean in the context of custodial crypto storage?",
+          "explanation": "Counterparty risk is the risk that the OTHER PARTY (the exchange) fails — goes bankrupt, gets hacked, or commits fraud. With non-custodial storage, there is no counterparty — you are your own bank, so there's no one else who can fail with your money.",
+          "options": [
+            {
+              "option_text": "The risk that the exchange you trust fails — bankruptcy, hack, or fraud",
+              "is_correct": true
+            },
+            {
+              "option_text": "The risk that the crypto you bought loses value",
+              "is_correct": false
+            },
+            {
+              "option_text": "The risk of making a trade against a stronger opponent",
+              "is_correct": false
+            },
+            {
+              "option_text": "Legal risk from trading crypto without a license",
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "question_text": "Which exchange collapse happened FIRST historically?",
+          "explanation": "Mt. Gox, a Japanese Bitcoin exchange, was hacked in 2014 and lost 850,000 BTC. It was one of the first major exchange collapses and established the pattern of custodial risk that repeated with Celsius, FTX, and others nearly a decade later.",
+          "options": [
+            {
+              "option_text": "Mt. Gox (2014) — lost 850,000 BTC in the earliest major exchange collapse",
+              "is_correct": true
+            },
+            {
+              "option_text": "FTX (2022) — the largest by dollar value",
+              "is_correct": false
+            },
+            {
+              "option_text": "Celsius (2022) — the first to freeze customer withdrawals",
+              "is_correct": false
+            },
+            {
+              "option_text": "Coinbase (2020) — briefly suspended withdrawals during a market crash",
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "question_text": "When is it MOST appropriate to keep some crypto on a custodial exchange?",
+          "explanation": "Custodial exchanges are most appropriate for active trading — when you need to buy, sell, or move quickly and convenience outweighs security risk. The key is never keeping more there than you'd be comfortable losing.",
+          "options": [
+            {
+              "option_text": "When actively trading — for amounts you'd be comfortable potentially losing",
+              "is_correct": true
+            },
+            {
+              "option_text": "For all your holdings — exchanges have professional security teams",
+              "is_correct": false
+            },
+            {
+              "option_text": "For long-term savings — exchanges pay interest on idle crypto",
+              "is_correct": false
+            },
+            {
+              "option_text": "Only for Bitcoin — altcoins must stay in non-custodial wallets",
+              "is_correct": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Phishing & Social Engineering Attacks",
+      "emoji": "🎣",
+      "description": "The most common way crypto gets stolen isn't through technical hacking — it's through tricking the owner into handing it over. Learn the playbook attackers use and how to spot every type of phishing.",
+      "order_index": 5,
+      "tokens_reward": 35,
+      "pass_threshold": 70,
+      "blocks": [
+        {
+          "block_type": "heading",
+          "content": {
+            "text": "🎣 What Is Phishing?"
+          }
+        },
+        {
+          "block_type": "text",
+          "content": {
+            "text": "**Phishing** is tricking someone into revealing credentials or signing a malicious transaction — usually by impersonating a trusted source.\n\nIn crypto, phishing doesn't need to \"hack\" anything. It just needs to trick YOU into:\n- Entering your seed phrase on a fake site\n- Signing a transaction that drains your wallet\n- Sending crypto to an \"official\" address that belongs to a scammer\n\n**The numbers:** The FBI's 2023 Internet Crime Report found crypto fraud accounted for $5.6 billion in losses — the majority from social engineering, not technical exploits."
+          }
+        },
+        {
+          "block_type": "heading",
+          "content": {
+            "text": "🌐 Attack Type 1: Fake Websites"
+          }
+        },
+        {
+          "block_type": "text",
+          "content": {
+            "text": "**How it works:** Scammers create identical copies of real wallet websites or DeFi apps with URLs one letter off:\n\n```\n  REAL:  https://metamask.io\n  FAKE:  https://metarnask.io\n         https://metamask-app.io\n         https://rnetamask.io\n\n  REAL:  https://uniswap.org\n  FAKE:  https://uniswvap.org\n         https://uni-swap.io\n```\n\nThe fake sites look identical. When you \"connect\" your wallet or enter your seed phrase to \"recover\" your account, the credentials go straight to the attacker.\n\n**How they reach you:** Google ads (scammers buy ads for \"MetaMask download\"), social media links, Discord DMs, fake email newsletters.\n\n**Protection:**\n- Bookmark official sites — never Google and click\n- Check the FULL URL before connecting your wallet\n- Never click wallet links from social media or DMs\n- Use a hardware wallet — even if you connect to a fake site, a Ledger requires physical button confirmation for every transaction"
+          }
+        },
+        {
+          "block_type": "heading",
+          "content": {
+            "text": "💬 Attack Type 2: Discord & Telegram Scams"
+          }
+        },
+        {
+          "block_type": "text",
+          "content": {
+            "text": "**The fake support DM:**\nYou post a problem in an official Discord/Telegram. Within seconds, fake \"helpers\" (not real admins) DM you offering to help. They ask for your screen share or seed phrase.\n\n**The fake admin:**\nA user with a name like \"MetaMask Support ✓\" or \"Uniswap Team 🔐\" messages you. The checkmark and official-looking name are just username cosmetics — not verified.\n\n**The \"alpha\" group:**\nYou're invited to an exclusive group promising early access to a hot new NFT or token. You connect your wallet to \"mint\" and a malicious smart contract drains everything.\n\n**Rules:**\n- Real admins NEVER DM first\n- Real support NEVER asks for seed phrases\n- Never screen-share your wallet\n- Always verify links from the project's official Twitter/website"
+          }
+        },
+        {
+          "block_type": "heading",
+          "content": {
+            "text": "✍️ Attack Type 3: Malicious Transaction Signing"
+          }
+        },
+        {
+          "block_type": "text",
+          "content": {
+            "text": "The most sophisticated attack doesn't ask for your seed phrase at all. Instead, it tricks you into **signing a malicious smart contract transaction**.\n\n**How it works:**\n- You connect to what looks like a legitimate DeFi app\n- The site asks you to \"approve\" a transaction\n- The transaction actually grants the malicious contract **unlimited access** to transfer all your tokens\n- Hours or days later, your wallet is drained silently\n\n**The \"Approval\" trap:**\n```\n  What you THINK you're signing:\n  \"Approve 100 USDC for this DEX to trade\"\n\n  What the contract ACTUALLY says:\n  \"Approve UNLIMITED tokens — all assets — forever\"\n```\n\n**Protection:**\n- Use Revoke.cash or Etherscan to regularly audit and revoke token approvals\n- Read transaction details carefully — MetaMask shows what is actually being requested\n- Use a hardware wallet — the Ledger screen shows the actual contract call\n- Never approve \"unlimited\" amounts for sites you don't trust"
+          }
+        },
+        {
+          "block_type": "heading",
+          "content": {
+            "text": "📺 Watch & Learn"
+          }
+        },
+        {
+          "block_type": "video",
+          "content": {
+            "url": "https://www.youtube.com/watch?v=cC-jh1PJeHw",
+            "title": "Crypto Scams to Avoid: Phishing, Hacks & AI Threats, Deepfakes",
+            "description": "The most common phishing tactics used to steal crypto — fake websites, Discord scams, malicious transaction signing — and how to protect yourself."
+          }
+        },
+        {
+          "block_type": "article",
+          "content": {
+            "url": "https://decrypt.co/resources/what-is-a-phishing-attack-in-crypto",
+            "title": "What Is a Phishing Attack in Crypto? — Decrypt",
+            "description": "Decrypt's guide to recognizing and avoiding phishing attacks in crypto — fake sites, social engineering, and malicious smart contracts."
+          }
+        }
+      ],
+      "questions": [
+        {
+          "question_text": "What is \"phishing\" in the context of crypto security?",
+          "explanation": "Phishing is tricking someone into revealing credentials or signing malicious transactions — usually by impersonating a trusted source like a wallet, exchange, or support team. It relies on human error, not technical hacking.",
+          "options": [
+            {
+              "option_text": "Tricking users into revealing credentials or signing malicious transactions",
+              "is_correct": true
+            },
+            {
+              "option_text": "A technical hack that directly breaks into a blockchain",
+              "is_correct": false
+            },
+            {
+              "option_text": "A 51% attack on a proof-of-work network",
+              "is_correct": false
+            },
+            {
+              "option_text": "Scanning the blockchain for vulnerable wallets to drain automatically",
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "question_text": "How do fake crypto websites typically reach their victims?",
+          "explanation": "Fake sites reach victims through Google ads (scammers buy ads for wallet names), social media links, Discord DMs, and phishing emails. The sites are visually identical to real ones with only a slightly different URL.",
+          "options": [
+            {
+              "option_text": "Google ads, social media links, Discord DMs, and phishing emails",
+              "is_correct": true
+            },
+            {
+              "option_text": "Only through the dark web — legitimate platforms are safe",
+              "is_correct": false
+            },
+            {
+              "option_text": "By hacking official websites and replacing them temporarily",
+              "is_correct": false
+            },
+            {
+              "option_text": "By sending physical letters to known crypto investors' addresses",
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "question_text": "What should you do if a \"support agent\" DMs you on Discord immediately after you post a problem?",
+          "explanation": "This is almost always a scam. Real admins almost never DM first in response to support posts — scammers monitor channels and DM users immediately posing as helpers. Ignore, block, and report.",
+          "options": [
+            {
+              "option_text": "Ignore and report — real admins almost never DM first",
+              "is_correct": true
+            },
+            {
+              "option_text": "Respond and describe your problem — they may be genuinely helpful",
+              "is_correct": false
+            },
+            {
+              "option_text": "Share your screen so they can diagnose the issue remotely",
+              "is_correct": false
+            },
+            {
+              "option_text": "Provide your public address only — that's safe to share",
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "question_text": "What is a \"malicious approval\" attack in DeFi?",
+          "explanation": "A malicious approval tricks you into signing a transaction that grants a smart contract unlimited access to transfer all your tokens. You think you're approving a small trade, but the contract takes everything — sometimes days later.",
+          "options": [
+            {
+              "option_text": "Tricking you into signing unlimited token transfer rights to a malicious contract",
+              "is_correct": true
+            },
+            {
+              "option_text": "A fake transaction that charges excessive gas fees",
+              "is_correct": false
+            },
+            {
+              "option_text": "An attack that locks your tokens in a smart contract permanently",
+              "is_correct": false
+            },
+            {
+              "option_text": "A scammer getting your exchange password through fake approval emails",
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "question_text": "What tool can you use to REVOKE malicious token approvals?",
+          "explanation": "Revoke.cash (and Etherscan's token approval checker) let you see and revoke all approvals you've granted to smart contracts. Regularly auditing and revoking unnecessary approvals is an important security practice.",
+          "options": [
+            {
+              "option_text": "Revoke.cash or Etherscan's token approval checker",
+              "is_correct": true
+            },
+            {
+              "option_text": "MetaMask's built-in virus scanner",
+              "is_correct": false
+            },
+            {
+              "option_text": "Your hardware wallet's companion app",
+              "is_correct": false
+            },
+            {
+              "option_text": "The blockchain's built-in fraud protection system",
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "question_text": "What is the safest way to navigate to a crypto wallet or DeFi app website?",
+          "explanation": "Bookmark the official URL from the project's verified social media or documentation the first time you visit it. Never Google and click ads, and never click wallet links sent in DMs or emails.",
+          "options": [
+            {
+              "option_text": "Use a saved bookmark — never Google and click, never click links from DMs",
+              "is_correct": true
+            },
+            {
+              "option_text": "Google the wallet name and click the top result",
+              "is_correct": false
+            },
+            {
+              "option_text": "Click the link provided in the project's Discord announcement",
+              "is_correct": false
+            },
+            {
+              "option_text": "Any method is safe as long as you use a VPN",
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "question_text": "Why does using a HARDWARE WALLET protect against malicious website connections?",
+          "explanation": "Even if you connect to a malicious site, a hardware wallet requires you to physically approve every transaction on the device's own screen — showing the actual contract call. You can see the real transaction and reject it, even if your computer screen shows something different.",
+          "options": [
+            {
+              "option_text": "The hardware wallet shows the real transaction on its own screen and requires physical button confirmation",
+              "is_correct": true
+            },
+            {
+              "option_text": "Hardware wallets block all website connections automatically",
+              "is_correct": false
+            },
+            {
+              "option_text": "Hardware wallets encrypt your internet traffic preventing phishing",
+              "is_correct": false
+            },
+            {
+              "option_text": "Malicious sites cannot detect hardware wallets and skip them",
+              "is_correct": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "SIM Swap & Account Takeover Attacks",
+      "emoji": "📱",
+      "description": "SIM swapping lets attackers hijack your phone number — bypassing SMS two-factor authentication to take over your exchange accounts. Learn how it works and how to protect yourself.",
+      "order_index": 6,
+      "tokens_reward": 35,
+      "pass_threshold": 70,
+      "blocks": [
+        {
+          "block_type": "heading",
+          "content": {
+            "text": "📱 What Is a SIM Swap?"
+          }
+        },
+        {
+          "block_type": "text",
+          "content": {
+            "text": "A **SIM swap** (also called SIM hijacking) is when an attacker convinces your mobile carrier (Verizon, AT&T, T-Mobile) to transfer your phone number to a SIM card they control.\n\n**Once they have your number:**\n- They receive all your SMS messages — including 2FA codes\n- They can trigger \"forgot password\" on your email\n- With your email, they reset your exchange account password\n- They receive the exchange's 2FA SMS on THEIR phone\n- They drain your exchange account — often in under 30 minutes\n\n**How attackers do it:**\n```\n  SIM SWAP ATTACK FLOW\n\n  1. Attacker finds victim's phone number (data breach, social media)\n  2. Attacker calls carrier: \"I lost my phone, transfer to new SIM\"\n  3. Carrier agent is socially engineered — moves the number\n  4. Victim's phone loses signal (SIM deactivated)\n  5. Attacker receives all SMS — including 2FA codes\n  6. Attacker resets passwords on email, exchange, etc.\n  7. Exchange account drained within minutes\n```\n\n**Real victims:** Michael Terpin sued AT&T after a SIM swap led to $24M in crypto theft. Twitter CEO Jack Dorsey was SIM-swapped in 2019."
+          }
+        },
+        {
+          "block_type": "heading",
+          "content": {
+            "text": "🛡️ Protection Against SIM Swap"
+          }
+        },
+        {
+          "block_type": "text",
+          "content": {
+            "text": "**Step 1: Switch from SMS 2FA to an Authenticator App**\n- SMS 2FA codes can be intercepted via SIM swap\n- Authenticator apps (Google Authenticator, Authy) generate codes ON YOUR DEVICE — no SMS involved\n- Even if your phone number is hijacked, the attacker cannot get authenticator codes\n\n**Step 2: Use a Hardware Security Key**\n- A physical USB/NFC key (like YubiKey) is the strongest form of 2FA\n- Cannot be phished or SIM-swapped — requires physical possession\n- Supported by Google, Twitter/X, GitHub, and some exchanges\n\n**Step 3: Add a PIN/Passcode to Your Carrier Account**\n- Call your carrier and add a port-out PIN — an extra password required before anyone can move your number\n- Carriers: AT&T has \"extra security,\" T-Mobile has \"SIM protection,\" Verizon has a transfer PIN\n\n**Step 4: Use an Email That Doesn't Tie to Your Phone Number**\n- If your email recovery is your phone number, a SIM swap unlocks your email too\n- Use a dedicated email for crypto that uses only an authenticator app for recovery"
+          }
+        },
+        {
+          "block_type": "heading",
+          "content": {
+            "text": "📺 Watch & Learn"
+          }
+        },
+        {
+          "block_type": "video",
+          "content": {
+            "url": "https://www.youtube.com/watch?v=1udEilgoBD8",
+            "title": "What Is SIM Swap Attack? — Crypto SIM Card Hijack Explained",
+            "description": "How SIM swap attacks work step by step, why SMS two-factor authentication is vulnerable, and how to protect your accounts with authenticator apps and carrier PINs."
+          }
+        },
+        {
+          "block_type": "article",
+          "content": {
+            "url": "https://decrypt.co/resources/what-is-a-sim-swap-attack",
+            "title": "What Is a SIM Swap Attack? — Decrypt",
+            "description": "Decrypt's explanation of SIM swap attacks — how attackers hijack phone numbers, what exchanges are targeted, and how to defend against them."
+          }
+        }
+      ],
+      "questions": [
+        {
+          "question_text": "What is a SIM swap attack?",
+          "explanation": "A SIM swap is when an attacker convinces your mobile carrier to transfer your phone number to a SIM card they control — allowing them to receive your SMS messages, including 2FA codes, and take over your accounts.",
+          "options": [
+            {
+              "option_text": "An attacker convinces your carrier to transfer your phone number to their SIM card",
+              "is_correct": true
+            },
+            {
+              "option_text": "An attacker physically swaps the SIM card in your phone while you sleep",
+              "is_correct": false
+            },
+            {
+              "option_text": "An attack that swaps your crypto wallet address for the attacker's address",
+              "is_correct": false
+            },
+            {
+              "option_text": "A malware attack that drains your phone's battery to disable 2FA",
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "question_text": "Why is SMS two-factor authentication (2FA) vulnerable to SIM swap attacks?",
+          "explanation": "SMS 2FA sends codes to your phone number. If an attacker controls your phone number via SIM swap, they receive all SMS messages including those 2FA codes — completely bypassing the protection.",
+          "options": [
+            {
+              "option_text": "SMS codes go to whoever controls your phone number — easy to intercept via SIM swap",
+              "is_correct": true
+            },
+            {
+              "option_text": "SMS messages are sent unencrypted and visible to all carriers",
+              "is_correct": false
+            },
+            {
+              "option_text": "SMS codes expire too slowly — giving attackers time to guess them",
+              "is_correct": false
+            },
+            {
+              "option_text": "SMS 2FA doesn't actually verify identity — any number can receive it",
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "question_text": "What is the STRONGEST form of two-factor authentication for crypto accounts?",
+          "explanation": "Hardware security keys (like YubiKey) are the strongest 2FA — they require physical possession of the device and cannot be phished, SIM-swapped, or intercepted. They're supported by major exchanges and platforms.",
+          "options": [
+            {
+              "option_text": "Hardware security keys (like YubiKey) — require physical possession, cannot be phished",
+              "is_correct": true
+            },
+            {
+              "option_text": "SMS text message codes — widely supported and convenient",
+              "is_correct": false
+            },
+            {
+              "option_text": "Email-based one-time codes — tied to your secure email",
+              "is_correct": false
+            },
+            {
+              "option_text": "Biometric (fingerprint) authentication on your phone",
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "question_text": "What simple step can you take with your mobile carrier to prevent SIM swaps?",
+          "explanation": "Adding a port-out PIN or extra security password to your carrier account means anyone trying to transfer your number must provide that PIN first. This stops most SIM swap attempts that rely on social engineering carrier employees.",
+          "options": [
+            {
+              "option_text": "Add a port-out PIN or extra security password to your carrier account",
+              "is_correct": true
+            },
+            {
+              "option_text": "Cancel your phone plan and use WiFi calling only",
+              "is_correct": false
+            },
+            {
+              "option_text": "Change your phone number every 6 months",
+              "is_correct": false
+            },
+            {
+              "option_text": "Block all incoming calls from unknown numbers",
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "question_text": "How does an authenticator app PROTECT against SIM swap attacks?",
+          "explanation": "Authenticator apps (Google Authenticator, Authy) generate codes on your device using a time-based algorithm — no SMS is sent. Even if your phone number is SIM-swapped, the attacker cannot get the codes because they're generated locally on your physical device.",
+          "options": [
+            {
+              "option_text": "Codes are generated on your physical device — no SMS involved, SIM swap can't intercept them",
+              "is_correct": true
+            },
+            {
+              "option_text": "Authenticator apps encrypt SMS messages so carriers cannot read them",
+              "is_correct": false
+            },
+            {
+              "option_text": "They require the attacker to know your email password as well",
+              "is_correct": false
+            },
+            {
+              "option_text": "Authenticator codes change every 5 minutes — too fast to intercept",
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "question_text": "What is the warning sign that you'VE been SIM-swapped?",
+          "explanation": "The first sign is your phone suddenly losing all signal — your SIM card has been deactivated because your number was transferred. If this happens unexpectedly, contact your carrier immediately and check all your accounts.",
+          "options": [
+            {
+              "option_text": "Your phone suddenly loses all signal — your SIM has been deactivated",
+              "is_correct": true
+            },
+            {
+              "option_text": "Your exchange sends an email saying your 2FA was changed",
+              "is_correct": false
+            },
+            {
+              "option_text": "Your crypto wallet shows an unauthorized transaction",
+              "is_correct": false
+            },
+            {
+              "option_text": "Your phone starts overheating due to background malware",
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "question_text": "Why is it risky to use the same email for crypto as for everyday accounts?",
+          "explanation": "If your everyday email recovery method is your phone number, a SIM swap also unlocks your email. Using a dedicated crypto email with authenticator-only recovery creates an additional layer — the attacker needs to compromise the email separately, not just the phone number.",
+          "options": [
+            {
+              "option_text": "If your email recovery is your phone number, a SIM swap unlocks your email too",
+              "is_correct": true
+            },
+            {
+              "option_text": "Crypto platforms ban shared email addresses for security",
+              "is_correct": false
+            },
+            {
+              "option_text": "Everyday email providers scan for crypto and report it to the IRS",
+              "is_correct": false
+            },
+            {
+              "option_text": "Using one email for everything is fine — it simplifies security management",
+              "is_correct": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Exchange Collapses — History & Lessons",
+      "emoji": "💥",
+      "description": "Mt. Gox, Celsius, and FTX — three collapses that wiped out billions in customer funds. Understanding what went wrong teaches the most important lesson in crypto security.",
+      "order_index": 7,
+      "tokens_reward": 35,
+      "pass_threshold": 70,
+      "blocks": [
+        {
+          "block_type": "heading",
+          "content": {
+            "text": "⛏️ Mt. Gox (2014) — The First Great Collapse"
+          }
+        },
+        {
+          "block_type": "text",
+          "content": {
+            "text": "**Mt. Gox** was once the world's largest Bitcoin exchange — handling 70% of all global Bitcoin trades at its peak.\n\n**What happened:**\n- Founded in 2010 as a \"Magic: The Gathering Online eXchange\" (originally for trading card game cards!)\n- Grew into a Bitcoin trading platform\n- Was hacked repeatedly over years — poor security practices\n- In February 2014, announced it had \"lost\" approximately **850,000 BTC** belonging to customers\n- At today's prices, that's worth tens of billions of dollars\n- CEO Mark Karpelès was later convicted of data manipulation in Japan\n\n**The truth:** Much of the Bitcoin was stolen gradually over years through a transaction malleability exploit. The exchange had poor security and was also mismanaged.\n\n**Customer impact:** Over 127,000 creditors lost funds. After 10 years of legal proceedings, partial repayments finally began in 2024 — not in Bitcoin (which rose 100x) but in the original dollar value.\n\n**Lesson:** Exchanges are not banks. There is no FDIC insurance for crypto held on exchanges."
+          }
+        },
+        {
+          "block_type": "heading",
+          "content": {
+            "text": "🌡️ Celsius (2022) — Yield Promises Gone Wrong"
+          }
+        },
+        {
+          "block_type": "text",
+          "content": {
+            "text": "**Celsius** was a crypto \"bank\" offering up to 18.6% annual yield on deposited crypto — far more than any traditional bank.\n\n**The promise:** Deposit your crypto, earn high interest, withdraw anytime.\n\n**The reality:** Celsius was using customer deposits to make highly risky investments in DeFi protocols and lending to institutional borrowers — many of whom defaulted during the 2022 crypto crash.\n\n**What happened:**\n- June 2022: Celsius suddenly paused all withdrawals and transfers\n- 300,000+ customers were locked out of their funds\n- Celsius filed for bankruptcy in July 2022\n- Customers lost an estimated **$4.7 billion**\n\n**The key warning signs nobody heeded:**\n- Yields of 15-18% are not sustainable — where is that money coming from?\n- \"Crypto bank\" is not a licensed, insured bank\n- No transparency about where customer funds were invested\n\n**Lesson:** If the yield seems too good to be true, it is. Promises of high returns always involve high risk — often hidden from depositors."
+          }
+        },
+        {
+          "block_type": "heading",
+          "content": {
+            "text": "💸 FTX (2022) — Fraud at the Highest Level"
+          }
+        },
+        {
+          "block_type": "text",
+          "content": {
+            "text": "**FTX** was the third-largest crypto exchange in the world, founded by Sam Bankman-Fried (SBF), who was on the cover of Forbes and courted by US politicians as a \"responsible\" crypto leader.\n\n**What happened:**\n- FTX was secretly sending customer funds to Alameda Research, its affiliated trading firm\n- Alameda used those funds for risky bets and investments\n- November 2022: A CoinDesk report revealed FTX's balance sheet relied heavily on FTT — FTX's own made-up token\n- Binance announced it would sell all its FTT holdings\n- Customers panicked and tried to withdraw $6 billion in 72 hours\n- FTX couldn't pay — filed for bankruptcy November 11, 2022\n\n**The scale:** Approximately 1 million customers, estimated **$8 billion** in missing customer funds.\n\n**The outcome:** SBF was arrested, tried, and convicted on 7 counts of fraud and conspiracy. Sentenced to 25 years in prison in March 2024.\n\n**The bitter irony:** FTX promoted itself as the \"safe\" exchange. SBF advocated for crypto regulation. The most seemingly legitimate player was the biggest fraudster."
+          }
+        },
+        {
+          "block_type": "heading",
+          "content": {
+            "text": "📺 Watch & Learn"
+          }
+        },
+        {
+          "block_type": "video",
+          "content": {
+            "url": "https://www.youtube.com/watch?v=XqwGt69pDXQ",
+            "title": "The Collapse Of FTX: Insiders Tell All — CNBC Documentary",
+            "description": "How FTX went from the world's third-largest crypto exchange to bankruptcy in 72 hours — and the lessons every crypto user should take from the collapse."
+          }
+        },
+        {
+          "block_type": "article",
+          "content": {
+            "url": "https://www.coindesk.com/business/2022/11/11/ftx-the-downfall-of-a-crypto-exchange/",
+            "title": "FTX: The Downfall of a Crypto Exchange — CoinDesk",
+            "description": "The definitive account of the FTX collapse — from the CoinDesk report that triggered it to the bankruptcy filing and criminal charges."
+          }
+        }
+      ],
+      "questions": [
+        {
+          "question_text": "How much Bitcoin did Mt. Gox lose in its 2014 collapse?",
+          "explanation": "Mt. Gox announced it had lost approximately 850,000 BTC belonging to customers — a figure worth tens of billions of dollars at today's prices. It was the first major exchange collapse and sparked the first major crypto bear market.",
+          "options": [
+            {
+              "option_text": "Approximately 850,000 BTC",
+              "is_correct": true
+            },
+            {
+              "option_text": "About 50 BTC — a relatively minor amount at the time",
+              "is_correct": false
+            },
+            {
+              "option_text": "21 million BTC — essentially the entire Bitcoin supply",
+              "is_correct": false
+            },
+            {
+              "option_text": "1,000 BTC — later revealed to be an internal accounting error",
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "question_text": "What warning sign did Celsius show that sophisticated investors should have recognized?",
+          "explanation": "Celsius offered up to 18.6% annual yields on crypto deposits. Legitimate yields of that magnitude don't exist without extreme risk. The funds were being used for highly speculative investments — the kind that collapse when markets turn down.",
+          "options": [
+            {
+              "option_text": "Unsustainably high yields (18.6%) that had to involve hidden high risk",
+              "is_correct": true
+            },
+            {
+              "option_text": "Celsius required customers to lock funds for 10-year periods",
+              "is_correct": false
+            },
+            {
+              "option_text": "Celsius only accepted Bitcoin — not diversified enough",
+              "is_correct": false
+            },
+            {
+              "option_text": "Celsius was registered in an offshore jurisdiction with no oversight",
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "question_text": "What triggered the FTX bank run in November 2022?",
+          "explanation": "A CoinDesk report revealed FTX's balance sheet was largely built on FTT — FTX's own token. When Binance announced it would sell its FTT holdings, customers panicked and tried to withdraw $6 billion in 72 hours, exposing the liquidity crisis.",
+          "options": [
+            {
+              "option_text": "A CoinDesk report exposing the balance sheet, followed by Binance selling its FTT",
+              "is_correct": true
+            },
+            {
+              "option_text": "A government raid on FTX's headquarters in the Bahamas",
+              "is_correct": false
+            },
+            {
+              "option_text": "FTX's own announcement that it was under investigation",
+              "is_correct": false
+            },
+            {
+              "option_text": "A technical hack that briefly made balances appear at zero",
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "question_text": "What sentence did Sam Bankman-Fried receive for the FTX fraud?",
+          "explanation": "Sam Bankman-Fried (SBF) was convicted on 7 counts of fraud and conspiracy and sentenced to 25 years in prison in March 2024 — one of the longest sentences in crypto history.",
+          "options": [
+            {
+              "option_text": "25 years in prison, sentenced March 2024",
+              "is_correct": true
+            },
+            {
+              "option_text": "A $1 billion fine with no prison time",
+              "is_correct": false
+            },
+            {
+              "option_text": "2 years of community service and repayment of losses",
+              "is_correct": false
+            },
+            {
+              "option_text": "He was acquitted — the case was dismissed",
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "question_text": "Why did Mt. Gox creditors receive repayment in 2024 in DOLLAR TERMS rather than Bitcoin?",
+          "explanation": "Legal proceedings valued claims at the price of Bitcoin at the time of the 2014 collapse. Bitcoin was worth hundreds of dollars then — not the tens of thousands it trades at today. Creditors received the original dollar value, not the equivalent BTC, which would have been worth far more.",
+          "options": [
+            {
+              "option_text": "Claims were valued at 2014 prices — missing the 100x+ rise in Bitcoin's value",
+              "is_correct": true
+            },
+            {
+              "option_text": "Mt. Gox sold all recovered Bitcoin immediately in 2014",
+              "is_correct": false
+            },
+            {
+              "option_text": "Japanese law requires repayment in yen, not Bitcoin",
+              "is_correct": false
+            },
+            {
+              "option_text": "All Mt. Gox Bitcoin was permanently destroyed in the hack",
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "question_text": "What is the single most important lesson from all three exchange collapses?",
+          "explanation": "\"Not your keys, not your coins.\" In all three cases — Mt. Gox, Celsius, FTX — users who had moved their crypto to their own non-custodial wallets were completely unaffected. Those who trusted the exchanges lost everything.",
+          "options": [
+            {
+              "option_text": "Not your keys, not your coins — self-custody protects against exchange failures",
+              "is_correct": true
+            },
+            {
+              "option_text": "Only use US-based exchanges — foreign exchanges are riskier",
+              "is_correct": false
+            },
+            {
+              "option_text": "Never hold more than 10 coins on any exchange",
+              "is_correct": false
+            },
+            {
+              "option_text": "Always check if the exchange is profitable before depositing",
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "question_text": "Which exchange collapsed FIRST?",
+          "explanation": "Mt. Gox collapsed in 2014, making it the first major exchange failure in crypto history. Celsius and FTX both collapsed in 2022 — nearly a decade later — repeating the same pattern of customer funds mismanagement.",
+          "options": [
+            {
+              "option_text": "Mt. Gox (2014)",
+              "is_correct": true
+            },
+            {
+              "option_text": "Celsius (2022)",
+              "is_correct": false
+            },
+            {
+              "option_text": "FTX (2022)",
+              "is_correct": false
+            },
+            {
+              "option_text": "Coinbase (2020)",
+              "is_correct": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Building Your Security Stack",
+      "emoji": "🛡️",
+      "description": "A complete, practical security checklist for crypto holders at every level — from your first $100 to serious long-term holdings. The habits that separate safe crypto users from victims.",
+      "order_index": 8,
+      "tokens_reward": 35,
+      "pass_threshold": 70,
+      "blocks": [
+        {
+          "block_type": "heading",
+          "content": {
+            "text": "🛡️ Security by Level"
+          }
+        },
+        {
+          "block_type": "text",
+          "content": {
+            "text": "**LEVEL 1 — Beginner (any amount):**\n- ✅ Use a strong, unique password for every exchange account\n- ✅ Enable two-factor authentication — use an authenticator app (NOT SMS)\n- ✅ Use a password manager (Bitwarden, 1Password) — never reuse passwords\n- ✅ Bookmark official sites — never Google wallet names and click ads\n- ✅ Never share your seed phrase or private key with anyone, ever\n\n**LEVEL 2 — Intermediate ($1,000+):**\n- ✅ Everything in Level 1 PLUS:\n- ✅ Move holdings off exchanges into a non-custodial hot wallet\n- ✅ Write your seed phrase on paper, store in a secure location\n- ✅ Use a dedicated email address just for crypto accounts\n- ✅ Add a PIN to your mobile carrier account\n- ✅ Review and revoke token approvals monthly (Revoke.cash)\n\n**LEVEL 3 — Serious Holder ($10,000+):**\n- ✅ Everything in Levels 1 & 2 PLUS:\n- ✅ Hardware wallet (Ledger or Trezor) for primary storage\n- ✅ Multiple seed phrase backups in separate secure locations\n- ✅ Consider metal seed storage (fireproof/waterproof)\n- ✅ Hardware security key (YubiKey) for email and exchange accounts\n- ✅ Dedicated device for crypto only (cheap laptop, nothing else installed)"
+          }
+        },
+        {
+          "block_type": "heading",
+          "content": {
+            "text": "🚩 Red Flags — Stop and Verify"
+          }
+        },
+        {
+          "block_type": "text",
+          "content": {
+            "text": "**STOP immediately if:**\n- Anyone asks for your seed phrase or private key — for any reason\n- A website asks you to enter your seed phrase to \"verify\" or \"sync\" your wallet\n- A support agent DMs you first offering to help\n- You're promised guaranteed returns, risk-free investing, or exclusive early access\n- A transaction asks for \"unlimited\" token approvals\n- A \"helper\" in Discord wants to screen-share your wallet\n- An exchange is offering 10%+ APY with \"no risk\"\n- An urgent message says your account will be \"locked\" unless you act immediately (urgency is a manipulation tactic)\n\n**The scammer's playbook always includes:**\n1. Creating urgency (\"act now or lose your funds\")\n2. Offering something too good to be true\n3. Asking for something that should never be shared\n4. Impersonating authority (exchanges, admins, \"official\" accounts)"
+          }
+        },
+        {
+          "block_type": "heading",
+          "content": {
+            "text": "🔄 Ongoing Security Habits"
+          }
+        },
+        {
+          "block_type": "text",
+          "content": {
+            "text": "**Monthly:**\n- Review token approvals on Revoke.cash\n- Check for any suspicious transactions in your wallets\n- Update wallet software and firmware (security patches)\n\n**Quarterly:**\n- Test that your seed phrase backup works by recovering on a clean device (in a safe environment)\n- Review which exchanges/apps you're still using — close unused accounts\n\n**When something feels wrong:**\n- If your phone loses signal unexpectedly: call your carrier immediately from another phone\n- If you've accidentally entered a seed phrase somewhere: transfer all funds to a NEW wallet immediately\n- If you clicked a suspicious link: don't connect your wallet — use a new browser session first\n\n**The golden rule:** Security in crypto is YOUR responsibility. There is no fraud department, no chargebacks, and no undo button. A transaction confirmed on the blockchain is permanent."
+          }
+        },
+        {
+          "block_type": "heading",
+          "content": {
+            "text": "📺 Watch & Learn"
+          }
+        },
+        {
+          "block_type": "video",
+          "content": {
+            "url": "https://www.youtube.com/watch?v=F3MlLbQWR6M",
+            "title": "Essential Crypto Security Tips: Self Custody, 2FA, and Scam Prevention",
+            "description": "A complete walkthrough of crypto security best practices — from password managers and 2FA to hardware wallets, seed phrase storage, and recognizing scams."
+          }
+        },
+        {
+          "block_type": "article",
+          "content": {
+            "url": "https://decrypt.co/resources/how-to-keep-your-crypto-safe",
+            "title": "How to Keep Your Crypto Safe — Decrypt",
+            "description": "Decrypt's comprehensive guide to crypto security best practices — hardware wallets, seed phrase storage, 2FA, and avoiding common scams."
+          }
+        }
+      ],
+      "questions": [
+        {
+          "question_text": "What is the FIRST security upgrade a beginner crypto holder should make?",
+          "explanation": "Switching from SMS 2FA to an authenticator app is the single highest-impact, lowest-effort security upgrade. It protects against SIM swap attacks and is free.",
+          "options": [
+            {
+              "option_text": "Switch from SMS 2FA to an authenticator app on all exchange accounts",
+              "is_correct": true
+            },
+            {
+              "option_text": "Buy a hardware wallet immediately before doing anything else",
+              "is_correct": false
+            },
+            {
+              "option_text": "Move all crypto off exchanges to a non-custodial wallet",
+              "is_correct": false
+            },
+            {
+              "option_text": "Set up a dedicated laptop just for crypto",
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "question_text": "What should you do IMMEDIATELY if you accidentally enter your seed phrase on a suspicious website?",
+          "explanation": "If your seed phrase has been compromised, the attacker may drain your wallet at any moment. You must immediately create a NEW wallet (with a new seed phrase) and transfer ALL funds there before the attacker can act.",
+          "options": [
+            {
+              "option_text": "Create a new wallet with a new seed phrase and transfer all funds immediately",
+              "is_correct": true
+            },
+            {
+              "option_text": "Change your exchange password to lock the attacker out",
+              "is_correct": false
+            },
+            {
+              "option_text": "Contact the website and ask them to delete your seed phrase from their records",
+              "is_correct": false
+            },
+            {
+              "option_text": "Wait 24 hours — seed phrases take time to be exploited",
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "question_text": "Why is URGENCY a key red flag in crypto scams?",
+          "explanation": "Urgency is a social engineering tactic — it pressures you to act before you can think carefully. Scammers create artificial deadlines (\"your account will be locked in 5 minutes\") to prevent victims from pausing to verify the situation.",
+          "options": [
+            {
+              "option_text": "It pressures you to act before thinking — preventing verification that would expose the scam",
+              "is_correct": true
+            },
+            {
+              "option_text": "Legitimate exchanges always have long processing times",
+              "is_correct": false
+            },
+            {
+              "option_text": "Urgency messages are technically impossible to send through official channels",
+              "is_correct": false
+            },
+            {
+              "option_text": "Scammers use urgency because they have limited time before the blockchain rejects fraudulent transactions",
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "question_text": "What does Revoke.cash help you do?",
+          "explanation": "Revoke.cash lets you view and revoke all token approvals you've granted to smart contracts on Ethereum and other chains. Regularly revoking unused approvals removes potential attack vectors from malicious contracts you may have interacted with.",
+          "options": [
+            {
+              "option_text": "View and revoke token approvals you've granted to smart contracts",
+              "is_correct": true
+            },
+            {
+              "option_text": "Recover funds sent to the wrong wallet address",
+              "is_correct": false
+            },
+            {
+              "option_text": "Report phishing websites to be taken down",
+              "is_correct": false
+            },
+            {
+              "option_text": "Cancel pending blockchain transactions before confirmation",
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "question_text": "At what holding level is a HARDWARE WALLET most recommended?",
+          "explanation": "Hardware wallets are strongly recommended for holdings of $10,000 or more. At this level, the $50-250 cost of the device is trivial compared to the security benefit, and the risk of losing significant funds to malware or phishing justifies the added friction.",
+          "options": [
+            {
+              "option_text": "$10,000+ in holdings — the device cost is trivial vs. the security benefit",
+              "is_correct": true
+            },
+            {
+              "option_text": "Only if you hold more than $1 million in crypto",
+              "is_correct": false
+            },
+            {
+              "option_text": "Hardware wallets are only for institutional investors, not individuals",
+              "is_correct": false
+            },
+            {
+              "option_text": "From your very first dollar — even small amounts need hardware wallets",
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "question_text": "Why should you periodically TEST your seed phrase backup?",
+          "explanation": "A backup you've never tested might be wrong — a misspelled word, words in wrong order, or an incomplete phrase. Testing on a clean device (ideally a factory-reset phone or computer in a secure location) confirms your backup actually works before you need it in an emergency.",
+          "options": [
+            {
+              "option_text": "To confirm it actually works before you need it in an emergency — a wrong backup = lost crypto",
+              "is_correct": true
+            },
+            {
+              "option_text": "Testing keeps the seed phrase \"active\" on the blockchain",
+              "is_correct": false
+            },
+            {
+              "option_text": "Seed phrases expire and must be renewed periodically",
+              "is_correct": false
+            },
+            {
+              "option_text": "It updates the seed phrase with new security features",
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "question_text": "What is the single most protective action in all of crypto security?",
+          "explanation": "Never sharing your seed phrase or private key with anyone — not support agents, not wallet apps, not family members you're helping, not websites asking to \"verify\" your wallet. This one rule, if followed absolutely, prevents the vast majority of crypto thefts.",
+          "options": [
+            {
+              "option_text": "Never sharing your seed phrase or private key with anyone, ever, for any reason",
+              "is_correct": true
+            },
+            {
+              "option_text": "Using only the top 3 exchanges by trading volume",
+              "is_correct": false
+            },
+            {
+              "option_text": "Keeping your crypto in stablecoins to avoid price volatility",
+              "is_correct": false
+            },
+            {
+              "option_text": "Using a VPN for all crypto-related internet activity",
+              "is_correct": false
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
