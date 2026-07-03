@@ -42,7 +42,7 @@ const LESSONS = [
       { block_type: 'heading', content: { text: '📺 Watch & Learn' } },
       { block_type: 'video', content: { url: 'https://youtube.com/watch?v=4dkl5O9LOKg', title: 'What is an NFT? — Whiteboard Crypto', description: 'Whiteboard Crypto explains what makes tokens non-fungible, how ERC-721 contracts work, what metadata is, and what you actually own when you buy an NFT.' } },
 
-      { block_type: 'article', content: { url: 'https://decrypt.co/resources/non-fungible-tokens-nfts-explained-guide-learn-blockchain', title: 'Beginner's Guide to NFTs: What Are Non-Fungible Tokens? — Decrypt', description: 'Decrypt's explainer on how NFTs work as cryptographically unique blockchain tokens — covering ERC-721, collectibles, gaming, and DeFi use cases.' } },
+      { block_type: 'article', content: { url: 'https://decrypt.co/resources/non-fungible-tokens-nfts-explained-guide-learn-blockchain', title: 'Beginner\'s Guide to NFTs: What Are Non-Fungible Tokens? — Decrypt', description: 'Decrypt\'s explainer on how NFTs work as cryptographically unique blockchain tokens — covering ERC-721, collectibles, gaming, and DeFi use cases.' } },
       { block_type: 'article', content: { url: 'https://opensea.io/learn/nft/what-are-nfts', title: 'What Are NFTs? — OpenSea Learn', description: 'OpenSea\'s official explainer on how NFTs work, how to buy and sell them, and what rights ownership grants.' } },
     ],
     questions: [
@@ -162,7 +162,7 @@ const LESSONS = [
       { block_type: 'heading', content: { text: '📺 Watch & Learn' } },
       { block_type: 'video', content: { url: 'https://youtube.com/watch?v=mXEYCXCPI5c', title: 'Axie Infinity & Play-to-Earn Explained — Whiteboard Crypto', description: 'How Axie Infinity pioneered play-to-earn, the scholarship model, why the economics collapsed, and what blockchain gaming looks like going forward.' } },
 
-      { block_type: 'article', content: { url: 'https://www.coindesk.com/business/2021/05/11/for-filipinos-axie-infinity-is-more-than-a-crypto-game', title: 'For Filipinos, Axie Infinity Is More Than a Crypto Game — CoinDesk', description: 'CoinDesk reports how the Philippines became Axie's #1 user base globally, with players earning 10,000 PHP/week and the scholarship model enabling low-income players to participate.' } },
+      { block_type: 'article', content: { url: 'https://www.coindesk.com/business/2021/05/11/for-filipinos-axie-infinity-is-more-than-a-crypto-game', title: 'For Filipinos, Axie Infinity Is More Than a Crypto Game — CoinDesk', description: 'CoinDesk reports how the Philippines became Axie\'s #1 user base globally, with players earning 10,000 PHP/week and the scholarship model enabling low-income players to participate.' } },
       { block_type: 'article', content: { url: 'https://axieinfinity.com', title: 'Axie Infinity — Official Site', description: 'The original play-to-earn phenomenon — see the game, marketplace, and current Axie economy.' } },
     ],
     questions: [
@@ -242,7 +242,7 @@ const LESSONS = [
       { block_type: 'heading', content: { text: '📺 Watch & Learn' } },
       { block_type: 'video', content: { url: 'https://youtube.com/watch?v=KtvDSjb4UQQ', title: 'NFT Tickets & Ticketmaster — CNBC Crypto World', description: 'CNBC Crypto World covers how NFT ticketing is disrupting the live events industry — programmable resale rules, anti-scalping measures, and how Ticketmaster is experimenting with blockchain tickets.' } },
 
-      { block_type: 'article', content: { url: 'https://decrypt.co/108627/ticketmaster-chooses-dapper-labs-flow-blockchain-for-nft-tickets', title: 'Ticketmaster Chooses Dapper Labs' Flow Blockchain for NFT Tickets — Decrypt', description: 'Decrypt reports Ticketmaster's partnership with Dapper Labs to mint event NFTs on the Flow blockchain — 5M+ NFTs issued during a six-month pilot including concerts and sports events.' } },
+      { block_type: 'article', content: { url: 'https://decrypt.co/108627/ticketmaster-chooses-dapper-labs-flow-blockchain-for-nft-tickets', title: 'Ticketmaster Chooses Dapper Labs\' Flow Blockchain for NFT Tickets — Decrypt', description: 'Decrypt reports Ticketmaster\'s partnership with Dapper Labs to mint event NFTs on the Flow blockchain — 5M+ NFTs issued during a six-month pilot including concerts and sports events.' } },
       { block_type: 'article', content: { url: 'https://poap.xyz', title: 'POAP — Proof of Attendance Protocol', description: 'The official POAP platform — see how organizations create attendance badges and how to claim yours at events.' } },
     ],
     questions: [
@@ -282,7 +282,7 @@ const LESSONS = [
       { block_type: 'heading', content: { text: '📺 Watch & Learn' } },
       { block_type: 'video', content: { url: 'https://youtube.com/watch?v=adcT_BYB8hI', title: 'What Went Wrong With NFTs? — Bloomberg Crypto IRL', description: 'Bloomberg investigates the NFT collapse — why a $25 billion market lost 95% of its value, the role of speculation and wash trading, and whether NFTs have a lasting future beyond the hype.' } },
 
-      { block_type: 'article', content: { url: 'https://www.coindesk.com/web3/2022/12/23/over-30b-of-nft-trading-volume-on-ethereum-is-wash-trading-research-suggests', title: 'Over $30B of NFT Trading Volume on Ethereum Is Wash Trading — CoinDesk', description: 'Dune Analytics research found wash trading accounted for 58% of Ethereum's 2022 NFT volume, peaking at 80% in January — LooksRare (98%) and X2Y2 (87%) were the worst offenders.' } },
+      { block_type: 'article', content: { url: 'https://www.coindesk.com/web3/2022/12/23/over-30b-of-nft-trading-volume-on-ethereum-is-wash-trading-research-suggests', title: 'Over $30B of NFT Trading Volume on Ethereum Is Wash Trading — CoinDesk', description: 'Dune Analytics research found wash trading accounted for 58% of Ethereum\'s 2022 NFT volume, peaking at 80% in January — LooksRare (98%) and X2Y2 (87%) were the worst offenders.' } },
       { block_type: 'article', content: { url: 'https://dappradar.com/blog/nft-market-report', title: 'NFT Market Reports — DappRadar', description: 'Live NFT market data, trading volume trends, and analysis from the leading blockchain app tracker.' } },
     ],
     questions: [
