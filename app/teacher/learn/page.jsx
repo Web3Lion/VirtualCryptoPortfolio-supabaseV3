@@ -250,12 +250,17 @@ export default function TeacherLearn() {
 
   const togglePublish = async (type, id, current) => {
     setSaving(true);
-    await fetch("/api/teacher/learn", {
+    const res = await fetch("/api/teacher/learn", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ type, id, isPublished: !current }),
     });
-    flash(`${type} ${!current ? "published" : "unpublished"}`);
+    const d = await res.json().catch(() => null);
+    if (res.ok && !d?.error) {
+      flash(`${type} ${!current ? "published" : "unpublished"}`);
+    } else {
+      flash(d?.error || `Failed to update ${type}`, false);
+    }
     fetchModules();
     setSaving(false);
   };

@@ -194,7 +194,7 @@ export async function GET() {
   const { data, error } = await db.from('learn_modules').select('id').limit(1);
   if (!error) {
     // Silently backfill columns added after initial table creation
-    await db.rpc('run_sql', { query: "ALTER TABLE learn_lessons ADD COLUMN IF NOT EXISTS emoji TEXT DEFAULT '📚'" }).catch(() => {});
+    await db.rpc('run_sql', { query: "ALTER TABLE learn_lessons ADD COLUMN IF NOT EXISTS emoji TEXT DEFAULT '📚'" }).then(() => {}, () => {});
   }
   return Response.json({ ready: !error, sql: error ? SETUP_SQL : null });
 }

@@ -304,7 +304,7 @@ export async function POST(request) {
     if (session?.user?.email?.toLowerCase() !== TEACHER_EMAIL?.toLowerCase()) {
       return Response.json({ error: 'Teacher only' }, { status: 403 });
     }
-    await db.rpc('run_sql', { query: "ALTER TABLE learn_lessons ADD COLUMN IF NOT EXISTS emoji TEXT DEFAULT '📚'" }).catch(() => {});
+    await db.rpc('run_sql', { query: "ALTER TABLE learn_lessons ADD COLUMN IF NOT EXISTS emoji TEXT DEFAULT '📚'" }).then(() => {}, () => {});
     const { classId } = await request.json().catch(() => ({}));
     let moduleId;
     const { data: existingMod } = await db.from('learn_modules').select('id').eq('title', MODULE.title).limit(1).single();

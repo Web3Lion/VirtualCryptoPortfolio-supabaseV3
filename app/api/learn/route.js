@@ -36,7 +36,7 @@ export async function GET(request) {
 
   if (lessonsErr) {
     // emoji column may not exist yet on this database — backfill it and retry once
-    await db.rpc('run_sql', { query: "ALTER TABLE learn_lessons ADD COLUMN IF NOT EXISTS emoji TEXT DEFAULT '📚'" }).catch(() => {});
+    await db.rpc('run_sql', { query: "ALTER TABLE learn_lessons ADD COLUMN IF NOT EXISTS emoji TEXT DEFAULT '📚'" }).then(() => {}, () => {});
     const retry = moduleIds.length
       ? await db.from('learn_lessons').select('id, module_id, title, emoji, description, order_index, tokens_reward, pass_threshold, questions_to_show, is_published').in('module_id', moduleIds).eq('is_published', true).order('order_index')
       : { data: [] };
