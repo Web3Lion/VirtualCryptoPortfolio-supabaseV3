@@ -1,5 +1,5 @@
 import { db, getMarketStatus, getAllConfig } from '@/lib/db';
-import { fetchBulkPrices, GECKO_ID_MAP } from '@/lib/prices';
+import { refreshPricesIfStale } from '@/lib/prices';
 import { executeTrade } from '@/lib/trade';
 import { checkBadgesAfterOrderExecution } from '@/app/api/orders/badge-check';
 import { checkMilestones } from '@/app/api/trade/badge-check';
@@ -14,50 +14,14 @@ export async function GET(request) {
 
   const report = { pricesUpdated: 0, intradaySnapshots: 0, dailySnapshots: 0, ordersExecuted: 0, ordersFailed: 0, errors: [] };
 
-  // ── 1. Update price cache ─────────────────────────────────────
+  // ── 1. Update price cache — shared staleness gate with trade execution.
+  // Skips the CoinGecko call entirely if a trade already refreshed within
+  // the last 30 min; freshPriceMap is always fully populated either way.
   let freshPriceMap = {};
   try {
-    const [{ data: activeCoins }, { data: heldCoins }] = await Promise.all([
-      db.from('class_coins').select('symbol,gecko_id').eq('active', true),
-      db.from('holdings').select('coin'),
-    ]);
-
-    // Union of active class coins + all coins currently held by any student
-    const symbolSet = new Set([
-      ...(activeCoins || []).map(c => c.symbol),
-      ...(heldCoins  || []).map(h => h.coin),
-    ]);
-    const symbols = [...symbolSet];
-
-    if (symbols.length) {
-      const extraIds = {};
-      (activeCoins || []).forEach(c => {
-        if (c.gecko_id && !GECKO_ID_MAP[c.symbol?.toUpperCase()]) extraIds[c.symbol.toUpperCase()] = c.gecko_id;
-      });
-      // Also get gecko_ids for held-but-inactive coins
-      const inactiveHeld = symbols.filter(s => !(activeCoins || []).find(c => c.symbol === s));
-      if (inactiveHeld.length) {
-        const { data: inactiveCoins } = await db.from('class_coins').select('symbol,gecko_id').in('symbol', inactiveHeld);
-        (inactiveCoins || []).forEach(c => {
-          if (c.gecko_id && !GECKO_ID_MAP[c.symbol?.toUpperCase()]) extraIds[c.symbol.toUpperCase()] = c.gecko_id;
-        });
-      }
-
-      const priceMap = await fetchBulkPrices(symbols, extraIds);
-      const rows = Object.entries(priceMap).map(([symbol, data]) => ({
-        symbol,
-        price:      data.price,
-        change_1h:  data.change1h,
-        change_24h: data.change24h,
-        change_7d:  data.change7d,
-        updated_at: new Date().toISOString(),
-      }));
-      if (rows.length > 0) {
-        await db.from('price_cache').upsert(rows, { onConflict: 'symbol' });
-        report.pricesUpdated = rows.length;
-      }
-      Object.entries(priceMap).forEach(([symbol, data]) => { freshPriceMap[symbol] = data.price; });
-    }
+    const result = await refreshPricesIfStale();
+    report.pricesUpdated = result.count;
+    freshPriceMap = result.priceMap;
   } catch (e) {
     report.errors.push(`prices: ${e.message}`);
   }
