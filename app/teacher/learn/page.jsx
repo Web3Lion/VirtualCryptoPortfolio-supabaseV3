@@ -493,6 +493,9 @@ export default function TeacherLearn() {
               {importing ? "Importing..." : "⬆ Import JSON"}
             </span>
           </label>
+          <a className="btn btn-ghost" href="/api/admin/export-learn?all=true" style={{ opacity: dbReady === false ? 0.5 : 1, pointerEvents: dbReady === false ? "none" : "auto" }}>
+            ⬇ Export All (ZIP)
+          </a>
           <span style={{ fontSize: 10, color: "var(--muted)" }}>Upload a module JSON from /content/learn/</span>
         </div>
 
@@ -589,6 +592,7 @@ export default function TeacherLearn() {
                 {mod.description && <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>{mod.description}</div>}
               </div>
               <span className={`tag ${mod.is_published ? "tag-pub" : "tag-draft"}`}>{mod.is_published ? "Published" : "Draft"}</span>
+              <a className="btn btn-ghost" style={{ fontSize: 10 }} href={`/api/admin/export-learn?moduleId=${mod.id}`}>⬇ Export</a>
               <button className="btn btn-ghost" style={{ fontSize: 10 }} onClick={() => togglePublish("module", mod.id, mod.is_published)}>
                 {mod.is_published ? "Unpublish" : "Publish"}
               </button>
