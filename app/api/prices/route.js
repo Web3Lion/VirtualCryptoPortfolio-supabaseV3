@@ -232,10 +232,15 @@ export async function GET(request) {
     else if (saleActive)  marketEvent = { type: 'flash_sale',  coin: market.flashSale.coin, factor: market.flashSale.factor };
   }
 
+  const updatedTimes = Object.values(cacheMap).map(c => c.updated_at).filter(Boolean);
+  const lastUpdated = updatedTimes.length
+    ? new Date(Math.max(...updatedTimes.map(t => new Date(t).getTime()))).toISOString()
+    : null;
+
   // ?full=true returns array format for compatibility
   if (full) {
     return Response.json(Object.values(result));
   }
 
-  return Response.json({ ...result, __marketEvent: marketEvent });
+  return Response.json({ ...result, __marketEvent: marketEvent, __lastUpdated: lastUpdated });
 }

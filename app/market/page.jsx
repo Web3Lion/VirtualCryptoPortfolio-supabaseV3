@@ -270,15 +270,16 @@ export default function Market() {
           const obj = {};
           p.forEach(c => { obj[c.symbol || c.ticker] = c; });
           setPrices(obj);
+          setLastUpdated(new Date());
         } else {
           setPrices(p || {});
+          setLastUpdated(p?.__lastUpdated ? new Date(p.__lastUpdated) : new Date());
         }
       }
       if (coinRes?.ok) {
         const c = await coinRes.json();
         setCoins(Array.isArray(c) ? c.map(x => x.symbol) : []);
       }
-      setLastUpdated(new Date());
     } catch(e) { console.error(e); }
     finally { setLoading(false); }
   }, []);
@@ -544,7 +545,14 @@ export default function Market() {
 
             {/* ── PRICE TABLE ─────────────────────────────────── */}
             <div className="card">
-              <div className="card-title" style={{ marginBottom: 14 }}>💹 Price Table</div>
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
+                <div className="card-title">💹 Price Table</div>
+                {lastUpdated && (
+                  <div style={{ fontSize: 11, color: 'var(--muted)' }}>
+                    Updated {lastUpdated.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                )}
+              </div>
               <input className="search-bar" placeholder="Search coins..." value={search} onChange={e => setSearch(e.target.value)} />
               <div style={{ overflowX: 'auto' }}>
                 <table className="mkt-table">
