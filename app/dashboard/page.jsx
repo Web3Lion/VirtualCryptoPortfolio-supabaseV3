@@ -451,14 +451,13 @@ export default function Dashboard() {
     if (!portfolio) return;
     setPortfolioReviewLoading(true);
     setPortfolioReview(null);
-    const totalVal = (portfolio.cash ?? 0) + (portfolio.holdingsValue ?? 0);
     const seed = seedMoney || 10000;
     const portfolioPayload = {
       totalValue: totalVal,
       seedMoney: seed,
       returnPct: seed > 0 ? ((totalVal - seed) / seed) * 100 : 0,
-      cash: portfolio.cash ?? 0,
-      cashPct: totalVal > 0 ? ((portfolio.cash ?? 0) / totalVal) * 100 : 0,
+      cash: cash,
+      cashPct: totalVal > 0 ? (cash / totalVal) * 100 : 0,
       holdings: (holdingsSnap || []).filter(h => !h.isShort).map(h => ({
         symbol: h.ticker,
         value: h.curVal || 0,
@@ -1440,7 +1439,6 @@ export default function Dashboard() {
               <div className="panel">
                 {/* ── Mini portfolio chart ── */}
                 {(() => {
-                  const totalVal = portfolio ? portfolio.cash + portfolio.holdingsValue : 0;
                   const ret = totalVal ? ((totalVal - seedMoney) / seedMoney) * 100 : 0;
                   const isPos = ret >= 0;
                   const miniFirst = miniChartData?.[0]?.v;
@@ -1484,8 +1482,8 @@ export default function Dashboard() {
                       {portfolio && (
                         <div style={{ display:'flex', gap:12, marginTop:12, flexWrap:'wrap' }}>
                           {[
-                            { label:'Cash', val: portfolio.cash, color:'#475569' },
-                            { label:'Invested', val: portfolio.holdingsValue, color:'var(--accent)' },
+                            { label:'Cash', val: cash, color:'#475569' },
+                            { label:'Invested', val: clean(summary?.holdingsVal), color:'var(--accent)' },
                             { label:'P / L', val: totalVal - seedMoney, color: isPos ? 'var(--up)' : 'var(--down)' },
                           ].map(s => (
                             <div key={s.label} style={{ flex:1, minWidth:80 }}>
@@ -2165,7 +2163,7 @@ export default function Dashboard() {
                   const seed = seedMoney || 10000;
                   const snapVal = parseFloat(snap?.v || seed);
                   const snapRet = ((snapVal - seed) / seed) * 100;
-                  const curVal = parseFloat((portfolio.cash||0) + (portfolio.holdingsValue||0));
+                  const curVal = totalVal;
                   const change = snapVal - curVal;
                   const isPos = snapRet >= 0;
                   return (
