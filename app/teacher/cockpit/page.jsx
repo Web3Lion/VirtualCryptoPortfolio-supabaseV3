@@ -7,8 +7,29 @@ import Link from 'next/link';
 const fmtUSD = n => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n || 0);
 const fmtNum = n => (n || 0).toLocaleString('en-US');
 
+const DARK_PALETTE = {
+  bg: '#05070d', headerBg: '#070a10', lcdBg: '#070a10', gaugeBg1: '#0e1220', gaugeBg2: '#080c14',
+  consoleBg1: '#0a0d16', consoleBg2: '#070a12', warningBg: '#070a10', odoBg: '#040608',
+  pillBg: '#0d1117', badgeBoardBg: '#0a0f1a', digitBg: '#080c14', selectBg: '#0a0d16',
+  border: '#1a1f2e', borderLight: '#252b3b', trackBg: '#111827', trackBgMinor: '#1f2937',
+  textDim: '#374151', textMuted: '#4b5563', textSecondary: '#94a3b8', textPrimary: '#e2e8f0',
+  footerText: '#1f2937', errorBg: '#1a1200',
+  zone1: '#0d2010', zone2: '#201800', zone3: '#200808',
+  scanline: 'rgba(0,0,0,.03)',
+};
+const LIGHT_PALETTE = {
+  bg: '#eef1f6', headerBg: '#ffffff', lcdBg: '#ffffff', gaugeBg1: '#f7f9fc', gaugeBg2: '#ffffff',
+  consoleBg1: '#ffffff', consoleBg2: '#f7f9fc', warningBg: '#ffffff', odoBg: '#e4e9f0',
+  pillBg: '#f1f4f8', badgeBoardBg: '#ffffff', digitBg: '#ffffff', selectBg: '#ffffff',
+  border: '#dde3ec', borderLight: '#c7d0dd', trackBg: '#e7ebf1', trackBgMinor: '#dde3ec',
+  textDim: '#94a3b8', textMuted: '#64748b', textSecondary: '#475569', textPrimary: '#0f172a',
+  footerText: '#c7d0dd', errorBg: '#fef3d6',
+  zone1: '#dcf5e6', zone2: '#fef3d6', zone3: '#fde2e2',
+  scanline: 'rgba(0,0,0,.015)',
+};
+
 // ─── SVG Speedometer Gauge ───────────────────────────────────────────────────
-function Gauge({ value = 0, max = 100, label = '', unit = '', size = 230, inverse = false, zones }) {
+function Gauge({ value = 0, max = 100, label = '', unit = '', size = 230, inverse = false, zones, P = DARK_PALETTE }) {
   const cx = size / 2, cy = size / 2;
   const r  = (size / 2) * 0.70;
   const trackW = size * 0.06;
@@ -42,16 +63,16 @@ function Gauge({ value = 0, max = 100, label = '', unit = '', size = 230, invers
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ overflow: 'visible' }}>
       {/* Bezel ring */}
-      <circle cx={cx} cy={cy} r={r + trackW / 2 + 5} fill="none" stroke="#1a1f2e" strokeWidth={3} />
-      <circle cx={cx} cy={cy} r={r + trackW / 2 + 7} fill="none" stroke="#0d1117" strokeWidth={1} />
+      <circle cx={cx} cy={cy} r={r + trackW / 2 + 5} fill="none" stroke={P.border} strokeWidth={3} />
+      <circle cx={cx} cy={cy} r={r + trackW / 2 + 7} fill="none" stroke={P.pillBg} strokeWidth={1} />
 
       {/* Zone coloring (subtle) */}
-      <path d={arc(START, TOTAL * 0.35)} fill="none" stroke="#0d2010" strokeWidth={trackW - 1} />
-      <path d={arc(START + TOTAL * 0.35, TOTAL * 0.33)} fill="none" stroke="#201800" strokeWidth={trackW - 1} />
-      <path d={arc(START + TOTAL * 0.68, TOTAL * 0.32)} fill="none" stroke="#200808" strokeWidth={trackW - 1} />
+      <path d={arc(START, TOTAL * 0.35)} fill="none" stroke={P.zone1} strokeWidth={trackW - 1} />
+      <path d={arc(START + TOTAL * 0.35, TOTAL * 0.33)} fill="none" stroke={P.zone2} strokeWidth={trackW - 1} />
+      <path d={arc(START + TOTAL * 0.68, TOTAL * 0.32)} fill="none" stroke={P.zone3} strokeWidth={trackW - 1} />
 
       {/* Track */}
-      <path d={arc(START, TOTAL)} fill="none" stroke="#111827" strokeWidth={trackW} />
+      <path d={arc(START, TOTAL)} fill="none" stroke={P.trackBg} strokeWidth={trackW} />
 
       {/* Value arc */}
       {clampedPct > 0.01 && (
@@ -70,7 +91,7 @@ function Gauge({ value = 0, max = 100, label = '', unit = '', size = 230, invers
           <line key={i}
             x1={outer.x.toFixed(1)} y1={outer.y.toFixed(1)}
             x2={inner.x.toFixed(1)} y2={inner.y.toFixed(1)}
-            stroke={major ? '#374151' : '#1f2937'} strokeWidth={major ? 1.5 : 1}
+            stroke={major ? P.textDim : P.trackBgMinor} strokeWidth={major ? 1.5 : 1}
           />
         );
       })}
@@ -79,7 +100,7 @@ function Gauge({ value = 0, max = 100, label = '', unit = '', size = 230, invers
       {[0, max].map((v, i) => {
         const p = pt(i === 0 ? START : START + TOTAL, r + trackW + 4);
         return <text key={i} x={p.x.toFixed(1)} y={(p.y + 4).toFixed(1)}
-          textAnchor="middle" fill="#374151" fontSize={size * 0.048}
+          textAnchor="middle" fill={P.textDim} fontSize={size * 0.048}
           fontFamily="'DM Mono',monospace">{v}</text>;
       })}
 
@@ -90,7 +111,7 @@ function Gauge({ value = 0, max = 100, label = '', unit = '', size = 230, invers
       />
 
       {/* Center cap */}
-      <circle cx={cx} cy={cy} r={size * 0.065} fill="#080c14" stroke="#1f2937" strokeWidth={2.5} />
+      <circle cx={cx} cy={cy} r={size * 0.065} fill={P.digitBg} stroke={P.trackBgMinor} strokeWidth={2.5} />
       <circle cx={cx} cy={cy} r={size * 0.022} fill={color}
         style={{ filter: `drop-shadow(0 0 6px ${color})` }} />
 
@@ -101,14 +122,14 @@ function Gauge({ value = 0, max = 100, label = '', unit = '', size = 230, invers
         {Math.round(value || 0)}
       </text>
       {unit && (
-        <text x={cx} y={cy + size * 0.315} textAnchor="middle" fill="#4b5563"
+        <text x={cx} y={cy + size * 0.315} textAnchor="middle" fill={P.textMuted}
           fontSize={size * 0.058} fontFamily="'DM Mono',monospace">
           {unit}
         </text>
       )}
 
       {/* Label */}
-      <text x={cx} y={size - 6} textAnchor="middle" fill="#374151"
+      <text x={cx} y={size - 6} textAnchor="middle" fill={P.textDim}
         fontSize={size * 0.053} fontFamily="'DM Mono',monospace"
         style={{ letterSpacing: '0.18em' }}>
         {label.toUpperCase()}
@@ -118,23 +139,22 @@ function Gauge({ value = 0, max = 100, label = '', unit = '', size = 230, invers
 }
 
 // ─── Warning / Feature Light ─────────────────────────────────────────────────
-function Light({ label, on, color = '#22c55e', sublabel = '', blink = false }) {
-  const offColor = '#1a1f2e';
-  const c = on ? color : offColor;
+function Light({ label, on, color = '#22c55e', sublabel = '', blink = false, P = DARK_PALETTE }) {
+  const c = on ? color : P.border;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, minWidth: 80 }}>
       <div style={{
         width: 14, height: 14, borderRadius: '50%',
         background: c,
         boxShadow: on ? `0 0 10px ${color}, 0 0 20px ${color}55` : 'none',
-        border: `1px solid ${on ? color : '#252b3b'}`,
+        border: `1px solid ${on ? color : P.borderLight}`,
         animation: blink && on ? 'blink 1.2s ease-in-out infinite' : 'none',
       }} />
-      <span style={{ fontSize: 9, color: on ? '#e2e8f0' : '#374151', letterSpacing: '0.12em', textAlign: 'center', lineHeight: 1.3, fontFamily: "'DM Mono',monospace", textTransform: 'uppercase' }}>
+      <span style={{ fontSize: 9, color: on ? P.textPrimary : P.textDim, letterSpacing: '0.12em', textAlign: 'center', lineHeight: 1.3, fontFamily: "'DM Mono',monospace", textTransform: 'uppercase' }}>
         {label}
       </span>
       {sublabel && (
-        <span style={{ fontSize: 8, color: on ? color : '#1f2937', letterSpacing: '0.08em', textAlign: 'center', marginTop: -4, fontFamily: "'DM Mono',monospace" }}>
+        <span style={{ fontSize: 8, color: on ? color : P.trackBgMinor, letterSpacing: '0.08em', textAlign: 'center', marginTop: -4, fontFamily: "'DM Mono',monospace" }}>
           {sublabel}
         </span>
       )}
@@ -143,16 +163,16 @@ function Light({ label, on, color = '#22c55e', sublabel = '', blink = false }) {
 }
 
 // ─── LCD-style stat cell ─────────────────────────────────────────────────────
-function LcdCell({ label, value, sub, accent = '#00e5a0', large = false }) {
+function LcdCell({ label, value, sub, accent = '#00e5a0', large = false, P = DARK_PALETTE }) {
   return (
     <div style={{
-      background: '#070a10',
-      border: '1px solid #1a1f2e',
+      background: P.lcdBg,
+      border: `1px solid ${P.border}`,
       borderRadius: 10,
       padding: '12px 16px',
       textAlign: 'center',
     }}>
-      <div style={{ fontSize: 9, color: '#374151', letterSpacing: '0.2em', textTransform: 'uppercase', fontFamily: "'DM Mono',monospace", marginBottom: 6 }}>{label}</div>
+      <div style={{ fontSize: 9, color: P.textDim, letterSpacing: '0.2em', textTransform: 'uppercase', fontFamily: "'DM Mono',monospace", marginBottom: 6 }}>{label}</div>
       <div style={{
         fontSize: large ? 26 : 20,
         fontWeight: 700,
@@ -162,22 +182,22 @@ function LcdCell({ label, value, sub, accent = '#00e5a0', large = false }) {
         lineHeight: 1,
         textShadow: `0 0 12px ${accent}66`,
       }}>{value}</div>
-      {sub && <div style={{ fontSize: 9, color: '#4b5563', marginTop: 4, fontFamily: "'DM Mono',monospace" }}>{sub}</div>}
+      {sub && <div style={{ fontSize: 9, color: P.textMuted, marginTop: 4, fontFamily: "'DM Mono',monospace" }}>{sub}</div>}
     </div>
   );
 }
 
 // ─── Horizontal bar meter ────────────────────────────────────────────────────
-function BarMeter({ label, value, max, color = '#00e5a0', formatVal }) {
+function BarMeter({ label, value, max, color = '#00e5a0', formatVal, P = DARK_PALETTE }) {
   const pct = Math.min(1, Math.max(0, value / Math.max(max, 1)));
   const c = pct < 0.5 ? color : pct < 0.8 ? '#f59e0b' : '#ef4444';
   return (
     <div style={{ marginBottom: 10 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-        <span style={{ fontSize: 9, color: '#4b5563', letterSpacing: '0.15em', textTransform: 'uppercase', fontFamily: "'DM Mono',monospace" }}>{label}</span>
-        <span style={{ fontSize: 10, color: c, fontFamily: "'DM Mono',monospace", fontWeight: 600 }}>{formatVal ? formatVal(value) : value} <span style={{ color: '#374151', fontSize: 8 }}>/ {formatVal ? formatVal(max) : max}</span></span>
+        <span style={{ fontSize: 9, color: P.textMuted, letterSpacing: '0.15em', textTransform: 'uppercase', fontFamily: "'DM Mono',monospace" }}>{label}</span>
+        <span style={{ fontSize: 10, color: c, fontFamily: "'DM Mono',monospace", fontWeight: 600 }}>{formatVal ? formatVal(value) : value} <span style={{ color: P.textDim, fontSize: 8 }}>/ {formatVal ? formatVal(max) : max}</span></span>
       </div>
-      <div style={{ height: 5, background: '#111827', borderRadius: 3, overflow: 'hidden' }}>
+      <div style={{ height: 5, background: P.trackBg, borderRadius: 3, overflow: 'hidden' }}>
         <div style={{ height: '100%', width: `${pct * 100}%`, background: c, borderRadius: 3, boxShadow: `0 0 6px ${c}88`, transition: 'width 1s ease' }} />
       </div>
     </div>
@@ -185,23 +205,23 @@ function BarMeter({ label, value, max, color = '#00e5a0', formatVal }) {
 }
 
 // ─── Odometer digit ─────────────────────────────────────────────────────────
-function Odometer({ value, label, digits = 7 }) {
+function Odometer({ value, label, digits = 7, P = DARK_PALETTE }) {
   const padded = String(Math.max(0, Math.floor(value))).padStart(digits, '0');
   return (
     <div style={{ textAlign: 'center' }}>
-      <div style={{ display: 'inline-flex', gap: 2, background: '#040608', border: '1px solid #1a1f2e', borderRadius: 8, padding: '6px 10px', marginBottom: 4 }}>
+      <div style={{ display: 'inline-flex', gap: 2, background: P.odoBg, border: `1px solid ${P.border}`, borderRadius: 8, padding: '6px 10px', marginBottom: 4 }}>
         {padded.split('').map((d, i) => (
           <div key={i} style={{
-            width: 22, height: 32, background: '#080c14',
-            border: '1px solid #1a1f2e', borderRadius: 4,
+            width: 22, height: 32, background: P.digitBg,
+            border: `1px solid ${P.border}`, borderRadius: 4,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: i < padded.length - 4 ? '#374151' : '#f59e0b',
+            color: i < padded.length - 4 ? P.textDim : '#f59e0b',
             fontSize: 18, fontWeight: 700, fontFamily: "'DM Mono',monospace",
             textShadow: i >= padded.length - 4 ? '0 0 8px #f59e0b88' : 'none',
           }}>{d}</div>
         ))}
       </div>
-      <div style={{ fontSize: 8, color: '#374151', letterSpacing: '0.2em', textTransform: 'uppercase', fontFamily: "'DM Mono',monospace" }}>{label}</div>
+      <div style={{ fontSize: 8, color: P.textDim, letterSpacing: '0.2em', textTransform: 'uppercase', fontFamily: "'DM Mono',monospace" }}>{label}</div>
     </div>
   );
 }
@@ -217,6 +237,19 @@ export default function TeacherCockpit() {
   const [tick, setTick] = useState(0);
   const [selectedClass, setSelectedClass] = useState(null);
   const [badgeData, setBadgeData] = useState(null);
+  const [light, setLight] = useState(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('cockpit-theme');
+    if (saved === 'light') setLight(true);
+  }, []);
+  const toggleTheme = () => {
+    setLight(l => {
+      localStorage.setItem('cockpit-theme', l ? 'dark' : 'light');
+      return !l;
+    });
+  };
+  const P = light ? LIGHT_PALETTE : DARK_PALETTE;
 
   useEffect(() => { if (status === 'unauthenticated') router.replace('/'); }, [status, router]);
 
@@ -260,7 +293,7 @@ export default function TeacherCockpit() {
 
   if (status === 'loading' || status === 'unauthenticated' || loading) {
     return (
-      <div style={{ background: '#05070d', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#f59e0b', fontFamily: "'DM Mono',monospace", fontSize: 13, letterSpacing: '0.2em' }}>
+      <div style={{ background: P.bg, minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#f59e0b', fontFamily: "'DM Mono',monospace", fontSize: 13, letterSpacing: '0.2em' }}>
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: 28, marginBottom: 12, animation: 'spin 2s linear infinite', display: 'inline-block' }}>◎</div>
           <div>INITIALIZING SYSTEMS...</div>
@@ -270,17 +303,17 @@ export default function TeacherCockpit() {
   }
 
   if (!data) return (
-    <div style={{ background: '#05070d', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444', fontFamily: "'DM Mono',monospace", fontSize: 13, letterSpacing: '0.15em', textAlign: 'center' }}>
+    <div style={{ background: P.bg, minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444', fontFamily: "'DM Mono',monospace", fontSize: 13, letterSpacing: '0.15em', textAlign: 'center' }}>
       <div style={{ maxWidth: 500, padding: 24 }}>
         <div style={{ fontSize: 28, marginBottom: 12 }}>⚠</div>
         <div style={{ marginBottom: 12 }}>COCKPIT DATA UNAVAILABLE</div>
         {apiError && (
-          <div style={{ fontSize: 11, color: '#f59e0b', background: '#1a1200', border: '1px solid #f59e0b44', borderRadius: 8, padding: '10px 16px', marginBottom: 16, letterSpacing: 0, textAlign: 'left', wordBreak: 'break-word' }}>
+          <div style={{ fontSize: 11, color: '#f59e0b', background: P.errorBg, border: '1px solid #f59e0b44', borderRadius: 8, padding: '10px 16px', marginBottom: 16, letterSpacing: 0, textAlign: 'left', wordBreak: 'break-word' }}>
             {apiError}
           </div>
         )}
-        <div style={{ fontSize: 10, color: '#374151', marginBottom: 20 }}>Make sure TEACHER_EMAIL in your Vercel env vars exactly matches your Google login email</div>
-        <button onClick={() => { setLoading(true); fetchData(selectedClass); }} style={{ padding: '8px 20px', background: 'transparent', border: '1px solid #374151', color: '#94a3b8', borderRadius: 8, cursor: 'pointer', fontFamily: "'DM Mono',monospace", fontSize: 11, letterSpacing: '0.1em' }}>
+        <div style={{ fontSize: 10, color: P.textDim, marginBottom: 20 }}>Make sure TEACHER_EMAIL in your Vercel env vars exactly matches your Google login email</div>
+        <button onClick={() => { setLoading(true); fetchData(selectedClass); }} style={{ padding: '8px 20px', background: 'transparent', border: `1px solid ${P.textDim}`, color: P.textSecondary, borderRadius: 8, cursor: 'pointer', fontFamily: "'DM Mono',monospace", fontSize: 11, letterSpacing: '0.1em' }}>
           ↻ RETRY
         </button>
       </div>
@@ -301,23 +334,23 @@ export default function TeacherCockpit() {
       <style dangerouslySetInnerHTML={{ __html: `
         @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Mono:wght@400;500;700&display=swap');
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-        body{background:#05070d;color:#e2e8f0;font-family:'DM Mono',monospace}
+        body{background:${P.bg};color:${P.textPrimary};font-family:'DM Mono',monospace}
         @keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
         @keyframes spin{to{transform:rotate(360deg)}}
         @keyframes pulseGlow{0%,100%{opacity:1}50%{opacity:.6}}
         @keyframes scanline{0%{transform:translateY(-100%)}100%{transform:translateY(100vh)}}
         .cockpit{max-width:1200px;margin:0 auto;padding:20px 16px}
-        .gauge-wrap{background:radial-gradient(ellipse at center, #0e1220 0%, #080c14 70%);border:1px solid #1a1f2e;border-radius:20px;padding:16px;display:flex;flex-direction:column;align-items:center;position:relative}
+        .gauge-wrap{background:radial-gradient(ellipse at center, ${P.gaugeBg1} 0%, ${P.gaugeBg2} 70%);border:1px solid ${P.border};border-radius:20px;padding:16px;display:flex;flex-direction:column;align-items:center;position:relative}
         .gauge-wrap::before{content:'';position:absolute;inset:0;border-radius:20px;background:radial-gradient(ellipse at 50% 0%, rgba(255,255,255,.03) 0%, transparent 60%);pointer-events:none}
-        .center-console{background:linear-gradient(180deg,#0a0d16 0%,#070a12 100%);border:1px solid #1a1f2e;border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:12px}
-        .warning-strip{background:#070a10;border:1px solid #1a1f2e;border-radius:16px;padding:18px 24px;display:flex;flex-wrap:wrap;gap:20px;justify-content:center;align-items:flex-start}
-        .odo-bar{background:#040608;border:1px solid #1a1f2e;border-radius:14px;padding:16px 24px;display:flex;flex-wrap:wrap;gap:24px;justify-content:space-around;align-items:center}
-        .section-label{font-size:9px;color:#374151;letter-spacing:.25em;text-transform:uppercase;text-align:center;margin-bottom:10px}
+        .center-console{background:linear-gradient(180deg,${P.consoleBg1} 0%,${P.consoleBg2} 100%);border:1px solid ${P.border};border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:12px}
+        .warning-strip{background:${P.warningBg};border:1px solid ${P.border};border-radius:16px;padding:18px 24px;display:flex;flex-wrap:wrap;gap:20px;justify-content:center;align-items:flex-start}
+        .odo-bar{background:${P.odoBg};border:1px solid ${P.border};border-radius:14px;padding:16px 24px;display:flex;flex-wrap:wrap;gap:24px;justify-content:space-around;align-items:center}
+        .section-label{font-size:9px;color:${P.textDim};letter-spacing:.25em;text-transform:uppercase;text-align:center;margin-bottom:10px}
         .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
         .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
-        .divider{height:1px;background:linear-gradient(90deg,transparent,#1a1f2e,transparent);margin:4px 0}
-        select.class-select{background:#0a0d16;border:1px solid #1a1f2e;color:#94a3b8;padding:5px 10px;border-radius:8px;font-family:'DM Mono',monospace;font-size:11px;outline:none;cursor:pointer}
-        select.class-select:focus{border-color:#374151}
+        .divider{height:1px;background:linear-gradient(90deg,transparent,${P.border},transparent);margin:4px 0}
+        select.class-select{background:${P.selectBg};border:1px solid ${P.border};color:${P.textSecondary};padding:5px 10px;border-radius:8px;font-family:'DM Mono',monospace;font-size:11px;outline:none;cursor:pointer}
+        select.class-select:focus{border-color:${P.textDim}}
         @media(max-width:640px){
           .cockpit{padding:12px 10px}
           .grid-2{grid-template-columns:1fr}
@@ -328,12 +361,12 @@ export default function TeacherCockpit() {
       ` }} />
 
       {/* Scanline overlay (subtle) */}
-      <div style={{ position: 'fixed', inset: 0, background: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,.03) 2px, rgba(0,0,0,.03) 4px)', pointerEvents: 'none', zIndex: 0 }} />
+      <div style={{ position: 'fixed', inset: 0, background: `repeating-linear-gradient(0deg, transparent, transparent 2px, ${P.scanline} 2px, ${P.scanline} 4px)`, pointerEvents: 'none', zIndex: 0 }} />
 
       <div className="cockpit" style={{ position: 'relative', zIndex: 1 }}>
 
         {/* ── Header bar ── */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#070a10', border: '1px solid #1a1f2e', borderRadius: 16, padding: '12px 20px', marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: P.headerBg, border: `1px solid ${P.border}`, borderRadius: 16, padding: '12px 20px', marginBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 15, letterSpacing: '0.08em', color: '#f59e0b', textShadow: '0 0 20px #f59e0b66' }}>
               ◈ CRYPTOCLASS COCKPIT
@@ -350,13 +383,16 @@ export default function TeacherCockpit() {
                 {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             )}
-            <div style={{ fontSize: 11, color: '#374151', fontFamily: "'DM Mono',monospace", letterSpacing: '0.08em' }}>
+            <div style={{ fontSize: 11, color: P.textDim, fontFamily: "'DM Mono',monospace", letterSpacing: '0.08em' }}>
               {nowStr.replace(/:/g, (m, i) => i === 2 && !colonVisible ? ' ' : m)}
             </div>
-            <div style={{ fontSize: 10, color: '#374151', background: '#0d1117', border: '1px solid #1a1f2e', borderRadius: 6, padding: '3px 10px', letterSpacing: '0.1em' }}>
+            <div style={{ fontSize: 10, color: P.textDim, background: P.pillBg, border: `1px solid ${P.border}`, borderRadius: 6, padding: '3px 10px', letterSpacing: '0.1em' }}>
               CACHE&nbsp;<span style={{ color: cacheStatus === 'LIVE' ? '#22c55e' : cacheStatus === 'OK' ? '#f59e0b' : '#ef4444' }}>{cacheStatus}</span>
             </div>
-            <Link href="/teacher" style={{ fontSize: 10, color: '#4b5563', textDecoration: 'none', letterSpacing: '0.1em', border: '1px solid #1a1f2e', borderRadius: 6, padding: '4px 10px' }}>
+            <button onClick={toggleTheme} title={light ? 'Switch to dark' : 'Switch to light'} style={{ fontSize: 13, color: P.textDim, background: 'transparent', border: `1px solid ${P.border}`, borderRadius: 6, padding: '4px 8px', cursor: 'pointer', lineHeight: 1 }}>
+              {light ? '🌙' : '☀️'}
+            </button>
+            <Link href="/teacher" style={{ fontSize: 10, color: P.textMuted, textDecoration: 'none', letterSpacing: '0.1em', border: `1px solid ${P.border}`, borderRadius: 6, padding: '4px 10px' }}>
               ← CONTROLS
             </Link>
           </div>
@@ -374,10 +410,11 @@ export default function TeacherCockpit() {
               label="Trades / Day"
               unit="trades"
               size={220}
+              P={P}
             />
             <div style={{ display: 'flex', gap: 8, marginTop: 6, width: '100%' }}>
-              <LcdCell label="Today" value={trades.today} accent="#f59e0b" />
-              <LcdCell label="This Month" value={fmtNum(trades.month)} accent="#f59e0b" />
+              <LcdCell label="Today" value={trades.today} accent="#f59e0b" P={P} />
+              <LcdCell label="This Month" value={fmtNum(trades.month)} accent="#f59e0b" P={P} />
             </div>
           </div>
 
@@ -385,11 +422,11 @@ export default function TeacherCockpit() {
           <div className="center-console">
             <div className="section-label">CLASS PORTFOLIO</div>
             <div style={{ textAlign: 'center', padding: '8px 0 4px' }}>
-              <div style={{ fontSize: 9, color: '#374151', letterSpacing: '0.2em', marginBottom: 6, fontFamily: "'DM Mono',monospace" }}>TOTAL PORTFOLIO VALUE</div>
+              <div style={{ fontSize: 9, color: P.textDim, letterSpacing: '0.2em', marginBottom: 6, fontFamily: "'DM Mono',monospace" }}>TOTAL PORTFOLIO VALUE</div>
               <div style={{ fontSize: 42, fontWeight: 700, fontFamily: "'DM Mono',monospace", color: '#f59e0b', letterSpacing: '-0.04em', lineHeight: 1, textShadow: '0 0 30px #f59e0b44' }}>
                 {fmtUSD(portfolio.totalValue)}
               </div>
-              <div style={{ fontSize: 11, color: '#374151', marginTop: 6, fontFamily: "'DM Mono',monospace" }}>
+              <div style={{ fontSize: 11, color: P.textDim, marginTop: 6, fontFamily: "'DM Mono',monospace" }}>
                 {fmtUSD(portfolio.totalCash)} cash · {fmtUSD(portfolio.totalHoldings)} holdings
               </div>
             </div>
@@ -397,44 +434,44 @@ export default function TeacherCockpit() {
             <div className="divider" />
 
             <div className="grid-3">
-              <LcdCell label="Students" value={students.total} accent="#60a5fa" />
-              <LcdCell label="Active Today" value={students.activeToday} accent="#22c55e" sub={`${Math.round(students.activeToday / Math.max(students.total, 1) * 100)}% of class`} />
-              <LcdCell label="Coins Listed" value={portfolio.coinCount} accent="#a78bfa" />
+              <LcdCell label="Students" value={students.total} accent="#60a5fa" P={P} />
+              <LcdCell label="Active Today" value={students.activeToday} accent="#22c55e" sub={`${Math.round(students.activeToday / Math.max(students.total, 1) * 100)}% of class`} P={P} />
+              <LcdCell label="Coins Listed" value={portfolio.coinCount} accent="#a78bfa" P={P} />
             </div>
 
             <div className="divider" />
 
             <div className="grid-3">
-              <LcdCell label="CoinGecko / Mo" value={fmtNum(api.coingecko.callsThisMonth)} accent={apiUsagePct > 0.8 ? '#ef4444' : '#f59e0b'} sub={`of ${fmtNum(api.coingecko.callsLimit)} limit`} />
-              <LcdCell label="FreeCrypto / Mo" value={fmtNum(api.freecrypto.callsThisMonth)} accent="#a78bfa" sub="student trades" />
-              <LcdCell label="Pending Orders" value={orders.pending} accent={orders.pending > 0 ? '#00e5a0' : '#374151'} />
+              <LcdCell label="CoinGecko / Mo" value={fmtNum(api.coingecko.callsThisMonth)} accent={apiUsagePct > 0.8 ? '#ef4444' : '#f59e0b'} sub={`of ${fmtNum(api.coingecko.callsLimit)} limit`} P={P} />
+              <LcdCell label="FreeCrypto / Mo" value={fmtNum(api.freecrypto.callsThisMonth)} accent="#a78bfa" sub="student trades" P={P} />
+              <LcdCell label="Pending Orders" value={orders.pending} accent={orders.pending > 0 ? '#00e5a0' : P.textDim} P={P} />
             </div>
 
             <div className="divider" />
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <BarMeter label="CoinGecko Usage" value={api.coingecko.callsThisMonth} max={api.coingecko.callsLimit} color="#f59e0b" formatVal={fmtNum} />
-              <BarMeter label="Student Activity" value={students.activeToday} max={students.total} color="#22c55e" />
-              <BarMeter label="Price Cache Freshness" value={Math.max(0, 60 - api.cacheAgeMinutes)} max={60} color="#60a5fa" formatVal={v => `${v}min`} />
+              <BarMeter label="CoinGecko Usage" value={api.coingecko.callsThisMonth} max={api.coingecko.callsLimit} color="#f59e0b" formatVal={fmtNum} P={P} />
+              <BarMeter label="Student Activity" value={students.activeToday} max={students.total} color="#22c55e" P={P} />
+              <BarMeter label="Cache Age" value={api.cacheAgeMinutes} max={35} color="#60a5fa" formatVal={v => `${Math.round(v)}min`} P={P} />
             </div>
 
             <div className="divider" />
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ fontSize: 9, color: '#374151', letterSpacing: '0.15em', fontFamily: "'DM Mono',monospace" }}>
+              <div style={{ fontSize: 9, color: P.textDim, letterSpacing: '0.15em', fontFamily: "'DM Mono',monospace" }}>
                 COINGECKO REFRESHES THIS MONTH
               </div>
-              <div style={{ fontSize: 12, color: '#4b5563', fontFamily: "'DM Mono',monospace", fontWeight: 600 }}>
-                {fmtNum(api.coingecko.callsThisMonth)} <span style={{ fontSize: 9, color: '#374151' }}>× bulk price refresh</span>
+              <div style={{ fontSize: 12, color: P.textMuted, fontFamily: "'DM Mono',monospace", fontWeight: 600 }}>
+                {fmtNum(api.coingecko.callsThisMonth)} <span style={{ fontSize: 9, color: P.textDim }}>× bulk price refresh</span>
               </div>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ fontSize: 9, color: '#374151', letterSpacing: '0.15em', fontFamily: "'DM Mono',monospace" }}>
+              <div style={{ fontSize: 9, color: P.textDim, letterSpacing: '0.15em', fontFamily: "'DM Mono',monospace" }}>
                 LAST CACHE UPDATE
               </div>
               <div style={{ fontSize: 12, color: api.cacheAgeMinutes < 5 ? '#22c55e' : api.cacheAgeMinutes < 35 ? '#f59e0b' : '#ef4444', fontFamily: "'DM Mono',monospace", fontWeight: 600 }}>
                 {api.cacheAgeMinutes < 2 ? 'JUST NOW' : `${api.cacheAgeMinutes} MIN AGO`}
-                {api.stalestSymbol && <span style={{ fontSize: 9, color: '#374151', marginLeft: 6 }}>({api.stalestSymbol})</span>}
+                {api.stalestSymbol && <span style={{ fontSize: 9, color: P.textDim, marginLeft: 6 }}>({api.stalestSymbol})</span>}
               </div>
             </div>
           </div>
@@ -444,15 +481,16 @@ export default function TeacherCockpit() {
             <div className="section-label">HEALTH MONITOR</div>
             <Gauge
               value={api.cacheAgeMinutes}
-              max={60}
+              max={35}
               label="Cache Age"
               unit="minutes"
               size={220}
               inverse={true}
+              P={P}
             />
             <div style={{ display: 'flex', gap: 8, marginTop: 6, width: '100%' }}>
-              <LcdCell label="Snapshots Today" value={trades.snapshotsToday} accent="#60a5fa" />
-              <LcdCell label="Prices Cached" value={api.cachedSymbols} accent="#60a5fa" />
+              <LcdCell label="Snapshots Today" value={trades.snapshotsToday} accent="#60a5fa" P={P} />
+              <LcdCell label="Prices Cached" value={api.cachedSymbols} accent="#60a5fa" P={P} />
             </div>
           </div>
         </div>
@@ -464,56 +502,56 @@ export default function TeacherCockpit() {
 
             {/* Market state */}
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-              <div style={{ fontSize: 8, color: '#374151', letterSpacing: '0.15em', marginBottom: 4, fontFamily: "'DM Mono',monospace" }}>MARKET</div>
+              <div style={{ fontSize: 8, color: P.textDim, letterSpacing: '0.15em', marginBottom: 4, fontFamily: "'DM Mono',monospace" }}>MARKET</div>
               <div style={{ display: 'flex', gap: 12 }}>
-                <Light label="Open" on={!features.frozen && !features.paused} color="#22c55e" />
-                <Light label="Frozen" on={features.frozen} color="#ef4444" sublabel={features.freezeReason ? features.freezeReason.slice(0, 12) : ''} blink={true} />
-                <Light label="Paused" on={features.paused} color="#f59e0b" blink={true} />
+                <Light label="Open" on={!features.frozen && !features.paused} color="#22c55e" P={P} />
+                <Light label="Frozen" on={features.frozen} color="#ef4444" sublabel={features.freezeReason ? features.freezeReason.slice(0, 12) : ''} blink={true} P={P} />
+                <Light label="Paused" on={features.paused} color="#f59e0b" blink={true} P={P} />
               </div>
             </div>
 
-            <div style={{ width: 1, background: '#1a1f2e', alignSelf: 'stretch' }} />
+            <div style={{ width: 1, background: P.border, alignSelf: 'stretch' }} />
 
             {/* Market events */}
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-              <div style={{ fontSize: 8, color: '#374151', letterSpacing: '0.15em', marginBottom: 4, fontFamily: "'DM Mono',monospace" }}>EVENTS</div>
+              <div style={{ fontSize: 8, color: P.textDim, letterSpacing: '0.15em', marginBottom: 4, fontFamily: "'DM Mono',monospace" }}>EVENTS</div>
               <div style={{ display: 'flex', gap: 12 }}>
-                <Light label="Bull Run" on={features.bullRunActive} color="#f59e0b" sublabel={features.bullRunActive ? `${features.bullRunMult}×` : ''} blink={features.bullRunActive} />
-                <Light label="Flash Sale" on={features.flashSaleActive} color="#fb923c" sublabel={features.flashSaleActive ? features.flashSaleCoin : ''} blink={features.flashSaleActive} />
+                <Light label="Bull Run" on={features.bullRunActive} color="#f59e0b" sublabel={features.bullRunActive ? `${features.bullRunMult}×` : ''} blink={features.bullRunActive} P={P} />
+                <Light label="Flash Sale" on={features.flashSaleActive} color="#fb923c" sublabel={features.flashSaleActive ? features.flashSaleCoin : ''} blink={features.flashSaleActive} P={P} />
               </div>
             </div>
 
-            <div style={{ width: 1, background: '#1a1f2e', alignSelf: 'stretch' }} />
+            <div style={{ width: 1, background: P.border, alignSelf: 'stretch' }} />
 
             {/* Trading features */}
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-              <div style={{ fontSize: 8, color: '#374151', letterSpacing: '0.15em', marginBottom: 4, fontFamily: "'DM Mono',monospace" }}>FEATURES</div>
+              <div style={{ fontSize: 8, color: P.textDim, letterSpacing: '0.15em', marginBottom: 4, fontFamily: "'DM Mono',monospace" }}>FEATURES</div>
               <div style={{ display: 'flex', gap: 12 }}>
-                <Light label="Leverage" on={features.marginEnabled} color="#60a5fa" sublabel={features.marginEnabled ? `up to ${features.marginMult}×` : 'off'} />
-                <Light label="Shorting" on={features.shortEnabled} color="#a78bfa" sublabel={features.shortEnabled ? 'enabled' : 'off'} />
-                <Light label="Limit Orders" on={orders.pending > 0} color="#00e5a0" sublabel={orders.pending > 0 ? `${orders.pending} pending` : 'none'} />
+                <Light label="Leverage" on={features.marginEnabled} color="#60a5fa" sublabel={features.marginEnabled ? `up to ${features.marginMult}×` : 'off'} P={P} />
+                <Light label="Shorting" on={features.shortEnabled} color="#a78bfa" sublabel={features.shortEnabled ? 'enabled' : 'off'} P={P} />
+                <Light label="Limit Orders" on={orders.pending > 0} color="#00e5a0" sublabel={orders.pending > 0 ? `${orders.pending} pending` : 'none'} P={P} />
               </div>
             </div>
 
-            <div style={{ width: 1, background: '#1a1f2e', alignSelf: 'stretch' }} />
+            <div style={{ width: 1, background: P.border, alignSelf: 'stretch' }} />
 
             {/* Restrictions */}
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-              <div style={{ fontSize: 8, color: '#374151', letterSpacing: '0.15em', marginBottom: 4, fontFamily: "'DM Mono',monospace" }}>RESTRICTIONS</div>
+              <div style={{ fontSize: 8, color: P.textDim, letterSpacing: '0.15em', marginBottom: 4, fontFamily: "'DM Mono',monospace" }}>RESTRICTIONS</div>
               <div style={{ display: 'flex', gap: 12 }}>
-                <Light label="Trade Hours" on={features.tradingHoursOn} color="#f59e0b" sublabel={features.tradingHoursOn ? `${features.tradingHoursStart}–${features.tradingHoursEnd}` : 'off'} />
-                <Light label="Daily Limit" on={features.dailyLimitOn} color="#f59e0b" sublabel={features.dailyLimitOn ? `${features.dailyLimitN}/day` : 'off'} />
+                <Light label="Trade Hours" on={features.tradingHoursOn} color="#f59e0b" sublabel={features.tradingHoursOn ? `${features.tradingHoursStart}–${features.tradingHoursEnd}` : 'off'} P={P} />
+                <Light label="Daily Limit" on={features.dailyLimitOn} color="#f59e0b" sublabel={features.dailyLimitOn ? `${features.dailyLimitN}/day` : 'off'} P={P} />
               </div>
             </div>
 
-            <div style={{ width: 1, background: '#1a1f2e', alignSelf: 'stretch' }} />
+            <div style={{ width: 1, background: P.border, alignSelf: 'stretch' }} />
 
             {/* Health indicator */}
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-              <div style={{ fontSize: 8, color: '#374151', letterSpacing: '0.15em', marginBottom: 4, fontFamily: "'DM Mono',monospace" }}>HEALTH</div>
+              <div style={{ fontSize: 8, color: P.textDim, letterSpacing: '0.15em', marginBottom: 4, fontFamily: "'DM Mono',monospace" }}>HEALTH</div>
               <div style={{ display: 'flex', gap: 12 }}>
-                <Light label="Price Feed" on={isHealthy} color="#22c55e" sublabel={isHealthy ? 'nominal' : 'stale!'} />
-                <Light label="FreeCryptoAPI" on={api.freecrypto.callsThisMonth > 0} color="#a78bfa" sublabel={`${fmtNum(api.freecrypto.callsThisMonth)} calls`} />
+                <Light label="Price Feed" on={isHealthy} color="#22c55e" sublabel={isHealthy ? 'nominal' : 'stale!'} P={P} />
+                <Light label="FreeCryptoAPI" on={api.freecrypto.callsThisMonth > 0} color="#a78bfa" sublabel={`${fmtNum(api.freecrypto.callsThisMonth)} calls`} P={P} />
               </div>
             </div>
           </div>
@@ -521,18 +559,18 @@ export default function TeacherCockpit() {
 
         {/* ── Odometer bar ── */}
         <div className="odo-bar">
-          <Odometer value={trades.total} label="ODO — ALL TIME TRADES" digits={7} />
-          <div style={{ width: 1, background: '#1a1f2e', alignSelf: 'stretch', minHeight: 50 }} />
-          <Odometer value={trades.today} label="TRIP — TODAY" digits={4} />
-          <div style={{ width: 1, background: '#1a1f2e', alignSelf: 'stretch', minHeight: 50 }} />
-          <Odometer value={trades.month} label="MONTH" digits={5} />
-          <div style={{ width: 1, background: '#1a1f2e', alignSelf: 'stretch', minHeight: 50 }} />
+          <Odometer value={trades.total} label="ODO — ALL TIME TRADES" digits={7} P={P} />
+          <div style={{ width: 1, background: P.border, alignSelf: 'stretch', minHeight: 50 }} />
+          <Odometer value={trades.today} label="TRIP — TODAY" digits={4} P={P} />
+          <div style={{ width: 1, background: P.border, alignSelf: 'stretch', minHeight: 50 }} />
+          <Odometer value={trades.month} label="MONTH" digits={5} P={P} />
+          <div style={{ width: 1, background: P.border, alignSelf: 'stretch', minHeight: 50 }} />
 
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 9, color: '#374151', letterSpacing: '0.2em', fontFamily: "'DM Mono',monospace", marginBottom: 6 }}>SIMULATION GEAR</div>
+            <div style={{ fontSize: 9, color: P.textDim, letterSpacing: '0.2em', fontFamily: "'DM Mono',monospace", marginBottom: 6 }}>SIMULATION GEAR</div>
             <div style={{
               width: 54, height: 54, borderRadius: '50%',
-              background: `radial-gradient(circle, ${simColor}22, #070a10)`,
+              background: `radial-gradient(circle, ${simColor}22, ${P.headerBg})`,
               border: `2px solid ${simColor}`,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 18, fontWeight: 800, fontFamily: "'Syne',sans-serif",
@@ -547,18 +585,18 @@ export default function TeacherCockpit() {
             </div>
           </div>
 
-          <div style={{ width: 1, background: '#1a1f2e', alignSelf: 'stretch', minHeight: 50 }} />
+          <div style={{ width: 1, background: P.border, alignSelf: 'stretch', minHeight: 50 }} />
 
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 9, color: '#374151', letterSpacing: '0.15em', fontFamily: "'DM Mono',monospace", marginBottom: 8 }}>AUTO-REFRESH</div>
-            <div style={{ fontSize: 11, color: '#4b5563', fontFamily: "'DM Mono',monospace" }}>30s interval</div>
-            <div style={{ fontSize: 10, color: '#374151', fontFamily: "'DM Mono',monospace", marginTop: 2 }}>
+            <div style={{ fontSize: 9, color: P.textDim, letterSpacing: '0.15em', fontFamily: "'DM Mono',monospace", marginBottom: 8 }}>AUTO-REFRESH</div>
+            <div style={{ fontSize: 11, color: P.textMuted, fontFamily: "'DM Mono',monospace" }}>30s interval</div>
+            <div style={{ fontSize: 10, color: P.textDim, fontFamily: "'DM Mono',monospace", marginTop: 2 }}>
               Last: {lastRefresh ? lastRefresh.toLocaleTimeString('en-US', { hour12: false }) : '--'}
             </div>
             <button onClick={() => fetchData(selectedClass)} style={{
               marginTop: 8, padding: '4px 12px', borderRadius: 6,
-              background: 'transparent', border: '1px solid #1a1f2e',
-              color: '#4b5563', fontSize: 9, cursor: 'pointer',
+              background: 'transparent', border: `1px solid ${P.border}`,
+              color: P.textMuted, fontSize: 9, cursor: 'pointer',
               fontFamily: "'DM Mono',monospace", letterSpacing: '0.1em',
             }}>↻ REFRESH</button>
           </div>
@@ -568,24 +606,24 @@ export default function TeacherCockpit() {
         {badgeData?.students?.length > 0 && (
           <div style={{ marginTop: 20 }}>
             <div className="section-label">STUDENT BADGE BOARD</div>
-            <div style={{ background: '#0a0f1a', border: '1px solid #1a1f2e', borderRadius: 16, padding: 16, overflowX: 'auto' }}>
+            <div style={{ background: P.badgeBoardBg, border: `1px solid ${P.border}`, borderRadius: 16, padding: 16, overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: "'DM Mono',monospace" }}>
                 <thead>
                   <tr>
-                    <th style={{ textAlign: 'left', fontSize: 9, color: '#374151', letterSpacing: '0.2em', padding: '6px 12px', borderBottom: '1px solid #1a1f2e' }}>STUDENT</th>
-                    <th style={{ textAlign: 'center', fontSize: 9, color: '#374151', letterSpacing: '0.2em', padding: '6px 12px', borderBottom: '1px solid #1a1f2e' }}>TOTAL</th>
-                    <th style={{ textAlign: 'left', fontSize: 9, color: '#374151', letterSpacing: '0.2em', padding: '6px 12px', borderBottom: '1px solid #1a1f2e' }}>BADGES EARNED</th>
+                    <th style={{ textAlign: 'left', fontSize: 9, color: P.textDim, letterSpacing: '0.2em', padding: '6px 12px', borderBottom: `1px solid ${P.border}` }}>STUDENT</th>
+                    <th style={{ textAlign: 'center', fontSize: 9, color: P.textDim, letterSpacing: '0.2em', padding: '6px 12px', borderBottom: `1px solid ${P.border}` }}>TOTAL</th>
+                    <th style={{ textAlign: 'left', fontSize: 9, color: P.textDim, letterSpacing: '0.2em', padding: '6px 12px', borderBottom: `1px solid ${P.border}` }}>BADGES EARNED</th>
                   </tr>
                 </thead>
                 <tbody>
                   {[...badgeData.students].sort((a, b) => b.badges.length - a.badges.length).map(s => (
-                    <tr key={s.id} style={{ borderBottom: '1px solid #111827' }}>
-                      <td style={{ padding: '8px 12px', fontSize: 11, color: '#e2e8f0', whiteSpace: 'nowrap' }}>{s.name}</td>
-                      <td style={{ padding: '8px 12px', textAlign: 'center', fontSize: 13, fontWeight: 700, color: s.badges.length > 0 ? '#00e5a0' : '#374151' }}>{s.badges.length}</td>
+                    <tr key={s.id} style={{ borderBottom: `1px solid ${P.border}` }}>
+                      <td style={{ padding: '8px 12px', fontSize: 11, color: P.textPrimary, whiteSpace: 'nowrap' }}>{s.name}</td>
+                      <td style={{ padding: '8px 12px', textAlign: 'center', fontSize: 13, fontWeight: 700, color: s.badges.length > 0 ? '#00e5a0' : P.textDim }}>{s.badges.length}</td>
                       <td style={{ padding: '8px 12px' }}>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                           {s.badges.length === 0
-                            ? <span style={{ fontSize: 10, color: '#374151' }}>No badges yet</span>
+                            ? <span style={{ fontSize: 10, color: P.textDim }}>No badges yet</span>
                             : s.badges.map(b => (
                               <span key={b.badge_id} title={b.badge_id} style={{ fontSize: 14, lineHeight: 1 }}>
                                 {{'first_trade':'🥇','active_trader':'⚡','power_trader':'🔥','whale':'🐳','doubled_up':'💰','triple_threat':'🎰','first_profit':'🌱','ten_pct':'🚀','diamond_hands':'💎','to_the_moon':'🌕','portfolio_x2':'🔱','crash_survivor':'🌊','diversified':'🌈','sharpshooter':'🎯','sniper':'🏹','hodler':'🧘','stop_loss_pro':'✂️','bought_dip':'📉','sector_pro':'🗂️','sector_specialist':'🏆','analyst':'📝','researcher':'📖','due_diligence':'🔍','first_watch':'👀','serious_watch':'🎯','veteran_watch':'🔭','bull_rider':'🐂','flash_deal':'⚡','news_trader':'📰','bot_copycat':'🤖','patient_investor':'💤','eager_investor':'📅','fomo_investor':'😰','champion':'🏆','beat_the_bot':'🤖','most_improved':'📊','comeback_kid':'🔄','fee_conscious':'💸','signal_found':'📡','data_chef':'🍳','market_pulse':'💓','price_oracle':'🔮','omniscient':'🌐','first_lesson':'📚','lesson_five':'📖','lesson_fifteen':'🎓','perfect_score':'💯','quiz_ace':'🌟','speed_learner':'💨','study_streak':'🧠','module_master':'🗺️','module_trio':'🎖️','crypto_professor':'🎩','order_placed':'📋','order_sniper':'🎯','limit_master':'📊','order_hit':'✅','triple_trigger':'🔱','short_seller':'📉','patient_limit':'⏳','stacked_orders':'🃏','cut_bait':'✂️','crush_rookie':'🎮','crush_500':'💫','crush_1000':'🌊','crush_3000':'👑','crush_veteran':'🕹️','crush_daily_max':'⭐','crush_grinder':'🎰'}[b.badge_id] || '🏅'}
@@ -603,7 +641,7 @@ export default function TeacherCockpit() {
         )}
 
         {/* Footer */}
-        <div style={{ textAlign: 'center', marginTop: 14, fontSize: 9, color: '#1f2937', letterSpacing: '0.2em', fontFamily: "'DM Mono',monospace" }}>
+        <div style={{ textAlign: 'center', marginTop: 14, fontSize: 9, color: P.footerText, letterSpacing: '0.2em', fontFamily: "'DM Mono',monospace" }}>
           CRYPTOCLASS COMMAND CENTER · v2 · {lastRefresh?.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
         </div>
       </div>
