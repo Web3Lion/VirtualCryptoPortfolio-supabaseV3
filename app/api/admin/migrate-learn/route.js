@@ -236,40 +236,56 @@ export async function POST(request) {
     }
     if (!modId) { results.push({ module: moduleTitle, error: 'Could not create module' }); continue; }
 
-    // Import each lesson (skip if already exists by title)
-    let lessonsAdded = 0, lessonsSkipped = 0;
+    // Upsert each lesson: update content in place if the title already exists, else create it
+    let lessonsAdded = 0, lessonsUpdated = 0;
     for (const lesson of lessons) {
-      const { data: dupLesson } = await db.from('learn_lessons').select('id').eq('module_id', modId).eq('title', lesson.title).maybeSingle();
-      if (dupLesson) { lessonsSkipped++; continue; }
+      const { data: existingLesson } = await db.from('learn_lessons').select('id, order_index').eq('module_id', modId).eq('title', lesson.title).maybeSingle();
 
-      // Get next order_index
-      const { data: last } = await db.from('learn_lessons').select('order_index').eq('module_id', modId).order('order_index', { ascending: false }).limit(1);
-      const nextOrder = last?.length ? (last[0].order_index + 1) : 1;
+      let lessonId;
+      if (existingLesson) {
+        lessonId = existingLesson.id;
+        await db.from('learn_lessons').update({
+          description: lesson.description || '',
+          tokens_reward: lesson.tokens_reward ?? 25,
+          pass_threshold: lesson.pass_threshold ?? 70,
+          questions_to_show: lesson.questions_to_show ?? 5,
+          is_published: lesson.is_published ?? true,
+        }).eq('id', lessonId);
+      } else {
+        const { data: last } = await db.from('learn_lessons').select('order_index').eq('module_id', modId).order('order_index', { ascending: false }).limit(1);
+        const nextOrder = last?.length ? (last[0].order_index + 1) : 1;
+        const { data: newLesson, error: lErr } = await db.from('learn_lessons').insert({
+          module_id: modId,
+          title: lesson.title,
+          description: lesson.description || '',
+          order_index: nextOrder,
+          tokens_reward: lesson.tokens_reward ?? 25,
+          pass_threshold: lesson.pass_threshold ?? 70,
+          questions_to_show: lesson.questions_to_show ?? 5,
+          is_published: lesson.is_published ?? true,
+        }).select().single();
+        if (lErr || !newLesson) continue;
+        lessonId = newLesson.id;
+      }
 
-      const { data: newLesson, error: lErr } = await db.from('learn_lessons').insert({
-        module_id: modId,
-        title: lesson.title,
-        description: lesson.description || '',
-        order_index: nextOrder,
-        tokens_reward: lesson.tokens_reward ?? 25,
-        pass_threshold: lesson.pass_threshold ?? 70,
-        questions_to_show: lesson.questions_to_show ?? 5,
-        is_published: lesson.is_published ?? true,
-      }).select().single();
-      if (lErr || !newLesson) { continue; }
-
-      // Insert blocks
+      // Replace blocks entirely so edited JSON content always wins
+      await db.from('learn_blocks').delete().eq('lesson_id', lessonId);
       if (lesson.blocks?.length) {
         await db.from('learn_blocks').insert(
-          lesson.blocks.map(b => ({ lesson_id: newLesson.id, block_type: b.block_type, content: b.content, order_index: b.order_index }))
+          lesson.blocks.map((b, i) => ({ lesson_id: lessonId, block_type: b.block_type, content: b.content, order_index: b.order_index ?? i }))
         );
       }
 
-      // Insert questions + options
+      // Replace questions + options entirely
+      const { data: oldQuestions } = await db.from('learn_questions').select('id').eq('lesson_id', lessonId);
+      const oldQIds = (oldQuestions || []).map(q => q.id);
+      if (oldQIds.length) await db.from('learn_options').delete().in('question_id', oldQIds);
+      await db.from('learn_questions').delete().eq('lesson_id', lessonId);
+
       for (let qi = 0; qi < (lesson.questions || []).length; qi++) {
         const q = lesson.questions[qi];
         const { data: newQ } = await db.from('learn_questions').insert({
-          lesson_id: newLesson.id,
+          lesson_id: lessonId,
           question_text: q.question_text,
           explanation: q.explanation || '',
           order_index: qi + 1,
@@ -279,9 +295,10 @@ export async function POST(request) {
           (q.options || []).map((o, i) => ({ question_id: newQ.id, option_text: o.option_text, is_correct: o.is_correct, order_index: i }))
         );
       }
-      lessonsAdded++;
+
+      if (existingLesson) lessonsUpdated++; else lessonsAdded++;
     }
-    results.push({ module: moduleTitle, lessonsAdded, lessonsSkipped });
+    results.push({ module: moduleTitle, lessonsAdded, lessonsUpdated });
   }
 
   return Response.json({ success: true, results });

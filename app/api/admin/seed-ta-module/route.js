@@ -375,30 +375,44 @@ export async function POST(request) {
       const { data: existingLesson } = await db.from('learn_lessons')
         .select('id').eq('module_id', moduleId).eq('title', lesson.title).limit(1).single();
 
+      let lessonId;
+      let wasUpdate = false;
       if (existingLesson) {
-        results.push({ lesson: lesson.title, status: 'already_exists', id: existingLesson.id });
-        continue;
-      }
+        lessonId = existingLesson.id;
+        wasUpdate = true;
+        await db.from('learn_lessons').update({
+          description: lesson.description,
+          order_index: lesson.order_index,
+          tokens_reward: lesson.tokens_reward,
+          pass_threshold: lesson.pass_threshold,
+        }).eq('id', lessonId);
+        await db.from('learn_blocks').delete().eq('lesson_id', lessonId);
+        const { data: oldQs } = await db.from('learn_questions').select('id').eq('lesson_id', lessonId);
+        const oldQIds = (oldQs || []).map(q => q.id);
+        if (oldQIds.length) await db.from('learn_options').delete().in('question_id', oldQIds);
+        await db.from('learn_questions').delete().eq('lesson_id', lessonId);
+      } else {
+        const { data: newLesson, error: lessonErr } = await db.from('learn_lessons').insert({
+          module_id: moduleId,
+          title: lesson.title,
+          description: lesson.description,
+          order_index: lesson.order_index,
+          tokens_reward: lesson.tokens_reward,
+          pass_threshold: lesson.pass_threshold,
+          questions_to_show: 5,
+          is_published: true,
+          ai_tutor_enabled: true,
+        }).select('id').single();
 
-      const { data: newLesson, error: lessonErr } = await db.from('learn_lessons').insert({
-        module_id: moduleId,
-        title: lesson.title,
-        description: lesson.description,
-        order_index: lesson.order_index,
-        tokens_reward: lesson.tokens_reward,
-        pass_threshold: lesson.pass_threshold,
-        questions_to_show: 5,
-        is_published: true,
-        ai_tutor_enabled: true,
-      }).select('id').single();
-
-      if (lessonErr) {
-        results.push({ lesson: lesson.title, status: 'error', error: lessonErr.message });
-        continue;
+        if (lessonErr) {
+          results.push({ lesson: lesson.title, status: 'error', error: lessonErr.message });
+          continue;
+        }
+        lessonId = newLesson.id;
       }
 
       const blockInserts = lesson.blocks.map((b, i) => ({
-        lesson_id: newLesson.id,
+        lesson_id: lessonId,
         block_type: b.block_type,
         content: b.content,
         order_index: i + 1,
@@ -408,7 +422,7 @@ export async function POST(request) {
       for (let qi = 0; qi < lesson.questions.length; qi++) {
         const q = lesson.questions[qi];
         const { data: newQ, error: qErr } = await db.from('learn_questions').insert({
-          lesson_id: newLesson.id,
+          lesson_id: lessonId,
           question_text: q.question_text,
           explanation: q.explanation,
           order_index: qi + 1,
@@ -419,7 +433,7 @@ export async function POST(request) {
         );
       }
 
-      results.push({ lesson: lesson.title, status: 'created', id: newLesson.id });
+      results.push({ lesson: lesson.title, status: wasUpdate ? 'updated' : 'created', id: lessonId });
     }
 
     return Response.json({
@@ -428,7 +442,7 @@ export async function POST(request) {
       moduleName: MODULE.title,
       results,
       created: results.filter(r => r.status === 'created').length,
-      skipped: results.filter(r => r.status === 'already_exists').length,
+      updated: results.filter(r => r.status === 'updated').length,
       errors: results.filter(r => r.status === 'error').length,
     });
 

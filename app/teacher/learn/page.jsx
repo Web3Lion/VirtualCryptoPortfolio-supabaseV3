@@ -135,8 +135,8 @@ export default function TeacherLearn() {
     const d = await res.json();
     if (d.success) {
       const added = (d.results || []).reduce((s, r) => s + (r.lessonsAdded || 0), 0);
-      const skipped = (d.results || []).reduce((s, r) => s + (r.lessonsSkipped || 0), 0);
-      flash(added > 0 ? `Seeded ${d.results.length} modules, ${added} lessons added${skipped ? `, ${skipped} already existed` : ''}` : 'All modules and lessons already loaded');
+      const updated = (d.results || []).reduce((s, r) => s + (r.lessonsUpdated || 0), 0);
+      flash(`Seeded ${d.results.length} modules — ${added} lessons added, ${updated} updated`);
       fetchModules();
     }
     else flash(d.error || "Seed failed", false);
@@ -148,7 +148,7 @@ export default function TeacherLearn() {
     const res = await fetch("/api/admin/seed-blockchain-module", { method: "POST" });
     const d = await res.json();
     if (d.success) {
-      flash(`⛓ Blockchain Module: ${d.created} lessons created, ${d.skipped} already existed`);
+      flash(`⛓ Blockchain Module: ${d.created} lessons created, ${d.updated} updated`);
       fetchModules();
     } else flash(d.error || "Blockchain seed failed", false);
     setSeedingBlockchain(false);
@@ -159,7 +159,7 @@ export default function TeacherLearn() {
     const res = await fetch("/api/admin/seed-defi-module", { method: "POST" });
     const d = await res.json();
     if (d.success) {
-      flash(`🏦 DeFi Module: ${d.created} lessons created, ${d.skipped} already existed`);
+      flash(`🏦 DeFi Module: ${d.created} lessons created, ${d.updated} updated`);
       fetchModules();
     } else flash(d.error || "DeFi seed failed", false);
     setSeedingDefi(false);
@@ -170,7 +170,7 @@ export default function TeacherLearn() {
     const res = await fetch("/api/admin/seed-ta-module", { method: "POST" });
     const d = await res.json();
     if (d.success) {
-      flash(`🕯️ TA Module: ${d.created} lessons created, ${d.skipped} already existed`);
+      flash(`🕯️ TA Module: ${d.created} lessons created, ${d.updated} updated`);
       fetchModules();
     } else flash(d.error || "TA seed failed", false);
     setSeedingTa(false);
@@ -181,7 +181,7 @@ export default function TeacherLearn() {
     const res = await fetch("/api/admin/seed-nft-module", { method: "POST" });
     const d = await res.json();
     if (d.success) {
-      flash(`🖼️ NFT Module: ${d.created} lessons created, ${d.skipped} already existed`);
+      flash(`🖼️ NFT Module: ${d.created} lessons created, ${d.updated} updated`);
       fetchModules();
     } else flash(d.error || "NFT seed failed", false);
     setSeedingNft(false);
@@ -192,7 +192,7 @@ export default function TeacherLearn() {
     const res = await fetch("/api/admin/seed-security-module", { method: "POST" });
     const d = await res.json();
     if (d.success) {
-      flash(`🔐 Security Module: ${d.created} lessons created, ${d.skipped} already existed`);
+      flash(`🔐 Security Module: ${d.created} lessons created, ${d.updated} updated`);
       fetchModules();
     } else flash(d.error || "Security seed failed", false);
     setSeedingSecurity(false);
@@ -203,7 +203,7 @@ export default function TeacherLearn() {
     const res = await fetch("/api/admin/seed-taxes-module", { method: "POST" });
     const d = await res.json();
     if (d.success) {
-      flash(`💸 Taxes Module: ${d.created} lessons created, ${d.skipped} already existed`);
+      flash(`💸 Taxes Module: ${d.created} lessons created, ${d.updated} updated`);
       fetchModules();
     } else flash(d.error || "Taxes seed failed", false);
     setSeedingTaxes(false);
