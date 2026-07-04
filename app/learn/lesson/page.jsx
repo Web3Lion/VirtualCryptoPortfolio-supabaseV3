@@ -6,6 +6,7 @@ import Link from "next/link";
 import Nav from "@/components/Nav";
 import BadgeToast from "@/components/BadgeToast";
 import { applyTheme, getTheme } from "@/lib/theme";
+import ArticleThumbnail, { sourceFromUrl } from "@/components/ArticleThumbnail";
 import dynamic from "next/dynamic";
 
 const CryptoCrossword = dynamic(() => import("./games/CryptoCrossword"), { ssr: false });
@@ -115,11 +116,15 @@ function ContentBlock({ block }) {
     );
   }
   if (block_type === "article") {
+    const source = content.source || sourceFromUrl(content.url || "");
     return (
-      <a href={content.url} target="_blank" rel="noopener noreferrer" style={{ display: "block", background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 12, padding: 14, margin: "12px 0", textDecoration: "none" }}>
-        <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 4 }}>📖 FURTHER READING</div>
-        <div style={{ fontSize: 13, color: "var(--accent)", fontWeight: 600 }}>{content.title || content.url}</div>
-        {content.description && <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>{content.description}</div>}
+      <a href={content.url} target="_blank" rel="noopener noreferrer" style={{ display: "block", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, overflow: "hidden", margin: "12px 0", textDecoration: "none", transition: "border-color .2s" }}>
+        <ArticleThumbnail imageUrl={content.image_url} source={source} height={140} />
+        <div style={{ padding: "12px 16px" }}>
+          <div style={{ fontSize: 10, color: "var(--muted)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>📖 Further Reading · {source}</div>
+          <div style={{ fontSize: 13, color: "var(--accent)", fontWeight: 700 }}>{content.title || content.url}</div>
+          {content.description && <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>{content.description}</div>}
+        </div>
       </a>
     );
   }
