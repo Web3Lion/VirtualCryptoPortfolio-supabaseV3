@@ -580,6 +580,7 @@ export default function Teacher() {
             <Link href="/teacher/learn"   className="nav-link" style={{color:'#60a5fa',border:'1px solid rgba(96,165,250,.2)',background:'rgba(96,165,250,.06)'}}>📚 Lessons</Link>
             <Link href="/teacher/schema"  className="nav-link" style={{color:'#a78bfa',border:'1px solid rgba(167,139,250,.2)',background:'rgba(167,139,250,.06)'}}>🗄️ Schema</Link>
             <Link href="/teacher/cockpit" className="nav-link" style={{color:'#f59e0b',border:'1px solid rgba(245,158,11,.2)',background:'rgba(245,158,11,.06)'}}>◈ Cockpit</Link>
+            <Link href="/teacher/gradebook" className="nav-link" style={{color:'#34d399',border:'1px solid rgba(52,211,153,.2)',background:'rgba(52,211,153,.06)'}}>📊 Gradebook</Link>
           </div>
           <div style={{display:'flex',gap:8,alignItems:'center'}}>
             <ThemeToggle/>
