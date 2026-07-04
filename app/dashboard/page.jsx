@@ -262,6 +262,7 @@ export default function Dashboard() {
   const [refreshCooldown, setRefreshCooldown] = useState(null);
   const [refreshCountdown, setRefreshCountdown] = useState("");
   const [refreshResult, setRefreshResult] = useState(null);
+  const [shareStatus, setShareStatus] = useState(null);
   const [itemsData, setItemsData] = useState(null);
   const [itemsLoading, setItemsLoading] = useState(false);
   const [freezeExpanded, setFreezeExpanded] = useState(false);
@@ -506,6 +507,8 @@ export default function Dashboard() {
           at: new Date(),
         });
         await fetchData();
+      } else {
+        setRefreshResult({ error: data.error || `Server error (${res.status})` });
       }
     } catch (e) {
       console.error(e);
@@ -544,7 +547,11 @@ export default function Dashboard() {
       fetch('/api/tournament').then(r => r.ok ? r.json() : []).then(d => { if (Array.isArray(d)) { const active = d.find(t => t.status === 'active'); setActiveTournament(active || null); } }).catch(() => {});
       fetch('/api/assignments').then(r => r.ok ? r.json() : []).then(d => { if (Array.isArray(d)) setActiveAssignments(d.filter(a => !a.completed && !a.tableNotReady)); }).catch(() => {});
       const iv = setInterval(fetchData, 60000);
-      return () => clearInterval(iv);
+      // Prices can now go fresh from a trade or the scheduled cron, not just
+      // this button — re-sync so a stale local "ready to refresh" state
+      // doesn't lead to a silent 429 when actually clicked.
+      const refreshIv = setInterval(fetchRefreshStatus, 60000);
+      return () => { clearInterval(iv); clearInterval(refreshIv); };
     }
   }, [status, fetchData, fetchWatchlist, fetchOrders, fetchRefreshStatus]);
 
@@ -1009,6 +1016,35 @@ export default function Dashboard() {
             <button onClick={()=>setRefreshResult(null)} style={{background:'none',border:'none',color:'var(--muted)',cursor:'pointer',fontSize:16,lineHeight:1}}>✕</button>
           </div>
         )}
+        {refreshResult?.blocked && (
+          <div style={{background:'rgba(96,165,250,.08)',border:'1px solid rgba(96,165,250,.3)',borderRadius:12,padding:'10px 16px',marginBottom:12,display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,animation:'fadeIn .3s ease'}}>
+            <div style={{display:'flex',alignItems:'center',gap:10}}>
+              <span style={{fontSize:16}}>ℹ️</span>
+              <span style={{fontSize:13,fontWeight:600,color:'#60a5fa'}}>Prices are already fresh</span>
+              <span style={{fontSize:12,color:'#94a3b8'}}>— someone else's trade or the scheduled refresh already updated them{refreshCountdown ? `, next check in ${refreshCountdown}` : ''}</span>
+            </div>
+            <button onClick={()=>setRefreshResult(null)} style={{background:'none',border:'none',color:'var(--muted)',cursor:'pointer',fontSize:16,lineHeight:1}}>✕</button>
+          </div>
+        )}
+        {refreshResult?.error && (
+          <div style={{background:'rgba(244,63,94,.08)',border:'1px solid rgba(244,63,94,.3)',borderRadius:12,padding:'10px 16px',marginBottom:12,display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,animation:'fadeIn .3s ease'}}>
+            <div style={{display:'flex',alignItems:'center',gap:10}}>
+              <span style={{fontSize:16}}>⚠️</span>
+              <span style={{fontSize:13,fontWeight:600,color:'var(--down)'}}>Refresh failed</span>
+              <span style={{fontSize:12,color:'#94a3b8'}}>{refreshResult.error}</span>
+            </div>
+            <button onClick={()=>setRefreshResult(null)} style={{background:'none',border:'none',color:'var(--muted)',cursor:'pointer',fontSize:16,lineHeight:1}}>✕</button>
+          </div>
+        )}
+        {shareStatus && (
+          <div style={{background: shareStatus.type==='error' ? 'rgba(244,63,94,.08)' : 'rgba(0,229,160,.08)', border: `1px solid ${shareStatus.type==='error' ? 'rgba(244,63,94,.3)' : 'rgba(0,229,160,.3)'}`, borderRadius:12,padding:'10px 16px',marginBottom:12,display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,animation:'fadeIn .3s ease'}}>
+            <div style={{display:'flex',alignItems:'center',gap:10,overflow:'hidden'}}>
+              <span style={{fontSize:16}}>{shareStatus.type==='error' ? '⚠️' : '✅'}</span>
+              <span style={{fontSize:13,fontWeight:600,color: shareStatus.type==='error' ? 'var(--down)' : 'var(--accent)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{shareStatus.msg}</span>
+            </div>
+            <button onClick={()=>setShareStatus(null)} style={{background:'none',border:'none',color:'var(--muted)',cursor:'pointer',fontSize:16,lineHeight:1,flexShrink:0}}>✕</button>
+          </div>
+        )}
         {executedOrders.length > 0 && !dismissedOrderAlerts && (
           <div style={{background:'rgba(0,229,160,.1)',border:'1px solid rgba(0,229,160,.3)',borderRadius:12,padding:'12px 16px',marginBottom:16,display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}>
             <div style={{fontSize:13,color:'var(--accent)'}}>
@@ -1382,12 +1418,23 @@ export default function Dashboard() {
                   🏆 Leaderboard
                 </Link>
                 <button className="btn btn-secondary" onClick={async () => {
-                  const res = await fetch('/api/share');
-                  if (res.ok) {
-                    const { url } = await res.json();
-                    await navigator.clipboard.writeText(url).catch(() => {});
-                    setTradeStatus({ type: 'success', msg: '🔗 Share link copied to clipboard!' });
-                    setTimeout(() => setTradeStatus(null), 3000);
+                  try {
+                    const res = await fetch('/api/share');
+                    const data = await res.json().catch(() => ({}));
+                    if (!res.ok) {
+                      setShareStatus({ type: 'error', msg: data.error || `Couldn't create share link (${res.status})` });
+                      setTimeout(() => setShareStatus(null), 4000);
+                      return;
+                    }
+                    let copied = false;
+                    try { await navigator.clipboard.writeText(data.url); copied = true; } catch {}
+                    setShareStatus(copied
+                      ? { type: 'success', msg: '🔗 Share link copied to clipboard!' }
+                      : { type: 'success', msg: `🔗 ${data.url}` });
+                    setTimeout(() => setShareStatus(null), copied ? 3000 : 8000);
+                  } catch (e) {
+                    setShareStatus({ type: 'error', msg: `Network error: ${e.message}` });
+                    setTimeout(() => setShareStatus(null), 4000);
                   }
                 }}>
                   🔗 Share

@@ -1,7 +1,7 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db, getMarketStatus, setConfig } from '@/lib/db';
-import { fetchBulkPrices, GECKO_ID_MAP } from '@/lib/prices';
+import { refreshPricesIfStale } from '@/lib/prices';
 import { sendWatchlistAlertEmail } from '@/lib/email';
 
 const REFRESH_MILESTONES = [
@@ -76,46 +76,16 @@ export async function POST(request) {
 
   const report = { pricesUpdated: 0, intradaySnapshots: 0, errors: [] };
 
-  // ── 1. Update price cache ─────────────────────────────────────
+  // ── 1. Update price cache — shares the same bulk gate as the cron and
+  // trades, so this call gets counted in the cockpit's real usage numbers
+  // instead of being a third untracked CoinGecko call site. The cooldown
+  // check above already confirmed the cache is stale, so this always does
+  // a genuine live fetch here.
   let freshPriceMap = {};
   try {
-    const [{ data: activeCoins }, { data: heldCoins }] = await Promise.all([
-      db.from('class_coins').select('symbol,gecko_id').eq('active', true),
-      db.from('holdings').select('coin'),
-    ]);
-    const symbolSet = new Set([
-      ...(activeCoins || []).map(c => c.symbol),
-      ...(heldCoins  || []).map(h => h.coin),
-    ]);
-    const symbols = [...symbolSet];
-
-    if (symbols.length) {
-      const extraIds = {};
-      (activeCoins || []).forEach(c => {
-        if (c.gecko_id && !GECKO_ID_MAP[c.symbol?.toUpperCase()]) extraIds[c.symbol.toUpperCase()] = c.gecko_id;
-      });
-      const inactiveHeld = symbols.filter(s => !(activeCoins || []).find(c => c.symbol === s));
-      if (inactiveHeld.length) {
-        const { data: inactiveCoins } = await db.from('class_coins').select('symbol,gecko_id').in('symbol', inactiveHeld);
-        (inactiveCoins || []).forEach(c => {
-          if (c.gecko_id && !GECKO_ID_MAP[c.symbol?.toUpperCase()]) extraIds[c.symbol.toUpperCase()] = c.gecko_id;
-        });
-      }
-      const priceMap = await fetchBulkPrices(symbols, extraIds);
-      const rows = Object.entries(priceMap).map(([symbol, data]) => ({
-        symbol,
-        price:      data.price,
-        change_1h:  data.change1h,
-        change_24h: data.change24h,
-        change_7d:  data.change7d,
-        updated_at: new Date().toISOString(),
-      }));
-      if (rows.length > 0) {
-        await db.from('price_cache').upsert(rows, { onConflict: 'symbol' });
-        report.pricesUpdated = rows.length;
-      }
-      Object.entries(priceMap).forEach(([symbol, data]) => { freshPriceMap[symbol] = data.price; });
-    }
+    const result = await refreshPricesIfStale();
+    report.pricesUpdated = result.count;
+    freshPriceMap = result.priceMap;
   } catch (e) {
     report.errors.push(`prices: ${e.message}`);
   }
