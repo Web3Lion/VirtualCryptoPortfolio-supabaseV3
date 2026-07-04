@@ -137,6 +137,7 @@ export async function GET(request) {
               action: 'SELL', coin: h.coin,
               amountType: 'Coin Amount', amount: qty,
               leverageMultiplier: 1,
+              knownPrice: price,
               reasoning: `⚠️ Margin call — position auto-liquidated (equity < ${Math.round(threshold * 100)}% of original)`,
             });
             if (result.success) report.marginCalls++;
@@ -184,6 +185,7 @@ export async function GET(request) {
             amountType:         order.amount_type,
             amount:             parseFloat(order.amount),
             leverageMultiplier: parseFloat(order.leverage_multiplier) || 1,
+            knownPrice:         price,
             reasoning:          order.reasoning || (isStop ? `🛑 Stop-loss triggered @ $${limitPrice.toLocaleString()}` : `📋 Limit order triggered @ $${limitPrice.toLocaleString()}`),
           });
 
@@ -286,11 +288,14 @@ export async function GET(request) {
         try {
           const mkt = await getMarketStatus(dca.class_id);
           if (mkt.frozen || mkt.paused) continue;
+          const dcaPrice = freshPriceMap[dca.coin]
+            || (await db.from('price_cache').select('price').eq('symbol', dca.coin).single()).data?.price;
           const result = await executeTrade({
             studentId: dca.student_id, classId: dca.class_id,
             action: 'BUY', coin: dca.coin,
             amountType: 'Dollar Amount', amount: parseFloat(dca.amount_usd),
             leverageMultiplier: 1,
+            knownPrice: dcaPrice ? parseFloat(dcaPrice) : null,
             reasoning: `🔄 DCA — automatic ${dca.frequency} buy`,
           });
           if (result.success) {
