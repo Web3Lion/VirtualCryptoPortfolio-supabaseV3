@@ -6,6 +6,8 @@ const TEACHER_EMAIL = process.env.TEACHER_EMAIL;
 // Creates a daily snapshot for every student in every class RIGHT NOW.
 // Can be called by the teacher from the dashboard to backfill missing history.
 // Also accepts ?force=1 to overwrite any existing snapshot from today.
+// Vercel Cron always issues GET, so GET must work too — this handler never
+// reads a request body, so aliasing GET straight to POST is exact and safe.
 export async function POST(request) {
   const session_header = request.headers.get('x-teacher-email');
   // Auth: accept cron secret OR teacher email header
@@ -177,3 +179,5 @@ export async function POST(request) {
     return Response.json({ error: e.message }, { status: 500 });
   }
 }
+
+export const GET = POST;
