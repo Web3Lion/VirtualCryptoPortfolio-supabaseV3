@@ -60,6 +60,6 @@ body { background: var(--bg); color: var(--text); font-family: "DM Mono", monosp
 .ccticker-item{display:inline-flex;align-items:center;gap:5px;padding:0 18px;font-size:11px;font-family:'DM Mono',monospace;flex-shrink:0}
 .ccticker-sym{font-weight:700;color:var(--text);letter-spacing:.5px}
 .ccticker-price{color:var(--muted)}
-.ccticker-up{color:#00e5a0;font-weight:600}
-.ccticker-down{color:#f43f5e;font-weight:600}
+.ccticker-up{color:var(--up);font-weight:600}
+.ccticker-down{color:var(--down);font-weight:600}
 .ccticker-dot{color:var(--border);margin:0 2px}
