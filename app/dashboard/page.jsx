@@ -815,7 +815,7 @@ export default function Dashboard() {
         @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap');
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
         body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;min-height:100vh}
-        .page{max-width:1100px;margin:0 auto;padding:24px 16px}
+        .page{max-width:1200px;margin:0 auto;padding:24px 16px}
         .hero{position:relative;overflow:hidden;background:var(--surface);border:1px solid var(--border);border-radius:28px;padding:36px 32px;margin-bottom:20px}
         .hero-glow{position:absolute;top:-80px;right:-80px;width:260px;height:260px;border-radius:50%;filter:blur(10px);pointer-events:none}
         .hero-label{position:relative;font-size:10px;color:var(--muted);letter-spacing:3px;text-transform:uppercase;margin-bottom:10px}

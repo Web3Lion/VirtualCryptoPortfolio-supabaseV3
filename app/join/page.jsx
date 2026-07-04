@@ -70,7 +70,7 @@ function JoinContent() {
           border: "1px solid #1e293b",
           borderRadius: 24,
           padding: "40px 36px",
-          maxWidth: 440,
+          maxWidth: 1200,
           width: "100%",
           textAlign: "center",
         }}

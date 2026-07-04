@@ -110,7 +110,7 @@ export default function HigherLowerGame() {
 
   if (status === "loading" || (loading && !gameState)) {
     return (
-      <main style={{ maxWidth: 700, margin: "0 auto", padding: "24px 16px" }}>
+      <main style={{ maxWidth: 1200, margin: "0 auto", padding: "24px 16px" }}>
         <Nav active="higher-lower" />
         <div style={{ textAlign: "center", padding: 60, color: "var(--muted)" }}>Loading…</div>
       </main>
@@ -119,7 +119,7 @@ export default function HigherLowerGame() {
 
   if (tableNotReady) {
     return (
-      <main style={{ maxWidth: 700, margin: "0 auto", padding: "24px 16px" }}>
+      <main style={{ maxWidth: 1200, margin: "0 auto", padding: "24px 16px" }}>
         <Nav active="higher-lower" />
         <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 32, textAlign: "center" }}>
           <div style={{ fontSize: 32, marginBottom: 12 }}>⚙️</div>
@@ -138,7 +138,7 @@ export default function HigherLowerGame() {
   const totalResolved = predictions.filter(p => p.resolved_at).length;
 
   return (
-    <main style={{ maxWidth: 700, margin: "0 auto", padding: "24px 16px" }}>
+    <main style={{ maxWidth: 1200, margin: "0 auto", padding: "24px 16px" }}>
       <Nav active="higher-lower" />
 
       <style dangerouslySetInnerHTML={{ __html: `

@@ -256,7 +256,7 @@ export default function FeedPage() {
 
   if (status === 'loading' || loading) {
     return (
-      <main style={{ maxWidth: 600, margin: '0 auto', padding: '24px 16px' }}>
+      <main style={{ maxWidth: 1200, margin: '0 auto', padding: '24px 16px' }}>
         <Nav active="feed" />
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {[1,2,3,4,5].map(i => <div key={i} style={{ height: 96, borderRadius: 14, background: 'var(--surface)', border: '1px solid var(--border)', animation: 'pulse 1.5s ease-in-out infinite' }} />)}
@@ -266,7 +266,7 @@ export default function FeedPage() {
   }
 
   return (
-    <main style={{ maxWidth: 600, margin: '0 auto', padding: '24px 16px' }}>
+    <main style={{ maxWidth: 1200, margin: '0 auto', padding: '24px 16px' }}>
       <Nav active="feed" />
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>

@@ -60,7 +60,7 @@ export default function SchemaPage() {
         @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Mono:wght@400;500&display=swap');
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
         body{background:#080c14;color:#e2e8f0;font-family:'DM Mono',monospace;min-height:100vh}
-        .page{max-width:900px;margin:0 auto;padding:28px 16px}
+        .page{max-width:1200px;margin:0 auto;padding:28px 16px}
         .card{background:#0f172a;border:1px solid #1e293b;border-radius:16px;padding:22px;margin-bottom:16px}
         .btn{padding:10px 20px;border-radius:10px;border:none;font-family:'DM Mono',monospace;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s}
         .btn-green{background:rgba(0,229,160,.15);color:#00e5a0;border:1px solid rgba(0,229,160,.3)}

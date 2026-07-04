@@ -28,7 +28,7 @@ export default function SharePage() {
         @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Mono:wght@300;400;500&display=swap');
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
         body{background:#080c14;color:#e2e8f0;font-family:'DM Mono',monospace;min-height:100vh;padding:24px 16px}
-        .page{max-width:720px;margin:0 auto}
+        .page{max-width:1200px;margin:0 auto}
         .card{background:#0f172a;border:1px solid #1e293b;border-radius:20px;padding:22px;margin-bottom:16px}
         .label{font-size:9px;color:#475569;letter-spacing:3px;text-transform:uppercase;margin-bottom:4px}
         .val{font-family:'Syne',sans-serif;font-weight:700}

@@ -306,7 +306,7 @@ export default function TeacherCockpit() {
         @keyframes spin{to{transform:rotate(360deg)}}
         @keyframes pulseGlow{0%,100%{opacity:1}50%{opacity:.6}}
         @keyframes scanline{0%{transform:translateY(-100%)}100%{transform:translateY(100vh)}}
-        .cockpit{max-width:1280px;margin:0 auto;padding:20px 16px}
+        .cockpit{max-width:1200px;margin:0 auto;padding:20px 16px}
         .gauge-wrap{background:radial-gradient(ellipse at center, #0e1220 0%, #080c14 70%);border:1px solid #1a1f2e;border-radius:20px;padding:16px;display:flex;flex-direction:column;align-items:center;position:relative}
         .gauge-wrap::before{content:'';position:absolute;inset:0;border-radius:20px;background:radial-gradient(ellipse at 50% 0%, rgba(255,255,255,.03) 0%, transparent 60%);pointer-events:none}
         .center-console{background:linear-gradient(180deg,#0a0d16 0%,#070a12 100%);border:1px solid #1a1f2e;border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:12px}

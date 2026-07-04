@@ -115,7 +115,7 @@ export default function RewardsStore() {
         @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap');
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
         body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;min-height:100vh}
-        .page{max-width:960px;margin:0 auto;padding:24px 16px}
+        .page{max-width:1200px;margin:0 auto;padding:24px 16px}
         .balance-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:22px 28px;margin-bottom:28px;display:flex;align-items:center;gap:24px;flex-wrap:wrap}
         .balance-num{font-family:'Syne',sans-serif;font-weight:800;font-size:48px;color:var(--accent);line-height:1}
         .cat-title{font-family:'Syne',sans-serif;font-weight:700;font-size:15px;margin-bottom:14px;color:var(--text)}

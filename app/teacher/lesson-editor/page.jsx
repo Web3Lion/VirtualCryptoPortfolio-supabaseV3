@@ -296,7 +296,7 @@ function LessonEditorInner() {
         select option{background:#0f172a;color:#e2e8f0}
       ` }} />
 
-      <div style={{ maxWidth:820, margin:'0 auto', padding:'28px 16px 60px' }}>
+      <div style={{ maxWidth:1200, margin:'0 auto', padding:'28px 16px 60px' }}>
 
         {/* Header */}
         <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:20 }}>

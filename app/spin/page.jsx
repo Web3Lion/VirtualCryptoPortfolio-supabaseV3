@@ -181,7 +181,7 @@ export default function SpinPage() {
   const PRIZE_BORDER = result ? `${result.color}50` : 'var(--border)';
 
   return (
-    <main style={{ maxWidth: 520, margin: '0 auto', padding: '24px 16px' }}>
+    <main style={{ maxWidth: 1200, margin: '0 auto', padding: '24px 16px' }}>
       <Nav />
       <style dangerouslySetInnerHTML={{ __html: `
         @keyframes prizeReveal{0%{transform:scale(.8) translateY(10px);opacity:0}100%{transform:scale(1) translateY(0);opacity:1}}

@@ -56,7 +56,7 @@ export default function GradebookPage() {
   const filtered = students.filter(s => !filter || s.name.toLowerCase().includes(filter.toLowerCase()));
 
   return (
-    <div style={{ maxWidth:1400, margin:'0 auto', padding:'24px 16px 60px', fontFamily:"'DM Mono',monospace", color:'var(--text,#e2e8f0)' }}>
+    <div style={{ maxWidth:1200, margin:'0 auto', padding:'24px 16px 60px', fontFamily:"'DM Mono',monospace", color:'var(--text,#e2e8f0)' }}>
       <style dangerouslySetInnerHTML={{ __html: `
         @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Mono:wght@400;500&display=swap');
         body{background:var(--bg,#080c14)}

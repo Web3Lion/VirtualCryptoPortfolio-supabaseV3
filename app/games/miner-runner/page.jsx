@@ -602,7 +602,7 @@ export default function MinerRunner() {
   return (
     <div style={{ minHeight: '100vh', background: "var(--bg)" }}>
       <Nav />
-      <div style={{ maxWidth: 896, margin: '0 auto', padding: '32px 16px' }}>
+      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '32px 16px' }}>
         {/* Header */}
         <div style={{ marginBottom: 24, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>

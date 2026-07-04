@@ -124,14 +124,14 @@ export default function BullBearGame() {
   const rating = getRating(score);
 
   if (phase === 'loading') return (
-    <main style={{ maxWidth: 480, margin: '0 auto', padding: '24px 16px' }}>
+    <main style={{ maxWidth: 1200, margin: '0 auto', padding: '24px 16px' }}>
       <Nav />
       <div style={{ textAlign: 'center', padding: 60, color: 'var(--muted)', fontSize: 13 }}>Loading prices…</div>
     </main>
   );
 
   return (
-    <main style={{ maxWidth: 480, margin: '0 auto', padding: '24px 16px' }}>
+    <main style={{ maxWidth: 1200, margin: '0 auto', padding: '24px 16px' }}>
       <Nav active="games" />
       <style dangerouslySetInnerHTML={{ __html: `
         @keyframes cardIn{0%{transform:translateY(20px) scale(.96);opacity:0}100%{transform:translateY(0) scale(1);opacity:1}}

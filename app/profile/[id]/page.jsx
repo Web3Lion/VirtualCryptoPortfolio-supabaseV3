@@ -89,7 +89,7 @@ export default function ProfilePage() {
 
   if (status === 'loading' || loading) {
     return (
-      <main style={{ maxWidth: 720, margin: '0 auto', padding: '24px 16px' }}>
+      <main style={{ maxWidth: 1200, margin: '0 auto', padding: '24px 16px' }}>
         <Nav />
         <div style={{ height: 200, borderRadius: 20, background: 'var(--surface)', border: '1px solid var(--border)', animation: 'pulse 1.5s ease-in-out infinite', marginBottom: 16 }} />
         <div style={{ height: 300, borderRadius: 20, background: 'var(--surface)', border: '1px solid var(--border)', animation: 'pulse 1.5s ease-in-out infinite' }} />
@@ -99,7 +99,7 @@ export default function ProfilePage() {
 
   if (notFound || !profile) {
     return (
-      <main style={{ maxWidth: 720, margin: '0 auto', padding: '24px 16px' }}>
+      <main style={{ maxWidth: 1200, margin: '0 auto', padding: '24px 16px' }}>
         <Nav />
         <div style={{ textAlign: 'center', padding: '64px 0', color: 'var(--muted)' }}>
           <div style={{ fontSize: 40, marginBottom: 12 }}>🔍</div>
@@ -118,7 +118,7 @@ export default function ProfilePage() {
   const seedMoney = parseFloat(summary.seedMoney);
 
   return (
-    <main style={{ maxWidth: 720, margin: '0 auto', padding: '24px 16px' }}>
+    <main style={{ maxWidth: 1200, margin: '0 auto', padding: '24px 16px' }}>
       <style dangerouslySetInnerHTML={{ __html: `
         body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace}
         .card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:22px;margin-bottom:16px}

@@ -311,7 +311,7 @@ export default function CryptoCrush() {
         @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap');
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
         body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;min-height:100vh}
-        .page{max-width:820px;margin:0 auto;padding:24px 16px}
+        .page{max-width:1200px;margin:0 auto;padding:24px 16px}
 
         /* ── Header ── */
         .crush-header{

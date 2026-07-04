@@ -74,14 +74,14 @@ export default function AssignmentsPage() {
   };
 
   if (loading && !assignments.length) return (
-    <div style={{ maxWidth: 800, margin: '0 auto', padding: 24, fontFamily: "'DM Mono',monospace", color: '#e2e8f0' }}>
+    <div style={{ maxWidth: 1200, margin: '0 auto', padding: 24, fontFamily: "'DM Mono',monospace", color: '#e2e8f0' }}>
       <style dangerouslySetInnerHTML={{ __html: `body{background:#080c14}` }} />
       Loading assignments…
     </div>
   );
 
   return (
-    <div style={{ maxWidth: 800, margin: '0 auto', padding: '24px 16px 60px', fontFamily: "'DM Mono',monospace", color: '#e2e8f0' }}>
+    <div style={{ maxWidth: 1200, margin: '0 auto', padding: '24px 16px 60px', fontFamily: "'DM Mono',monospace", color: '#e2e8f0' }}>
       <style dangerouslySetInnerHTML={{ __html: `
         @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Mono:wght@400;500&display=swap');
         body{background:#080c14}

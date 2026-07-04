@@ -255,7 +255,7 @@ function LessonPage() {
         @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap');
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
         body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;min-height:100vh}
-        .page{max-width:760px;margin:0 auto;padding:24px 16px}
+        .page{max-width:1200px;margin:0 auto;padding:24px 16px}
         .card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:28px}
         .option-btn{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;cursor:pointer;font-family:'DM Mono',monospace;font-size:13px;color:var(--text);transition:all .2s;margin-bottom:8px}
         .option-btn:hover{border-color:var(--accent);background:rgba(0,229,160,.06)}
