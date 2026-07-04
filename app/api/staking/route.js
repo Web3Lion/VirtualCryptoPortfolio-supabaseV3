@@ -14,15 +14,23 @@ async function resolveClassId(studentId, bodyClassId) {
 async function returnCoinsToHoldings(studentId, classId, coin, quantity, fallbackPrice) {
   const { data: existing } = await db.from('holdings').select('quantity')
     .eq('student_id', studentId).eq('class_id', classId).eq('coin', coin).single();
+  let error;
   if (existing) {
-    await db.from('holdings').update({ quantity: parseFloat(existing.quantity) + quantity })
-      .eq('student_id', studentId).eq('class_id', classId).eq('coin', coin);
+    ({ error } = await db.from('holdings').update({ quantity: parseFloat(existing.quantity) + quantity, updated_at: new Date().toISOString() })
+      .eq('student_id', studentId).eq('class_id', classId).eq('coin', coin));
   } else {
-    await db.from('holdings').insert({
-      student_id: studentId, class_id: classId, coin,
-      quantity, avg_buy_price: fallbackPrice, margin_borrowed: 0,
-    });
+    // Upsert, not a bare insert: if a row for this coin was created by another
+    // write landing at the same moment (e.g. a trade on the same coin), a
+    // plain insert would silently violate the unique constraint and the
+    // returned coins would vanish — the position shows as unstaked/claimed
+    // but never reappears in holdings.
+    ({ error } = await db.from('holdings').upsert(
+      { student_id: studentId, class_id: classId, coin, quantity, avg_buy_price: fallbackPrice, margin_borrowed: 0, updated_at: new Date().toISOString() },
+      { onConflict: 'student_id,class_id,coin' }
+    ));
   }
+  if (error) console.error('[returnCoinsToHoldings] holdings write failed:', error);
+  return error || null;
 }
 
 async function creditCash(studentId, classId, amount) {
@@ -155,6 +163,14 @@ export async function POST(request) {
       last_reward_at: now.toISOString(),
     });
 
+    const { data: portfolioRow } = await db.from('portfolios').select('cash').eq('student_id', student.id).eq('class_id', classId).single();
+    await db.from('trades').insert({
+      student_id: student.id, class_id: classId, action: 'STAKE', coin: symbol,
+      quantity: qty, price: null, gross_value: null, fee: 0,
+      cash_after: parseFloat(portfolioRow?.cash || 0),
+      reasoning: `🔒 Staked ${qty} ${symbol} @ ${stakeInfo.apy}% APY${stakeInfo.lockDays > 0 ? ` (${stakeInfo.lockDays}d lock)` : ' (flexible)'}`,
+    }).then(({ error }) => { if (error) console.error('[staking:stake] trade history insert failed:', error); });
+
     return Response.json({ success: true });
   }
 
@@ -178,6 +194,17 @@ export async function POST(request) {
     if (rewardCoins > 0) await returnCoinsToHoldings(student.id, classId, position.coin, rewardCoins, price);
 
     await db.from('staking_positions').update({ status: 'completed' }).eq('id', positionId);
+
+    const { data: portfolioRow } = await db.from('portfolios').select('cash').eq('student_id', student.id).eq('class_id', classId).single();
+    const claimParts = [];
+    if (position.status === 'claimable') claimParts.push(`${parseFloat(position.quantity)} principal`);
+    if (rewardCoins > 0) claimParts.push(`${rewardCoins.toFixed(6)} reward`);
+    await db.from('trades').insert({
+      student_id: student.id, class_id: classId, action: 'CLAIM', coin: position.coin,
+      quantity: parseFloat(position.quantity) + rewardCoins, price, gross_value: null, fee: 0,
+      cash_after: parseFloat(portfolioRow?.cash || 0),
+      reasoning: `💎 Claimed ${claimParts.join(' + ')} ${position.coin}`,
+    }).then(({ error }) => { if (error) console.error('[staking:claim] trade history insert failed:', error); });
 
     return Response.json({
       success: true,
@@ -221,6 +248,17 @@ export async function POST(request) {
       last_reward_at: now.toISOString(),
     }).eq('id', positionId);
 
+    const { data: portfolioRow } = await db.from('portfolios').select('cash').eq('student_id', student.id).eq('class_id', classId).single();
+    const unstakeReasoning = isEarlyExit
+      ? `🔓 Early unstake ${parseFloat(position.quantity)} ${position.coin} — forfeited unclaimed rewards`
+      : `🔓 Unstaked ${parseFloat(position.quantity)} ${position.coin}${paidOut > 0 ? ` + ${paidOut.toFixed(6)} reward` : ''}`;
+    await db.from('trades').insert({
+      student_id: student.id, class_id: classId, action: 'UNSTAKE', coin: position.coin,
+      quantity: parseFloat(position.quantity) + paidOut, price, gross_value: null, fee: 0,
+      cash_after: parseFloat(portfolioRow?.cash || 0),
+      reasoning: unstakeReasoning,
+    }).then(({ error }) => { if (error) console.error('[staking:unstake] trade history insert failed:', error); });
+
     return Response.json({ success: true, isEarlyExit, paidOut });
   }
 
@@ -251,6 +289,17 @@ export async function POST(request) {
       }
 
       await db.from('staking_positions').update({ status: 'completed' }).eq('id', position.id);
+
+      const { data: portfolioRow } = await db.from('portfolios').select('cash').eq('student_id', student.id).eq('class_id', classId).single();
+      const parts = [];
+      if (position.status === 'claimable') parts.push(`${parseFloat(position.quantity)} principal`);
+      if (rewardCoins > 0) parts.push(`${rewardCoins.toFixed(6)} reward`);
+      await db.from('trades').insert({
+        student_id: student.id, class_id: classId, action: 'CLAIM', coin: position.coin,
+        quantity: parseFloat(position.quantity) + rewardCoins, price, gross_value: null, fee: 0,
+        cash_after: parseFloat(portfolioRow?.cash || 0),
+        reasoning: `💎 Claimed ${parts.join(' + ')} ${position.coin} (claim all)`,
+      }).then(({ error }) => { if (error) console.error('[staking:claim-all] trade history insert failed:', error); });
     }
 
     const rewardSummary = Object.entries(rewardsByCoin).map(([coin, quantity]) => ({ coin, quantity }));
