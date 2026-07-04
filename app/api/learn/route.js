@@ -30,9 +30,18 @@ export async function GET(request) {
 
   // Fetch lessons for each module
   const moduleIds = (modules || []).map(m => m.id);
-  const { data: lessons } = moduleIds.length
+  let { data: lessons, error: lessonsErr } = moduleIds.length
     ? await db.from('learn_lessons').select('id, module_id, title, emoji, description, order_index, tokens_reward, pass_threshold, questions_to_show, is_published').in('module_id', moduleIds).eq('is_published', true).order('order_index')
     : { data: [] };
+
+  if (lessonsErr) {
+    // emoji column may not exist yet on this database — backfill it and retry once
+    await db.rpc('run_sql', { query: "ALTER TABLE learn_lessons ADD COLUMN IF NOT EXISTS emoji TEXT DEFAULT '📚'" }).catch(() => {});
+    const retry = moduleIds.length
+      ? await db.from('learn_lessons').select('id, module_id, title, emoji, description, order_index, tokens_reward, pass_threshold, questions_to_show, is_published').in('module_id', moduleIds).eq('is_published', true).order('order_index')
+      : { data: [] };
+    lessons = retry.data;
+  }
 
   // Fetch student attempts
   let attempts = [];

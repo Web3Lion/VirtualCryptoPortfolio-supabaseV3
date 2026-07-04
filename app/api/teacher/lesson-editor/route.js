@@ -14,6 +14,9 @@ export async function GET(request) {
   const session = await getServerSession(authOptions);
   if (!isTeacher(session)) return Response.json({ error: 'Teacher only' }, { status: 403 });
 
+  // Idempotent — cheap no-op once the column exists, cheap safety net if it doesn't yet
+  await db.rpc('run_sql', { query: "ALTER TABLE learn_lessons ADD COLUMN IF NOT EXISTS emoji TEXT DEFAULT '📚'" }).catch(() => {});
+
   const { searchParams } = new URL(request.url);
   const lessonId = searchParams.get('lessonId');
 
@@ -69,6 +72,8 @@ export async function GET(request) {
 export async function PATCH(request) {
   const session = await getServerSession(authOptions);
   if (!isTeacher(session)) return Response.json({ error: 'Teacher only' }, { status: 403 });
+
+  await db.rpc('run_sql', { query: "ALTER TABLE learn_lessons ADD COLUMN IF NOT EXISTS emoji TEXT DEFAULT '📚'" }).catch(() => {});
 
   const body = await request.json().catch(() => null);
   if (!body?.lessonId) return Response.json({ error: 'Missing lessonId' }, { status: 400 });

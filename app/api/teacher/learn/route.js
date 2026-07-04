@@ -54,6 +54,8 @@ export async function POST(request) {
   const session = await getServerSession(authOptions);
   if (!isTeacher(session)) return Response.json({ error: 'Teacher only' }, { status: 403 });
 
+  await db.rpc('run_sql', { query: "ALTER TABLE learn_lessons ADD COLUMN IF NOT EXISTS emoji TEXT DEFAULT '📚'" }).catch(() => {});
+
   const body = await request.json();
   const { type } = body;
 
@@ -130,6 +132,8 @@ export async function POST(request) {
 export async function PUT(request) {
   const session = await getServerSession(authOptions);
   if (!isTeacher(session)) return Response.json({ error: 'Teacher only' }, { status: 403 });
+
+  await db.rpc('run_sql', { query: "ALTER TABLE learn_lessons ADD COLUMN IF NOT EXISTS emoji TEXT DEFAULT '📚'" }).catch(() => {});
 
   const body = await request.json();
   const { type, id } = body;
