@@ -598,7 +598,7 @@ export default function Market() {
       {/* Coin detail modal with technical indicators */}
       {selectedCoin && (
         <div style={{ position:'fixed',inset:0,background:'rgba(0,0,0,.7)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:16 }} onClick={() => setSelectedCoin(null)}>
-          <div style={{ background:'var(--surface,#0f172a)',border:'1px solid var(--border,#1e293b)',borderRadius:24,padding:24,width:'100%',maxWidth:680,maxHeight:'90vh',overflowY:'auto' }} onClick={e => e.stopPropagation()}>
+          <div style={{ background:`radial-gradient(circle at 90% 0%, ${(selectedCoin.change24h||0) >= 0 ? "rgba(0,229,160,.10)" : "rgba(244,63,94,.10)"}, transparent 60%), var(--surface,#0f172a)`,border:'1px solid var(--border,#1e293b)',borderRadius:24,padding:24,width:'100%',maxWidth:680,maxHeight:'90vh',overflowY:'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16 }}>
               <div>
                 <div style={{ fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:22,letterSpacing:-0.5 }}>{selectedCoin.sym}</div>
@@ -610,11 +610,11 @@ export default function Market() {
               </div>
             </div>
 
-            <div style={{ display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,marginBottom:16 }}>
+            <div style={{ display:'flex',gap:24,borderTop:'1px solid var(--border)',borderBottom:'1px solid var(--border)',padding:'12px 0',marginBottom:16 }}>
               {[['1H', selectedCoin.change1h], ['24H', selectedCoin.change24h], ['7D', selectedCoin.change7d]].map(([l, v]) => (
-                <div key={l} style={{ background:'var(--surface2,#1a2235)',border:'1px solid var(--border)',borderRadius:10,padding:'10px 14px',textAlign:'center' }}>
+                <div key={l}>
                   <div style={{ fontSize:9,color:'var(--muted)',letterSpacing:2,textTransform:'uppercase',marginBottom:3 }}>{l}</div>
-                  <div style={{ fontSize:14,fontWeight:700,color:chgColor(v) }}>{fmtChg(v)}</div>
+                  <div style={{ fontFamily:"'Syne',sans-serif",fontSize:15,fontWeight:700,color:chgColor(v) }}>{fmtChg(v)}</div>
                 </div>
               ))}
             </div>
