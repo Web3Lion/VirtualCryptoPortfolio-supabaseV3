@@ -13,10 +13,10 @@ html[data-theme="light"] {
   --muted: #475569; --gold: #d97706;
 }
 html[data-theme="sf"] {
-  --bg: #00a651; --surface: #007a3d; --surface2: #005c2e;
-  --border: rgba(255,255,255,.18); --accent: #ffffff; --accent2: #a3f4c7;
-  --up: #a3f4c7; --down: #ff8a9a; --text: #ffffff;
-  --muted: rgba(255,255,255,.6); --gold: #fde68a;
+  --bg: #009A44; --surface: #ffffff; --surface2: #f1f5f9;
+  --border: #e2e8f0; --accent: #009A44; --accent2: #3b82f6;
+  --up: #059669; --down: #e11d48; --text: #0f172a;
+  --muted: #475569; --gold: #d97706;
 }
 
 body { background: var(--bg); color: var(--text); font-family: "DM Mono", monospace; min-height: 100vh; }
