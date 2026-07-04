@@ -37,7 +37,7 @@ export async function POST() {
   if (session?.user?.email?.toLowerCase() !== TEACHER_EMAIL?.toLowerCase())
     return Response.json({ error: 'Teacher only' }, { status: 403 });
 
-  const { error } = await db.rpc('run_sql', { query: ALL_SQL }).catch(() => ({ error: { code: 'NO_RPC' } }));
+  const { error } = await db.rpc('run_sql', { query: ALL_SQL }).then(v => v, () => ({ error: { code: 'NO_RPC' } }));
   if (!error) return Response.json({ success: true });
 
   return Response.json({ error: 'run_sql unavailable', sql: ALL_SQL }, { status: 422 });

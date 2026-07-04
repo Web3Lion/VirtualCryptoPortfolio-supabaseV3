@@ -54,7 +54,7 @@ export async function POST() {
     // Tables already exist — silently try to add any missing columns
     await db.rpc('run_sql', {
       query: 'ALTER TABLE staking_positions ADD COLUMN IF NOT EXISTS claimable_rewards numeric(20,8) DEFAULT 0',
-    }).catch(() => {});
+    }).then(() => {}, () => {});
     return Response.json({ success: true });
   }
 
@@ -86,7 +86,7 @@ export async function POST() {
   ];
 
   for (const sql of statements) {
-    const result = await db.rpc('run_sql', { query: sql }).catch(() => ({ error: true }));
+    const result = await db.rpc('run_sql', { query: sql }).then(v => v, () => ({ error: true }));
     if (result?.error) {
       // Anything goes wrong — show the SQL for manual execution
       return Response.json({ sql: MANUAL_SQL }, { status: 422 });

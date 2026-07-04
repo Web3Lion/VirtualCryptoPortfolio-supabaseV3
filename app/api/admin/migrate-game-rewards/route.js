@@ -31,7 +31,7 @@ export async function POST() {
   if (session?.user?.email?.toLowerCase() !== TEACHER_EMAIL?.toLowerCase())
     return Response.json({ error: 'Teacher only' }, { status: 403 });
 
-  const { error } = await db.rpc('run_sql', { query: MIGRATION_SQL }).catch(() => ({ error: { code: 'NET' } }));
+  const { error } = await db.rpc('run_sql', { query: MIGRATION_SQL }).then(v => v, () => ({ error: { code: 'NET' } }));
 
   if (!error) return Response.json({ success: true });
 

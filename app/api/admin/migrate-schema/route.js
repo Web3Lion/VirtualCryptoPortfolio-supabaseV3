@@ -14,7 +14,7 @@ export async function POST() {
 
   const { error } = await db.rpc('run_sql', {
     query: 'ALTER TABLE holdings ADD COLUMN IF NOT EXISTS margin_borrowed NUMERIC(20,8) NOT NULL DEFAULT 0;'
-  }).catch(() => ({ error: { code: 'NET' } }));
+  }).then(v => v, () => ({ error: { code: 'NET' } }));
 
   const errMsg = typeof error === 'string' ? error : (error?.message || '');
   const errCode = error?.code || '';

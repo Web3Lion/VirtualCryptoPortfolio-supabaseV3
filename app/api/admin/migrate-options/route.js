@@ -27,7 +27,7 @@ export async function POST() {
   if (TEACHER_EMAIL && session?.user?.email?.toLowerCase() !== TEACHER_EMAIL.toLowerCase())
     return Response.json({ error: 'Teacher only' }, { status: 403 });
 
-  const { error } = await db.rpc('run_sql', { query: SQL }).catch(() => ({ error: { code: 'NET' } }));
+  const { error } = await db.rpc('run_sql', { query: SQL }).then(v => v, () => ({ error: { code: 'NET' } }));
   const errMsg = typeof error === 'string' ? error : (error?.message || '');
   const errCode = error?.code || '';
   const rpcMissing = errCode === 'PGRST202' || errCode === 'NET'
