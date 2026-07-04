@@ -88,6 +88,14 @@ function LineChart({ data, benchmarkData, height = 160 }) {
     const xS = (i, len) => pad.l + (i / (len - 1)) * iW,
       yS = (v) => pad.t + iH - ((v - mn) / rng) * iH;
 
+    // Recessive gridlines
+    ctx.strokeStyle = "rgba(148,163,184,.12)";
+    ctx.lineWidth = 1;
+    [0.25, 0.5, 0.75].forEach(f => {
+      const y = pad.t + iH * f;
+      ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W - pad.r, y); ctx.stroke();
+    });
+
     // Benchmark line (dashed, muted)
     if (hasBench) {
       ctx.beginPath();
@@ -114,9 +122,20 @@ function LineChart({ data, benchmarkData, height = 160 }) {
     // Portfolio line
     ctx.beginPath();
     data.forEach((d, i) => i === 0 ? ctx.moveTo(xS(i, data.length), yS(d.v)) : ctx.lineTo(xS(i, data.length), yS(d.v)));
-    ctx.strokeStyle = "var(--accent,#00e5a0)";
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = "#00e5a0";
+    ctx.lineWidth = 2.5;
+    ctx.shadowColor = "rgba(0,229,160,.6)";
+    ctx.shadowBlur = 8;
     ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // Glowing current-value marker
+    const lastX = xS(data.length - 1, data.length), lastY = yS(data[data.length - 1].v);
+    const pulse = ctx.createRadialGradient(lastX, lastY, 0, lastX, lastY, 10);
+    pulse.addColorStop(0, "rgba(0,229,160,.9)");
+    pulse.addColorStop(1, "rgba(0,229,160,0)");
+    ctx.beginPath(); ctx.arc(lastX, lastY, 10, 0, Math.PI * 2); ctx.fillStyle = pulse; ctx.fill();
+    ctx.beginPath(); ctx.arc(lastX, lastY, 3, 0, Math.PI * 2); ctx.fillStyle = "#00e5a0"; ctx.fill();
 
     // X-axis labels
     ctx.fillStyle = "#475569";
@@ -827,7 +846,7 @@ export default function Dashboard() {
         .pct-badge{font-size:11px;font-weight:500;padding:3px 8px;border-radius:7px;white-space:nowrap}
         .pct-badge.up{color:var(--up);background:rgba(0,180,100,.12)}.pct-badge.down{color:var(--down);background:rgba(220,38,38,.1)}
         .cash-row{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;margin-top:10px}
-        .chart-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:22px;margin-bottom:16px}
+        .chart-card{position:relative;overflow:hidden;background:radial-gradient(circle at 90% 0%, rgba(0,229,160,.10), transparent 60%), var(--surface);border:1px solid var(--border);border-radius:20px;padding:22px;margin-bottom:16px}
         .chart-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px}
         .range-btns{display:flex;gap:4px}
         .range-btn{padding:4px 10px;border-radius:8px;border:1px solid var(--border);background:transparent;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);cursor:pointer;transition:all .2s}

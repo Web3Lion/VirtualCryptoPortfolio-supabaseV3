@@ -6,6 +6,10 @@ import Link from "next/link";
 import Nav from "@/components/Nav";
 import { applyTheme, getTheme } from "@/lib/theme";
 
+// Fixed order — assigned by position so a given module's color stays
+// stable across renders, like a categorical chart palette.
+const MODULE_ACCENTS = ["#00e5a0", "#3b82f6", "#a78bfa", "#f59e0b", "#06b6d4", "#f43f5e"];
+
 export default function Learn() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -58,11 +62,12 @@ export default function Learn() {
         .page{max-width:900px;margin:0 auto;padding:24px 16px}
         .progress-bar-wrap{flex:1;background:var(--surface2);border-radius:8px;height:10px;overflow:hidden}
         .progress-bar-fill{height:100%;border-radius:8px;background:linear-gradient(90deg,var(--accent),#3b82f6);transition:width .8s ease}
-        .module-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;margin-bottom:12px;overflow:hidden;transition:border-color .2s}
+        .module-card{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:20px;margin-bottom:12px;overflow:hidden;transition:border-color .2s}
         .module-card.complete{border-color:rgba(0,229,160,.35)}
-        .module-header{display:flex;align-items:center;gap:14px;padding:20px 24px;cursor:pointer;user-select:none;transition:background .15s}
+        .module-accent-bar{position:absolute;left:0;top:0;bottom:0;width:4px;z-index:1}
+        .module-header{display:flex;align-items:center;gap:14px;padding:20px 24px 20px 28px;cursor:pointer;user-select:none;transition:background .15s}
         .module-header:hover{background:rgba(255,255,255,.03)}
-        .module-emoji{font-size:26px;flex-shrink:0;line-height:1}
+        .module-emoji{width:44px;height:44px;border-radius:14px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:22px;line-height:1}
         .module-meta{flex:1;min-width:0}
         .module-title{font-family:'Syne',sans-serif;font-weight:700;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
         .module-desc{font-size:11px;color:var(--muted);margin-top:2px}
@@ -131,16 +136,18 @@ export default function Learn() {
               </div>
             )}
 
-            {modules.map(mod => {
+            {modules.map((mod, modIdx) => {
               const lessons = mod.lessons || [];
               const doneLessons = lessons.filter(l => l.progress?.passed).length;
               const isComplete = lessons.length > 0 && doneLessons === lessons.length;
               const isOpen = openIds.has(mod.id);
+              const accent = MODULE_ACCENTS[modIdx % MODULE_ACCENTS.length];
 
               return (
                 <div key={mod.id} className={`module-card${isComplete ? " complete" : ""}`}>
+                  <div className="module-accent-bar" style={{ background: accent }} />
                   <div className="module-header" onClick={() => toggle(mod.id)} role="button" aria-expanded={isOpen}>
-                    <span className="module-emoji">{mod.emoji || "📚"}</span>
+                    <div className="module-emoji" style={{ background: `${accent}1c`, boxShadow: `0 0 0 1px ${accent}40` }}>{mod.emoji || "📚"}</div>
                     <div className="module-meta">
                       <div className="module-title">{mod.title}</div>
                       {mod.description && <div className="module-desc">{mod.description}</div>}
