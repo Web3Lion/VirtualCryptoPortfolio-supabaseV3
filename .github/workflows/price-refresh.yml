@@ -1,0 +1,32 @@
+name: Price Refresh (every 30 min)
+
+# Vercel's free (Hobby) plan only allows cron schedules once per day, so the
+# native vercel.json cron for /api/cron/prices can't run more often than that.
+# This workflow is a free, host-independent workaround: it just calls the
+# same endpoint on a schedule from GitHub's infrastructure instead of
+# Vercel's. The endpoint itself already does everything in one call —
+# refreshes CoinGecko prices, takes intraday snapshots, and processes
+# margin calls / scheduled orders / bot trades / DCA / watchlist alerts.
+
+on:
+  schedule:
+    # Runs at :00 and :30 past every hour, UTC. GitHub's scheduler can lag
+    # a few minutes during high load — that's normal and fine for this.
+    - cron: "0,30 * * * *"
+  workflow_dispatch: {} # lets you trigger a run manually from the Actions tab
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call /api/cron/prices
+        run: |
+          status=$(curl -s -o response.json -w "%{http_code}" \
+            "${{ vars.APP_URL }}/api/cron/prices" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}")
+          echo "HTTP status: $status"
+          cat response.json
+          if [ "$status" -ge 300 ]; then
+            echo "::error::Price refresh failed with status $status"
+            exit 1
+          fi
