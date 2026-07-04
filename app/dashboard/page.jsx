@@ -797,16 +797,17 @@ export default function Dashboard() {
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
         body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;min-height:100vh}
         .page{max-width:1100px;margin:0 auto;padding:24px 16px}
-        .hero{background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:32px;margin-bottom:20px}
-        .hero-label{font-size:10px;color:var(--muted);letter-spacing:3px;text-transform:uppercase;margin-bottom:8px}
-        .hero-value{font-family:'Syne',sans-serif;font-weight:800;font-size:52px;letter-spacing:-2px;line-height:1;margin-bottom:8px}
-        .hero-change{display:inline-flex;align-items:center;gap:6px;font-size:13px;margin-bottom:28px;padding:4px 10px;border-radius:8px}
-        .hero-change.up{color:var(--up);background:rgba(0,180,100,.12)}.hero-change.down{color:var(--down);background:rgba(220,38,38,.1)}
-        .hero-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
-        .stat{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px}
-        .stat-label{font-size:9px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px}
-        .stat-value{font-size:15px;font-weight:500;color:var(--text)}.stat-value.up{color:var(--up)}.stat-value.down{color:var(--down)}
-        .hero-actions{display:flex;gap:10px;flex-wrap:wrap}
+        .hero{position:relative;overflow:hidden;background:var(--surface);border:1px solid var(--border);border-radius:28px;padding:36px 32px;margin-bottom:20px}
+        .hero-glow{position:absolute;top:-80px;right:-80px;width:260px;height:260px;border-radius:50%;filter:blur(10px);pointer-events:none}
+        .hero-label{position:relative;font-size:10px;color:var(--muted);letter-spacing:3px;text-transform:uppercase;margin-bottom:10px}
+        .hero-value{position:relative;font-family:'Syne',sans-serif;font-weight:800;font-size:56px;letter-spacing:-2px;line-height:1;margin-bottom:14px}
+        .hero-change{position:relative;display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:600;margin-bottom:28px;padding:5px 12px;border-radius:999px}
+        .hero-change.up{color:var(--up);background:rgba(0,180,100,.14)}.hero-change.down{color:var(--down);background:rgba(220,38,38,.12)}
+        .hero-stats{position:relative;display:flex;flex-wrap:wrap;gap:0 28px;border-top:1px solid var(--border);padding-top:18px;margin-bottom:24px}
+        .stat{min-width:90px}
+        .stat-label{font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:3px}
+        .stat-value{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:var(--text)}.stat-value.up{color:var(--up)}.stat-value.down{color:var(--down)}
+        .hero-actions{position:relative;display:flex;gap:10px;flex-wrap:wrap}
         .btn{padding:10px 20px;border-radius:12px;border:none;font-family:'DM Mono',monospace;font-size:11px;font-weight:500;cursor:pointer;transition:all .2s;letter-spacing:.5px;text-decoration:none;display:inline-block}
         .btn-primary{background:var(--accent);color:var(--accent-text,#fff)}.btn-primary:hover{opacity:.9;transform:translateY(-1px)}.btn-primary:disabled{opacity:.5;cursor:not-allowed}
         .btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border)}.btn-secondary:hover{border-color:var(--accent);color:var(--accent)}
@@ -876,7 +877,7 @@ export default function Dashboard() {
         .tax-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
         @media(max-width:640px){
           .hero-value{font-size:32px}
-          .hero-stats{grid-template-columns:1fr 1fr}
+          .hero-stats{gap:14px 20px}
           .trade-grid{grid-template-columns:1fr}
           .watch-form-grid{grid-template-columns:1fr 1fr}
           .range-btns{flex-wrap:wrap}
@@ -1234,7 +1235,13 @@ export default function Dashboard() {
               );
             })()}
 
-            <div className="hero">
+            <div
+              className="hero"
+              style={{
+                background: `radial-gradient(circle at 15% 0%, ${isProfitable ? "rgba(0,229,160,.16)" : "rgba(244,63,94,.14)"}, transparent 55%), var(--surface)`,
+              }}
+            >
+              <div className="hero-glow" style={{ background: isProfitable ? "rgba(0,229,160,.10)" : "rgba(244,63,94,.10)" }} />
               <div className="hero-label">Total Portfolio Value</div>
               <div
                 className="hero-value"
@@ -1589,7 +1596,7 @@ export default function Dashboard() {
                               ...(h.isShort ? {borderLeft:'2px solid rgba(251,146,60,.4)',background:'rgba(251,146,60,.04)'} : h.marginBorrowed>0 ? {borderLeft:'2px solid rgba(96,165,250,.4)',background:'rgba(96,165,250,.04)'} : {}),
                               ...(isExpanded ? {borderBottomLeftRadius:0,borderBottomRightRadius:0,borderBottom:'1px solid var(--border)'} : {}),
                             }}>
-                            <div className="coin-icon" style={{ background: 'transparent', padding: 0 }}>
+                            <div className="coin-icon" style={{ background: 'transparent', padding: 0, borderRadius: '50%', boxShadow: `0 0 0 2px ${h.plPct >= 0 ? "rgba(0,229,160,.35)" : "rgba(244,63,94,.3)"}` }}>
                               <CoinLogo symbol={h.ticker} size={32} />
                             </div>
                             <div>
