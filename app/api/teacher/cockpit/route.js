@@ -80,10 +80,14 @@ export async function GET(request) {
     const cacheAgeMin   = stalest ? Math.floor((Date.now() - new Date(stalest.updated_at).getTime()) / 60000) : 999;
     const priceCacheCount = (allPricesRes.data || []).length;
 
-    const msThisMonth   = now.getTime() - monthStart.getTime();
-    const cronRunsMonth = Math.floor(msThisMonth / (30 * 60 * 1000));
-    const apiCallsMonth = cronRunsMonth + (tradesMonthRes.count || 0);
-    const GECKO_LIMIT   = 10000;
+    // Real counts (bumped in lib/prices.js at the actual call sites), not an
+    // estimate — CoinGecko is only actually hit by the shared 30-min gate
+    // (cron ticks that find a stale cache, or a trade falling back when
+    // FreeCryptoAPI fails), and FreeCryptoAPI is hit by student trades.
+    const monthKey = now.toISOString().slice(0, 7);
+    const coingeckoCallsMonth  = parseInt(cfg[`API_CALLS_COINGECKO_${monthKey}`]  || '0', 10) || 0;
+    const freecryptoCallsMonth = parseInt(cfg[`API_CALLS_FREECRYPTO_${monthKey}`] || '0', 10) || 0;
+    const GECKO_LIMIT = 10000;
 
     const flashSaleActive = !!cfg.FLASH_SALE_COIN && new Date(cfg.FLASH_SALE_UNTIL || 0) > now;
 
@@ -125,9 +129,8 @@ export async function GET(request) {
         cacheAgeMinutes: cacheAgeMin,
         stalestSymbol:   stalest?.symbol || null,
         cachedSymbols:   priceCacheCount,
-        callsThisMonth:  apiCallsMonth,
-        callsLimit:      GECKO_LIMIT,
-        cronRunsMonth,
+        coingecko: { callsThisMonth: coingeckoCallsMonth, callsLimit: GECKO_LIMIT },
+        freecrypto: { callsThisMonth: freecryptoCallsMonth },
       },
       orders: { pending: pendingOrdersRes.count || 0 },
       fetchedAt: now.toISOString(),

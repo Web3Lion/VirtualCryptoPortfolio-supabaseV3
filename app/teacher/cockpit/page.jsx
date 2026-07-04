@@ -289,7 +289,7 @@ export default function TeacherCockpit() {
 
   const { features, trades, students, portfolio, api, orders, classes } = data;
   const isHealthy  = api.cacheAgeMinutes < 35;
-  const apiUsagePct = api.callsThisMonth / api.callsLimit;
+  const apiUsagePct = api.coingecko.callsThisMonth / api.coingecko.callsLimit;
   const cacheStatus = api.cacheAgeMinutes < 5 ? 'LIVE' : api.cacheAgeMinutes < 35 ? 'OK' : 'STALE';
   const simState = features.paused ? 'PAUSED' : features.frozen ? 'FROZEN' : 'RUNNING';
   const simColor = features.paused ? '#f59e0b' : features.frozen ? '#ef4444' : '#22c55e';
@@ -404,15 +404,16 @@ export default function TeacherCockpit() {
 
             <div className="divider" />
 
-            <div className="grid-2">
-              <LcdCell label="API Calls / Mo" value={fmtNum(api.callsThisMonth)} accent={apiUsagePct > 0.8 ? '#ef4444' : '#f59e0b'} sub={`of ${fmtNum(api.callsLimit)} limit`} />
+            <div className="grid-3">
+              <LcdCell label="CoinGecko / Mo" value={fmtNum(api.coingecko.callsThisMonth)} accent={apiUsagePct > 0.8 ? '#ef4444' : '#f59e0b'} sub={`of ${fmtNum(api.coingecko.callsLimit)} limit`} />
+              <LcdCell label="FreeCrypto / Mo" value={fmtNum(api.freecrypto.callsThisMonth)} accent="#a78bfa" sub="student trades" />
               <LcdCell label="Pending Orders" value={orders.pending} accent={orders.pending > 0 ? '#00e5a0' : '#374151'} />
             </div>
 
             <div className="divider" />
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <BarMeter label="API Usage" value={api.callsThisMonth} max={api.callsLimit} color="#f59e0b" formatVal={fmtNum} />
+              <BarMeter label="CoinGecko Usage" value={api.coingecko.callsThisMonth} max={api.coingecko.callsLimit} color="#f59e0b" formatVal={fmtNum} />
               <BarMeter label="Student Activity" value={students.activeToday} max={students.total} color="#22c55e" />
               <BarMeter label="Price Cache Freshness" value={Math.max(0, 60 - api.cacheAgeMinutes)} max={60} color="#60a5fa" formatVal={v => `${v}min`} />
             </div>
@@ -421,10 +422,10 @@ export default function TeacherCockpit() {
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ fontSize: 9, color: '#374151', letterSpacing: '0.15em', fontFamily: "'DM Mono',monospace" }}>
-                CRON RUNS THIS MONTH
+                COINGECKO REFRESHES THIS MONTH
               </div>
               <div style={{ fontSize: 12, color: '#4b5563', fontFamily: "'DM Mono',monospace", fontWeight: 600 }}>
-                {fmtNum(api.cronRunsMonth)} <span style={{ fontSize: 9, color: '#374151' }}>× price refresh</span>
+                {fmtNum(api.coingecko.callsThisMonth)} <span style={{ fontSize: 9, color: '#374151' }}>× bulk price refresh</span>
               </div>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -512,7 +513,7 @@ export default function TeacherCockpit() {
               <div style={{ fontSize: 8, color: '#374151', letterSpacing: '0.15em', marginBottom: 4, fontFamily: "'DM Mono',monospace" }}>HEALTH</div>
               <div style={{ display: 'flex', gap: 12 }}>
                 <Light label="Price Feed" on={isHealthy} color="#22c55e" sublabel={isHealthy ? 'nominal' : 'stale!'} />
-                <Light label="Cron Active" on={api.cronRunsMonth > 0} color="#22c55e" sublabel={`${api.cronRunsMonth} runs`} />
+                <Light label="FreeCryptoAPI" on={api.freecrypto.callsThisMonth > 0} color="#a78bfa" sublabel={`${fmtNum(api.freecrypto.callsThisMonth)} calls`} />
               </div>
             </div>
           </div>
