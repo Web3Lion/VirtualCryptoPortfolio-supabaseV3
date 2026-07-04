@@ -72,10 +72,11 @@ export async function POST(request) {
   }
 
   if (type === 'lesson') {
-    const { moduleId, title, description, tokensReward, passThreshold, questionsToShow, orderIndex } = body;
+    const { moduleId, title, emoji, description, tokensReward, passThreshold, questionsToShow, orderIndex } = body;
     const { data, error } = await db.from('learn_lessons').insert({
       module_id: moduleId,
       title,
+      emoji: emoji || '📚',
       description: description || null,
       tokens_reward: tokensReward ?? 25,
       pass_threshold: passThreshold ?? 75,
@@ -147,9 +148,10 @@ export async function PUT(request) {
   }
 
   if (type === 'lesson') {
-    const { title, description, tokensReward, passThreshold, questionsToShow, orderIndex, isPublished } = body;
+    const { title, emoji, description, tokensReward, passThreshold, questionsToShow, orderIndex, isPublished } = body;
     const updates = {};
     if (title !== undefined) updates.title = title;
+    if (emoji !== undefined) updates.emoji = emoji;
     if (description !== undefined) updates.description = description;
     if (tokensReward !== undefined) updates.tokens_reward = tokensReward;
     if (passThreshold !== undefined) updates.pass_threshold = passThreshold;

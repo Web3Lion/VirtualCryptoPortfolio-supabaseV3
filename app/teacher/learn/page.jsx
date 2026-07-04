@@ -45,7 +45,7 @@ export default function TeacherLearn() {
 
   // Create lesson form
   const [showNewLesson, setShowNewLesson] = useState(null); // moduleId
-  const [newLesson, setNewLesson] = useState({ title: "", description: "", tokensReward: 25, passThreshold: 75, questionsToShow: 4 });
+  const [newLesson, setNewLesson] = useState({ title: "", emoji: "📚", description: "", tokensReward: 25, passThreshold: 75, questionsToShow: 4 });
 
   // Create question form
   const [showNewQuestion, setShowNewQuestion] = useState(null); // lessonId
@@ -294,7 +294,7 @@ export default function TeacherLearn() {
     });
     flash("Lesson created");
     setShowNewLesson(null);
-    setNewLesson({ title: "", description: "", tokensReward: 25, passThreshold: 75, questionsToShow: 4 });
+    setNewLesson({ title: "", emoji: "📚", description: "", tokensReward: 25, passThreshold: 75, questionsToShow: 4 });
     fetchModules();
     setSaving(false);
   };
@@ -605,7 +605,7 @@ export default function TeacherLearn() {
                 <div className="lesson-row">
                   <div style={{ flex: 1, cursor: "pointer" }} onClick={() => toggleLesson(lesson.id)}>
                     <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>
-                      {expandedLesson === lesson.id ? "▾" : "▸"} {lesson.title}
+                      {expandedLesson === lesson.id ? "▾" : "▸"} {lesson.emoji || "📚"} {lesson.title}
                     </div>
                     {lesson.description && <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>{lesson.description}</div>}
                   </div>
@@ -782,7 +782,10 @@ export default function TeacherLearn() {
               <div style={{ background: "var(--surface2)", borderRadius: 12, padding: 14, marginTop: 12, border: "1px solid rgba(0,229,160,.2)" }}>
                 <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 13, marginBottom: 10 }}>New Lesson</div>
                 <div style={{ display: "grid", gap: 8 }}>
-                  <input value={newLesson.title} onChange={e => setNewLesson(l => ({ ...l, title: e.target.value }))} placeholder="Lesson title" />
+                  <div style={{ display: "grid", gridTemplateColumns: "60px 1fr", gap: 10 }}>
+                    <input value={newLesson.emoji} onChange={e => setNewLesson(l => ({ ...l, emoji: e.target.value }))} placeholder="📚" />
+                    <input value={newLesson.title} onChange={e => setNewLesson(l => ({ ...l, title: e.target.value }))} placeholder="Lesson title" />
+                  </div>
                   <input value={newLesson.description} onChange={e => setNewLesson(l => ({ ...l, description: e.target.value }))} placeholder="Description (optional)" />
                   <div className="form-grid">
                     <div>

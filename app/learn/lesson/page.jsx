@@ -286,7 +286,7 @@ function LessonPage() {
         ) : (
           <>
             <div style={{ marginBottom: 20 }}>
-              <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 26, letterSpacing: -0.5 }}>{lesson?.title}</div>
+              <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 26, letterSpacing: -0.5 }}>{lesson?.emoji || "📚"} {lesson?.title}</div>
               {lesson?.description && <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>{lesson.description}</div>}
               <div style={{ display: "flex", gap: 12, marginTop: 10, flexWrap: "wrap" }}>
                 {lesson?.tokens_reward > 0 && (

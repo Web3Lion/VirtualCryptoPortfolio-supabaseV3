@@ -183,7 +183,7 @@ export default function Learn() {
                             >
                               <div className="status-dot" style={{ background: dotColor }} />
                               <div style={{ flex: 1 }}>
-                                <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{lesson.title}</div>
+                                <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{lesson.emoji || "📚"} {lesson.title}</div>
                                 {lesson.description && <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 2 }}>{lesson.description}</div>}
                               </div>
                               <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>

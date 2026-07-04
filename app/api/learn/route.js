@@ -31,7 +31,7 @@ export async function GET(request) {
   // Fetch lessons for each module
   const moduleIds = (modules || []).map(m => m.id);
   const { data: lessons } = moduleIds.length
-    ? await db.from('learn_lessons').select('id, module_id, title, description, order_index, tokens_reward, pass_threshold, questions_to_show, is_published').in('module_id', moduleIds).eq('is_published', true).order('order_index')
+    ? await db.from('learn_lessons').select('id, module_id, title, emoji, description, order_index, tokens_reward, pass_threshold, questions_to_show, is_published').in('module_id', moduleIds).eq('is_published', true).order('order_index')
     : { data: [] };
 
   // Fetch student attempts

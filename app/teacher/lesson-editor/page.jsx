@@ -332,7 +332,7 @@ function LessonEditorInner() {
             <label style={labelStyle}>Lesson</label>
             <select style={inputStyle} value={selectedLesson} onChange={e => setSelectedLesson(e.target.value)} disabled={!selectedMod}>
               <option value="">— Choose a lesson —</option>
-              {(activeMod?.lessons || []).map(l => <option key={l.id} value={l.id}>{l.title}{!l.is_published ? ' (unpublished)' : ''}</option>)}
+              {(activeMod?.lessons || []).map(l => <option key={l.id} value={l.id}>{l.emoji || '📚'} {l.title}{!l.is_published ? ' (unpublished)' : ''}</option>)}
             </select>
           </div>
         </div>
@@ -350,9 +350,15 @@ function LessonEditorInner() {
             <div style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:18, padding:20, marginBottom:20 }}>
               <div style={sectionHead}>Lesson Settings</div>
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, marginBottom:14 }}>
-                <div style={{ gridColumn:'1/-1' }}>
-                  <label style={labelStyle}>Title</label>
-                  <input style={inputStyle} value={lessonData.title} onChange={e => updLesson({ title: e.target.value })} />
+                <div style={{ gridColumn:'1/-1', display:'grid', gridTemplateColumns:'60px 1fr', gap:10 }}>
+                  <div>
+                    <label style={labelStyle}>Emoji</label>
+                    <input style={inputStyle} value={lessonData.emoji || ''} onChange={e => updLesson({ emoji: e.target.value })} placeholder="📚" />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Title</label>
+                    <input style={inputStyle} value={lessonData.title} onChange={e => updLesson({ title: e.target.value })} />
+                  </div>
                 </div>
                 <div style={{ gridColumn:'1/-1' }}>
                   <label style={labelStyle}>Description</label>

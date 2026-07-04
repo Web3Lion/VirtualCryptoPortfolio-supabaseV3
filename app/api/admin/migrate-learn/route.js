@@ -22,14 +22,18 @@ CREATE TABLE IF NOT EXISTS learn_lessons (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   module_id UUID NOT NULL,
   title TEXT NOT NULL,
+  emoji TEXT DEFAULT '📚',
   description TEXT,
   order_index INTEGER DEFAULT 0,
   tokens_reward INTEGER DEFAULT 25,
   pass_threshold INTEGER DEFAULT 75,
   questions_to_show INTEGER DEFAULT 4,
   is_published BOOLEAN DEFAULT true,
+  ai_tutor_enabled BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT now()
 );
+ALTER TABLE learn_lessons ADD COLUMN IF NOT EXISTS emoji TEXT DEFAULT '📚';
+ALTER TABLE learn_lessons ADD COLUMN IF NOT EXISTS ai_tutor_enabled BOOLEAN DEFAULT true;
 
 -- Content blocks: heading | subheading | text | video | article | divider
 CREATE TABLE IF NOT EXISTS learn_blocks (
@@ -188,6 +192,10 @@ export async function PATCH() {
 // Check if tables exist
 export async function GET() {
   const { data, error } = await db.from('learn_modules').select('id').limit(1);
+  if (!error) {
+    // Silently backfill columns added after initial table creation
+    await db.rpc('run_sql', { query: "ALTER TABLE learn_lessons ADD COLUMN IF NOT EXISTS emoji TEXT DEFAULT '📚'" }).catch(() => {});
+  }
   return Response.json({ ready: !error, sql: error ? SETUP_SQL : null });
 }
 
@@ -245,6 +253,7 @@ export async function POST(request) {
       if (existingLesson) {
         lessonId = existingLesson.id;
         await db.from('learn_lessons').update({
+          emoji: lesson.emoji || '📚',
           description: lesson.description || '',
           tokens_reward: lesson.tokens_reward ?? 25,
           pass_threshold: lesson.pass_threshold ?? 70,
@@ -257,6 +266,7 @@ export async function POST(request) {
         const { data: newLesson, error: lErr } = await db.from('learn_lessons').insert({
           module_id: modId,
           title: lesson.title,
+          emoji: lesson.emoji || '📚',
           description: lesson.description || '',
           order_index: nextOrder,
           tokens_reward: lesson.tokens_reward ?? 25,

@@ -50,6 +50,7 @@ async function buildModuleJSON(mod) {
 
     fullLessons.push({
       title: lesson.title,
+      emoji: lesson.emoji,
       description: lesson.description,
       order_index: lesson.order_index,
       tokens_reward: lesson.tokens_reward,

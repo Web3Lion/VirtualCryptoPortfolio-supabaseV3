@@ -347,6 +347,8 @@ export async function POST(request) {
       return Response.json({ error: 'Teacher only' }, { status: 403 });
     }
 
+    await db.rpc('run_sql', { query: "ALTER TABLE learn_lessons ADD COLUMN IF NOT EXISTS emoji TEXT DEFAULT '📚'" }).catch(() => {});
+
     const { classId } = await request.json().catch(() => ({}));
 
     let moduleId;
@@ -380,6 +382,7 @@ export async function POST(request) {
         lessonId = existingLesson.id;
         wasUpdate = true;
         await db.from('learn_lessons').update({
+          emoji: lesson.emoji,
           description: lesson.description,
           order_index: lesson.order_index,
           tokens_reward: lesson.tokens_reward,
@@ -394,6 +397,7 @@ export async function POST(request) {
         const { data: newLesson, error: lessonErr } = await db.from('learn_lessons').insert({
           module_id: moduleId,
           title: lesson.title,
+          emoji: lesson.emoji,
           description: lesson.description,
           order_index: lesson.order_index,
           tokens_reward: lesson.tokens_reward,

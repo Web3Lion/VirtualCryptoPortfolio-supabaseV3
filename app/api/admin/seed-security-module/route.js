@@ -304,6 +304,7 @@ export async function POST(request) {
     if (session?.user?.email?.toLowerCase() !== TEACHER_EMAIL?.toLowerCase()) {
       return Response.json({ error: 'Teacher only' }, { status: 403 });
     }
+    await db.rpc('run_sql', { query: "ALTER TABLE learn_lessons ADD COLUMN IF NOT EXISTS emoji TEXT DEFAULT '📚'" }).catch(() => {});
     const { classId } = await request.json().catch(() => ({}));
     let moduleId;
     const { data: existingMod } = await db.from('learn_modules').select('id').eq('title', MODULE.title).limit(1).single();
@@ -320,14 +321,14 @@ export async function POST(request) {
       let lessonId, wasUpdate = false;
       if (existingLesson) {
         lessonId = existingLesson.id; wasUpdate = true;
-        await db.from('learn_lessons').update({ description: lesson.description, order_index: lesson.order_index, tokens_reward: lesson.tokens_reward, pass_threshold: lesson.pass_threshold }).eq('id', lessonId);
+        await db.from('learn_lessons').update({ emoji: lesson.emoji, description: lesson.description, order_index: lesson.order_index, tokens_reward: lesson.tokens_reward, pass_threshold: lesson.pass_threshold }).eq('id', lessonId);
         await db.from('learn_blocks').delete().eq('lesson_id', lessonId);
         const { data: oldQs } = await db.from('learn_questions').select('id').eq('lesson_id', lessonId);
         const oldQIds = (oldQs || []).map(q => q.id);
         if (oldQIds.length) await db.from('learn_options').delete().in('question_id', oldQIds);
         await db.from('learn_questions').delete().eq('lesson_id', lessonId);
       } else {
-        const { data: newLesson, error: lessonErr } = await db.from('learn_lessons').insert({ module_id: moduleId, title: lesson.title, description: lesson.description, order_index: lesson.order_index, tokens_reward: lesson.tokens_reward, pass_threshold: lesson.pass_threshold, questions_to_show: 5, is_published: true, ai_tutor_enabled: true }).select('id').single();
+        const { data: newLesson, error: lessonErr } = await db.from('learn_lessons').insert({ module_id: moduleId, title: lesson.title, emoji: lesson.emoji, description: lesson.description, order_index: lesson.order_index, tokens_reward: lesson.tokens_reward, pass_threshold: lesson.pass_threshold, questions_to_show: 5, is_published: true, ai_tutor_enabled: true }).select('id').single();
         if (lessonErr) { results.push({ lesson: lesson.title, status: 'error', error: lessonErr.message }); continue; }
         lessonId = newLesson.id;
       }
