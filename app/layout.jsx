@@ -1,4 +1,5 @@
 import { SessionProvider } from './SessionProvider';
+import LicenseFooter from '../components/LicenseFooter';
 import './globals.css';
 
 export const metadata = { title: 'CryptoClassroom', description: 'Virtual Crypto Trading Simulator' };
@@ -22,6 +23,7 @@ export default function RootLayout({ children }) {
       </head>
       <body>
         <SessionProvider>{children}</SessionProvider>
+        <LicenseFooter />
       </body>
     </html>
   );

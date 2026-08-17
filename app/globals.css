@@ -21,6 +21,14 @@ html[data-theme="sf"] {
 
 body { background: var(--bg); color: var(--text); font-family: "DM Mono", monospace; min-height: 100vh; }
 
+/* ── License footer (every page) ── */
+.cc-license-footer{display:flex;flex-direction:column;align-items:center;gap:10px;padding:28px 20px 32px;margin-top:40px;border-top:1px solid var(--border,#1e293b);text-align:center}
+.cc-license-badge{display:inline-flex;opacity:.8;transition:opacity .2s}
+.cc-license-badge:hover{opacity:1}
+.cc-license-text{font-size:11px;color:var(--muted,#475569);max-width:520px;line-height:1.5}
+.cc-license-text a{color:var(--muted,#475569);text-decoration:underline}
+.cc-license-text a:hover{color:var(--accent,#00e5a0)}
+
 /* ── Nav (static so it renders before JS hydration) ── */
 .ccnav{display:flex;flex-direction:column;padding:14px 20px 12px;margin-bottom:28px;background:var(--surface,#0f172a);border:1px solid var(--border,#1e293b);border-radius:16px;position:relative;z-index:50;gap:0}
 .ccnav-row1{display:flex;align-items:center;justify-content:space-between;gap:12px}

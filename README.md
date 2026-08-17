@@ -1,5 +1,7 @@
 # CryptoClassroom
 
+[![License: CC BY-NC-SA 4.0](https://licensebuttons.net/l/by-nc-sa/4.0/88x31.png)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
+
 A classroom crypto-trading simulator. Students get a seeded virtual portfolio
 and trade real, live-priced coins against their classmates; teachers configure
 the market, content, and rules from a dedicated dashboard. Built with Next.js
@@ -157,3 +159,10 @@ npm run lint    # next lint
   system's own actions.
 - The teacher Cockpit page shows real (not estimated) CoinGecko and
   FreeCryptoAPI call counts for the current month.
+
+## License
+
+&copy; Web3Lion. Licensed under [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/).
+Educators may use and adapt this project for classroom use, with attribution
+and under the same license — commercial use or resale is prohibited. See
+[LICENSE](./LICENSE) for the full terms.
