@@ -1,7 +1,7 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { geminiUrl } from '@/lib/gemini';
+import { generateText } from '@/lib/gemini';
 
 const BUSY_MESSAGE = "The AI assistant is busy assisting others and will be back tomorrow.";
 
@@ -25,24 +25,7 @@ async function getTodayUsage(studentId, classId) {
 }
 
 async function callGemini(prompt, apiKey) {
-  const res = await fetch(
-    geminiUrl(apiKey),
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { maxOutputTokens: 400, temperature: 0.6 },
-      }),
-    }
-  );
-  if (!res.ok) {
-    if (res.status === 429) throw new Error('Rate limited — the free Gemini tier allows ~15 requests/min. Wait a moment and try again.');
-    const errText = await res.text().catch(() => '');
-    throw new Error(`Gemini ${res.status}: ${errText.slice(0, 120)}`);
-  }
-  const data = await res.json();
-  return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+  return generateText(apiKey, prompt, { maxOutputTokens: 400, temperature: 0.6 });
 }
 
 function parseJsonFromAI(text) {

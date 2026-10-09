@@ -1,7 +1,7 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { geminiUrl } from '@/lib/gemini';
+import { generateText } from '@/lib/gemini';
 
 export async function POST(request) {
   try {
@@ -60,25 +60,12 @@ Rules:
 - Language must be appropriate for high school students
 - Vary correctIndex — don't always make it 0`;
 
-    const res = await fetch(
-      geminiUrl(geminiKey),
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { maxOutputTokens: 2000, temperature: 0.7 },
-        }),
-      }
-    );
-
-    if (!res.ok) {
-      const err = await res.text().catch(() => '');
-      return Response.json({ error: `Gemini error ${res.status}: ${err.slice(0, 100)}` }, { status: 502 });
+    let raw;
+    try {
+      raw = await generateText(geminiKey, prompt, { maxOutputTokens: 2000, temperature: 0.7 });
+    } catch (e) {
+      return Response.json({ error: e.message }, { status: 502 });
     }
-
-    const data = await res.json();
-    const raw = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
 
     // Strip markdown code fences if present
     const clean = raw.replace(/^```json?\s*/i, '').replace(/\s*```\s*$/, '').trim();

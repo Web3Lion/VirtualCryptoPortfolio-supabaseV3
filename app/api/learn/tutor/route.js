@@ -2,7 +2,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { getStudentByEmail } from '@/lib/students';
 import { db } from '@/lib/db';
-import { geminiUrl } from '@/lib/gemini';
+import { generateText } from '@/lib/gemini';
 
 export async function POST(request) {
   try {
@@ -62,26 +62,13 @@ export async function POST(request) {
       `Answer in 2-4 sentences. Be clear, use simple language appropriate for high school, and relate your answer to the lesson content where possible. Never mention the source text directly — just answer naturally.`,
     ].join('\n');
 
-    const res = await fetch(
-      geminiUrl(geminiKey),
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { maxOutputTokens: 220, temperature: 0.5 },
-        }),
-      }
-    );
-
-    if (!res.ok) {
-      if (res.status === 429) return Response.json({ error: 'Rate limited — wait a moment and try again.' }, { status: 429 });
-      const err = await res.text().catch(() => '');
-      return Response.json({ error: `AI error ${res.status}: ${err.slice(0, 100)}` }, { status: 502 });
+    let answer;
+    try {
+      answer = await generateText(geminiKey, prompt, { maxOutputTokens: 220, temperature: 0.5 });
+    } catch (e) {
+      return Response.json({ error: e.message }, { status: e.status === 429 ? 429 : 502 });
     }
-
-    const data = await res.json();
-    const answer = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || 'Sorry, I could not generate an answer.';
+    if (!answer) answer = 'Sorry, I could not generate an answer.';
     return Response.json({ answer });
   } catch (err) {
     return Response.json({ error: `Unexpected error: ${err.message}` }, { status: 500 });
