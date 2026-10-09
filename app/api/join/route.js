@@ -1,3 +1,5 @@
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
 
 export async function GET(request) {
@@ -13,8 +15,12 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
-  const { token, email } = await request.json();
-  if (!token || !email) return Response.json({ error: 'Token and email required' }, { status: 400 });
+  // Trust only the signed-in account, never an email from the request body.
+  const session = await getServerSession(authOptions);
+  const email = session?.user?.email;
+  if (!email) return Response.json({ error: 'Sign in first' }, { status: 401 });
+  const { token } = await request.json();
+  if (!token) return Response.json({ error: 'Token required' }, { status: 400 });
 
   const { data: inv } = await db.from('invitations').select('*, classes(id, seed_money)').eq('token', token).single();
   if (!inv) return Response.json({ error: 'Invalid invitation' }, { status: 404 });

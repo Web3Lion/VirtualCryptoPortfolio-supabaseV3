@@ -253,6 +253,16 @@ export default function Teacher() {
     setTimeout(()=>setActionMsg(null),4000);
   };
 
+  const regenerateJoinCode = async () => {
+    if (!activeClass) return;
+    if (activeClass.join_code && !confirm('Make a new class code? The old code will stop working (students already in the class stay in it).')) return;
+    const res = await fetch('/api/classes/code',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({classId:activeClass.id})});
+    const data = await res.json().catch(()=>({}));
+    if(res.ok){ setActionMsg({type:'success',msg:`✅ New class code: ${data.joinCode}`}); fetchData(activeClass.id); }
+    else setActionMsg({type:'error',msg:data.error||'Failed'});
+    setTimeout(()=>setActionMsg(null),4000);
+  };
+
   const addCoin = async (symbol) => {
     if (!symbol || !activeClass) return;
     const res = await fetch('/api/coins?source=coingecko');
@@ -1727,6 +1737,23 @@ CREATE TABLE IF NOT EXISTS student_ai_settings (
 
                 {activeSection==='students' && (
                   <>
+                    {studentsView==='class' && studentsSubView==='roster' && activeClass && (
+                      <div className="ctrl-card" style={{marginBottom:16}}>
+                        <div className="ctrl-title" style={{marginBottom:8}}>🔑 Class Code</div>
+                        {'join_code' in activeClass ? (
+                          <>
+                            <div style={{fontSize:11,color:'var(--muted)',marginBottom:12,lineHeight:1.6}}>Students sign in with their school Google account, then enter this code to join <b>{activeClass.name}</b>. No email entry needed.</div>
+                            <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
+                              <div style={{fontFamily:"'DM Mono',monospace",fontSize:28,fontWeight:600,letterSpacing:6,color:'var(--accent)',background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:12,padding:'8px 18px'}}>{activeClass.join_code||'——————'}</div>
+                              {activeClass.join_code && <button className="btn btn-muted" onClick={()=>{navigator.clipboard?.writeText(activeClass.join_code);setActionMsg({type:'success',msg:'📋 Code copied'});setTimeout(()=>setActionMsg(null),2000);}}>📋 Copy</button>}
+                              <button className="btn btn-muted" onClick={regenerateJoinCode}>{activeClass.join_code?'🔄 New Code':'Generate Code'}</button>
+                            </div>
+                          </>
+                        ) : (
+                          <div style={{fontSize:11,color:'var(--muted)',lineHeight:1.6}}>Class codes need a database update: run the latest <code>schema.sql</code> in the Supabase SQL Editor, then refresh.</div>
+                        )}
+                      </div>
+                    )}
                     {studentsView==='class' && studentsSubView==='roster' && (
                       <div className="ctrl-card" style={{marginBottom:16}}>
                         <div className="ctrl-title" style={{marginBottom:12}}>➕ Add Student</div>

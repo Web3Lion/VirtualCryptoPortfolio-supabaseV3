@@ -25,6 +25,9 @@ CREATE TABLE IF NOT EXISTS classes (
   created_at timestamptz DEFAULT now()
 );
 
+-- Code students enter to enroll themselves (safe to re-run on older deployments)
+ALTER TABLE classes ADD COLUMN IF NOT EXISTS join_code text UNIQUE;
+
 CREATE TABLE IF NOT EXISTS class_students (
   class_id   uuid REFERENCES classes(id)  ON DELETE CASCADE,
   student_id uuid REFERENCES students(id) ON DELETE CASCADE,

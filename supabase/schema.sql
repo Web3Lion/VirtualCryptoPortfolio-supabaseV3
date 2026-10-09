@@ -13,6 +13,7 @@ create table if not exists classes (
   seed_money    numeric(14,4) not null default 10000,
   trade_fee     numeric(8,6) not null default 0.005,
   is_active     boolean default true,
+  join_code     text unique,
   created_at    timestamptz default now()
 );
 
@@ -360,6 +361,10 @@ create index if not exists idx_learn_attempts_student    on learn_attempts(stude
 -- ============================================================
 -- ALTER TABLE migrations — safe to run on existing deployments
 -- ============================================================
+
+-- Add join_code to classes if missing (students self-enroll with it)
+alter table classes
+  add column if not exists join_code text unique;
 
 -- Add lesson_reward_tokens to class_reward_config if missing
 alter table class_reward_config

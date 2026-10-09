@@ -3,6 +3,7 @@ import { authOptions } from '@/lib/auth';
 import { setConfig, setConfigs, getAllConfig } from '@/lib/db';
 import { getAllStudents } from '@/lib/students';
 import { db } from '@/lib/db';
+import { enrollStudent } from '@/lib/enroll';
 const TEACHER_EMAIL = process.env.TEACHER_EMAIL;
 
 export async function POST(request, { params }) {
@@ -94,17 +95,13 @@ export async function POST(request, { params }) {
       return Response.json({ success: true, message: '🗑 Cleared' });
     case 'add-student': {
       if (!body.name || !body.email || !body.classId) return Response.json({ error: 'name, email, classId required' }, { status: 400 });
-      const { data: cls } = await db.from('classes').select('seed_money').eq('id', body.classId).single();
-      let student;
-      const { data: existing } = await db.from('students').select('*').eq('email', body.email.toLowerCase()).single();
-      if (existing) { student = existing; }
-      else {
-        const { data: ns } = await db.from('students').insert({ name: body.name, email: body.email.toLowerCase() }).select().single();
-        student = ns;
+      try {
+        const { studentId } = await enrollStudent({ name: body.name, email: body.email, classId: body.classId });
+        const { data: student } = await db.from('students').select('*').eq('id', studentId).single();
+        return Response.json({ success: true, message: `✅ ${body.name} added`, student });
+      } catch (e) {
+        return Response.json({ error: e.message }, { status: 500 });
       }
-      await db.from('class_students').upsert({ class_id: body.classId, student_id: student.id }, { onConflict: 'class_id,student_id' });
-      await db.from('portfolios').upsert({ student_id: student.id, class_id: body.classId, cash: parseFloat(cls?.seed_money || 10000), fees_paid: 0 }, { onConflict: 'student_id,class_id' });
-      return Response.json({ success: true, message: `✅ ${body.name} added`, student });
     }
     case 'remove-student':
       if (!body.studentId || !body.classId) return Response.json({ error: 'studentId and classId required' }, { status: 400 });

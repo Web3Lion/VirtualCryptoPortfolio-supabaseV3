@@ -20,7 +20,7 @@ the market, content, and rules from a dedicated dashboard. Built with Next.js
 - AI Portfolio Review & AI Trade Coach (Gemini-powered)
 
 **Teacher-facing**
-- Class & student roster management, invite links
+- Class & student roster management, class join codes (students self-enroll)
 - Market controls: freeze/pause, bull run & flash sale events, trading hours,
   daily trade limits, margin/leverage/short toggles
 - Content authoring: lesson editor, quiz generator, gradebook, assignments

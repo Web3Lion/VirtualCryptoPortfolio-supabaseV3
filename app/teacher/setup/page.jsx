@@ -238,8 +238,14 @@ export default function ClassSetup() {
           <div className="card">
             <div className="card-title">👥 Add Students</div>
 
+            {createdClass?.join_code && (
+              <div className="info-box">
+                <strong>Easiest: share the class code</strong> <strong style={{ color: "var(--accent)", fontSize: 16, letterSpacing: 3 }}>{createdClass.join_code}</strong><br/>
+                Students sign in with their school Google account and enter it to join. You can skip this step entirely.
+              </div>
+            )}
             <div className="info-box">
-              <strong>Students are registered instantly</strong> — no invitation email needed!<br/>
+              <strong>Or register students yourself</strong> — no invitation email needed!<br/>
               Enter each student's <strong>Google login email</strong> (Gmail or school Google account).<br/>
               They just go to the app URL and click <strong>Sign in with Google</strong>.
             </div>
@@ -311,7 +317,11 @@ export default function ClassSetup() {
             <div style={{ background: "rgba(0,229,160,.08)", border: "1px solid rgba(0,229,160,.2)", borderRadius: 12, padding: "14px 20px", marginBottom: 28, fontSize: 12, color: "var(--text)" }}>
               📋 Share this URL with your students:<br/>
               <strong style={{ color: "var(--accent)", fontSize: 14 }}>virtualcryptoportfolio-supabasev3.vercel.app</strong><br/>
-              <span style={{ fontSize: 11, color: "var(--muted)" }}>They click "Sign in with Google" using the email you registered</span>
+              <span style={{ fontSize: 11, color: "var(--muted)" }}>
+                {createdClass?.join_code
+                  ? <>They sign in with Google, then enter class code <strong style={{ color: "var(--accent)", letterSpacing: 2 }}>{createdClass.join_code}</strong></>
+                  : 'They click "Sign in with Google" using the email you registered'}
+              </span>
             </div>
             <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
               <button className="btn btn-primary" onClick={() => router.push("/teacher")} style={{ fontSize: 13, padding: "12px 24px" }}>

@@ -6,6 +6,7 @@ import Link from "next/link";
 import Nav from "@/components/Nav";
 import BadgeToast from "@/components/BadgeToast";
 import CoinLogo from "@/components/CoinLogo";
+import JoinClassCard from "@/components/JoinClassCard";
 import GlossaryTerm from "@/components/GlossaryTerm";
 import { applyTheme, getTheme } from "@/lib/theme";
 
@@ -212,6 +213,7 @@ export default function Dashboard() {
   const router = useRouter();
   const [portfolio, setPortfolio] = useState(null);
   const [portfolioError, setPortfolioError] = useState(null);
+  const [needsClass, setNeedsClass] = useState(false);
   const [prices, setPrices] = useState({});
   const [history, setHistory] = useState({ intraday: [], daily: [], intradayAvg: [], dailyAvg: [] });
   const [showBenchmark, setShowBenchmark] = useState(false);
@@ -357,6 +359,7 @@ export default function Dashboard() {
       if (mRes.ok) setMarketStatus(await mRes.json());
       if (meRes.ok) {
         const me = await meRes.json();
+        setNeedsClass(!me?.isTeacher && !me?.classes?.length);
         setClassId(me?.classes?.[0]?.id);
         if (me?.classes?.[0]?.seed_money) setSeedMoney(me.classes[0].seed_money);
         if (me?.classes?.[0]?.id) {
@@ -574,6 +577,14 @@ export default function Dashboard() {
       >
         Loading...
       </div>
+    );
+
+  if (needsClass)
+    return (
+      <JoinClassCard
+        email={session?.user?.email}
+        onJoined={() => window.location.reload()}
+      />
     );
 
   const executeTrade = async () => {
