@@ -15,6 +15,7 @@ export async function GET() {
     marginEnabled:   cfg.MARGIN_ENABLED === '1',
     marginMult:      parseInt(cfg.MARGIN_MULTIPLIER) || 2,
     shortEnabled:    cfg.SHORT_SELLING_ENABLED === '1',
+    allowOutsideDomains: cfg.ALLOW_OUTSIDE_DOMAINS === '1',
   });
 }
 export async function POST(request) {
@@ -30,6 +31,7 @@ export async function POST(request) {
   if (body.marginEnabled     !== undefined) updates.MARGIN_ENABLED      = body.marginEnabled     ? '1' : '0';
   if (body.marginMult        !== undefined) updates.MARGIN_MULTIPLIER   = body.marginMult;
   if (body.shortEnabled      !== undefined) updates.SHORT_SELLING_ENABLED = body.shortEnabled    ? '1' : '0';
+  if (body.allowOutsideDomains !== undefined) updates.ALLOW_OUTSIDE_DOMAINS = body.allowOutsideDomains ? '1' : '0';
   await setConfigs(updates);
   return Response.json({ success: true, message: '✓ Settings saved' });
 }

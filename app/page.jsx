@@ -1,6 +1,6 @@
 "use client";
 import { signIn, useSession } from "next-auth/react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 const TICKER_ITEMS = [
@@ -29,9 +29,29 @@ export default function Home() {
   const { data: session, status } = useSession();
   const router = useRouter();
 
+  const [classCode, setClassCode] = useState("");
+  const [authError, setAuthError] = useState(null);
+
   useEffect(() => {
     if (status === "authenticated") router.replace("/dashboard");
   }, [status, router]);
+
+  useEffect(() => {
+    const err = new URLSearchParams(window.location.search).get("error");
+    if (err === "BadClassCode") setAuthError("That class code wasn't found. Check it with your teacher and try again.");
+    else if (err === "OutsideDomain") setAuthError("Class codes only work with a school Google account right now. Sign in with your school account or ask your teacher.");
+    else if (err === "JoinFailed") setAuthError("Couldn't add you to that class. Try again or ask your teacher.");
+    else if (err === "AccessDenied") setAuthError("This account isn't in a class yet. Enter your class code above, then sign in.");
+  }, []);
+
+  const handleSignIn = () => {
+    const code = classCode.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+    // Read by the server's signIn callback after Google redirects back.
+    document.cookie = code
+      ? `join_code=${code}; path=/; max-age=600; samesite=lax`
+      : "join_code=; path=/; max-age=0";
+    signIn("google");
+  };
 
   return (
     <>
@@ -116,6 +136,10 @@ export default function Home() {
         .btn:hover{filter:brightness(1.08);transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,229,160,.35)}
         .btn:active{transform:translateY(0)}
         .google-icon{width:18px;height:18px;flex-shrink:0}
+        .code-input{width:100%;padding:13px;margin-bottom:10px;border-radius:14px;border:1px solid #1e293b;background:rgba(2,6,23,.6);color:#e2e8f0;font-family:'DM Mono',monospace;font-size:14px;letter-spacing:3px;text-align:center;outline:none}
+        .code-input::placeholder{letter-spacing:.5px;color:#475569;font-size:12px}
+        .code-input:focus{border-color:rgba(0,229,160,.5)}
+        .auth-error{background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.3);color:#f43f5e;border-radius:10px;padding:10px;font-size:11px;line-height:1.5;margin-bottom:10px}
 
         /* ── Divider ── */
         .divider{display:flex;align-items:center;gap:12px;margin:20px 0;color:#1e293b;font-size:10px;letter-spacing:1px}
@@ -169,7 +193,18 @@ export default function Home() {
           </div>
 
           {/* Sign-in */}
-          <button className="btn" onClick={() => signIn("google")}>
+          <input
+            className="code-input"
+            value={classCode}
+            onChange={(e) => setClassCode(e.target.value.toUpperCase())}
+            onKeyDown={(e) => { if (e.key === "Enter") handleSignIn(); }}
+            placeholder="Class code (optional)"
+            aria-label="Class code"
+            maxLength={12}
+            autoComplete="off"
+          />
+          {authError && <div className="auth-error">{authError}</div>}
+          <button className="btn" onClick={handleSignIn}>
             <svg className="google-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
               <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>

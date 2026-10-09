@@ -40,6 +40,7 @@ export default function Teacher() {
   const [rewardSaving, setRewardSaving] = useState(false);
   const [tradeSettings, setTradeSettings] = useState({ marginEnabled: false, marginMult: 2, shortEnabled: false });
   const [tradeSettingsSaving, setTradeSettingsSaving] = useState(false);
+  const [allowOutsideDomains, setAllowOutsideDomains] = useState(false);
   const [schemaReady, setSchemaReady] = useState(true);
   const [migrating, setMigrating] = useState(false);
   const [ordersTableReady, setOrdersTableReady] = useState(true);
@@ -138,6 +139,7 @@ export default function Teacher() {
       if(settingsRes.ok) {
         const s = await settingsRes.json();
         setTradeSettings({ marginEnabled: s.marginEnabled||false, marginMult: s.marginMult||2, shortEnabled: s.shortEnabled||false });
+        setAllowOutsideDomains(!!s.allowOutsideDomains);
       }
       if(schemaRes.ok) {
         const sc = await schemaRes.json();
@@ -260,6 +262,14 @@ export default function Teacher() {
     const data = await res.json().catch(()=>({}));
     if(res.ok){ setActionMsg({type:'success',msg:`✅ New class code: ${data.joinCode}`}); fetchData(activeClass.id); }
     else setActionMsg({type:'error',msg:data.error||'Failed'});
+    setTimeout(()=>setActionMsg(null),4000);
+  };
+
+  const toggleOutsideDomains = async () => {
+    const next = !allowOutsideDomains;
+    const res = await fetch('/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({allowOutsideDomains:next})});
+    if(res.ok){ setAllowOutsideDomains(next); setActionMsg({type:'success',msg:next?'🌐 Outside accounts can join with a class code':'🔒 Only school accounts can join with a class code'}); }
+    else setActionMsg({type:'error',msg:'Failed to save'});
     setTimeout(()=>setActionMsg(null),4000);
   };
 
@@ -1747,6 +1757,13 @@ CREATE TABLE IF NOT EXISTS student_ai_settings (
                               <div style={{fontFamily:"'DM Mono',monospace",fontSize:28,fontWeight:600,letterSpacing:6,color:'var(--accent)',background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:12,padding:'8px 18px'}}>{activeClass.join_code||'——————'}</div>
                               {activeClass.join_code && <button className="btn btn-muted" onClick={()=>{navigator.clipboard?.writeText(activeClass.join_code);setActionMsg({type:'success',msg:'📋 Code copied'});setTimeout(()=>setActionMsg(null),2000);}}>📋 Copy</button>}
                               <button className="btn btn-muted" onClick={regenerateJoinCode}>{activeClass.join_code?'🔄 New Code':'Generate Code'}</button>
+                            </div>
+                            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,flexWrap:'wrap',marginTop:14,paddingTop:12,borderTop:'1px solid var(--border)'}}>
+                              <div style={{fontSize:11,color:'var(--muted)',lineHeight:1.6,flex:'1 1 240px'}}>
+                                <b style={{color:'var(--text)'}}>Allow accounts outside @southfayette.org / @lions.net</b><br/>
+                                When on, any Google account (e.g. testers on Gmail) can join with a class code. Applies to all classes.
+                              </div>
+                              <button className={`btn ${allowOutsideDomains?'btn-red':'btn-green'}`} onClick={toggleOutsideDomains}>{allowOutsideDomains?'🌐 On — Turn Off':'🔒 Off — Turn On'}</button>
                             </div>
                           </>
                         ) : (
