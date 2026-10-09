@@ -2,6 +2,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { getStudentByEmail } from '@/lib/students';
 import { db } from '@/lib/db';
+import { geminiUrl } from '@/lib/gemini';
 
 export async function POST(request) {
   try {
@@ -62,7 +63,7 @@ export async function POST(request) {
     ].join('\n');
 
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
+      geminiUrl(geminiKey),
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

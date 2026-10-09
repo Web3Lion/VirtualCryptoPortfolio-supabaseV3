@@ -1,6 +1,7 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { geminiUrl } from '@/lib/gemini';
 
 export async function POST(request) {
   try {
@@ -60,7 +61,7 @@ Rules:
 - Vary correctIndex — don't always make it 0`;
 
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
+      geminiUrl(geminiKey),
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
